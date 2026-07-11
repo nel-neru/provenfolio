@@ -1,5 +1,7 @@
 # Getting Started
 
+> 日本語版: [GETTING-STARTED.ja.md](GETTING-STARTED.ja.md)
+
 From clone to a live portfolio in under 45 minutes.
 
 ## Prerequisites (honest list)

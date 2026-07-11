@@ -1,5 +1,7 @@
 # The Analysis Pipeline
 
+> 日本語版: [PIPELINE.ja.md](PIPELINE.ja.md)
+
 ```
 [fetch/extract: scripts] → [intake: owner] → [enrich: agents] → [emit: script] → data/*.json → [site/exporters]
 ```

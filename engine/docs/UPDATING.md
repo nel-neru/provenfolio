@@ -1,5 +1,7 @@
 # Pulling Engine Updates
 
+> 日本語版: [UPDATING.ja.md](UPDATING.ja.md)
+
 Your purchase includes engine updates. Your `data/` never conflicts with them **by structure**: the distribution repo tracks no `data/` paths at all, so an engine merge cannot touch your data.
 
 ## One-time setup

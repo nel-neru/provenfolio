@@ -1,5 +1,7 @@
 # Provenfolio
 
+> English: [README.md](README.md)
+
 **あなたがコミットすると、ポートフォリオもコミットする。**
 *The portfolio that stays true without you touching it.*
 

@@ -1,5 +1,7 @@
 # The Data Contract
 
+> 日本語版: [DATA-CONTRACT.ja.md](DATA-CONTRACT.ja.md)
+
 Everything flows through validated JSON in `data/` — the single source of truth. Schemas live in `engine/schemas/` (Zod), imported by pipeline scripts (write-time), the Astro site (build-time, via content collections), Studio (form validation), and exporters. **One zod instance, pinned at the repo root to the major Astro vendors** — CI asserts the match.
 
 ## Files

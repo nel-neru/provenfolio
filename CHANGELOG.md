@@ -5,6 +5,7 @@ All notable changes to Provenfolio. Versioning follows the root `package.json` (
 ## [0.1.0] — Unreleased
 
 ### Changed
+- All user-facing docs now ship as EN+JA pairs (README + engine/docs), kept in sync by a hash-marker contract; Studio GUI strings moved to an en/ja dictionary keyed on `profile.sourceLang`; a new `check:i18n` CI guard fails on out-of-date translations or stray Japanese outside i18n files.
 - The distribution repo no longer tracks `data/`: a blank seed is bootstrapped on demand by `engine/scripts/ensure-data.ts` (wired into `npm run validate`, site dev/build, and Studio). `reset-data.ts` shares the same seed code.
 - `data-guard` CI is now a tracked-state check (zero `data/` paths allowed in the distribution repo); the `[seed]` escape hatch is gone.
 

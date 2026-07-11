@@ -1,5 +1,7 @@
 # Extending Sources — design notes
 
+> 日本語版: [EXTENDING-SOURCES.ja.md](EXTENDING-SOURCES.ja.md)
+
 Honest status: v1 ships **two** adapters — `github` (full: fetch/extract/enrich/emit) and `manual` (thin: intake → prose → `emit --manual`). The abstraction below is proven by exactly those two. Everything else here is design intent, written against the shipped schemas, not a promise.
 
 ## The adapter shape

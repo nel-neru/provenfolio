@@ -1,5 +1,7 @@
 # Customizing Your Site
 
+> 日本語版: [CUSTOMIZING.ja.md](CUSTOMIZING.ja.md)
+
 ## The customization contract
 
 **Edit here = safe forever** (engine updates never touch these paths):
