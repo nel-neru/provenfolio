@@ -4,6 +4,7 @@
   "type": "module",
   "version": "0.1.0",
   "scripts": {
+    "predev": "tsx ../engine/scripts/ensure-data.ts",
     "dev": "tsx server.ts"
   }
 }

@@ -13,7 +13,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "validate": "tsx engine/scripts/validate-data.ts",
+    "validate": "tsx engine/scripts/ensure-data.ts && tsx engine/scripts/validate-data.ts",
     "aggregate": "tsx engine/scripts/aggregate.ts",
     "refresh": "tsx engine/scripts/refresh.ts",
     "migrate": "tsx engine/scripts/migrate-data.ts",

@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-assets.mjs",
+    "predev": "tsx ../engine/scripts/ensure-data.ts && node scripts/copy-assets.mjs",
     "dev": "astro dev",
-    "prebuild": "node scripts/copy-assets.mjs && tsx ../engine/exporters/og-images/generate.ts",
+    "prebuild": "tsx ../engine/scripts/ensure-data.ts && node scripts/copy-assets.mjs && tsx ../engine/exporters/og-images/generate.ts",
     "build": "astro build",
     "preview": "astro preview",
     "sync": "astro sync"
