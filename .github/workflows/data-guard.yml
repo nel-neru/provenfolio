@@ -4,8 +4,11 @@
 # bootstrapped on demand by engine/scripts/ensure-data.ts (wired into
 # `npm run validate`), so nothing under data/ ever needs to be committed here —
 # not even for schema migrations (those change seed CODE, not tracked files).
-# This is a state check, not a diff check: it inspects what HEAD tracks, so it
-# has no bypass and survives any history shape.
+# This is a state check, not a diff check: it inspects what HEAD tracks and
+# runs on EVERY branch push, so there is no history shape it misses. It is
+# still a tripwire, not prevention — pushes land before CI runs. For real
+# prevention, enable a ruleset on main: require this check + restrict direct
+# pushes (repo Settings → Rules; not configurable from inside the repo).
 #
 # Runs ONLY on the canonical distribution repo (the `if:` below); owner
 # instances and buyer copies commit their own data/ freely and never trigger it.
@@ -13,7 +16,6 @@ name: data-guard
 
 on:
   push:
-    branches: [main]
   pull_request:
 
 jobs:

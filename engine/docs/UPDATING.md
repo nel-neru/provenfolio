@@ -4,8 +4,10 @@ Your purchase includes engine updates. Your `data/` never conflicts with them **
 
 ## One-time setup
 
+Skip this if you followed GETTING-STARTED's recommended flow — it already renamed your clone's origin to `engine`.
+
 ```bash
-git remote add engine <the-distribution-repo-url-you-were-given>
+git remote get-url engine || git remote add engine <the-distribution-repo-url-you-were-given>
 ```
 
 ## Update procedure

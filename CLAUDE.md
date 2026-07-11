@@ -54,3 +54,4 @@ Idempotency: `generated.contentHashes` detects human-edited prose (hash mismatch
 - Zod is pinned at the root to the major that Astro vendors — do not add another zod version to any workspace.
 - Buyer-safe customization surface: `site/src/theme.ts` + `site/src/overrides/` — engine updates must never touch these paths.
 - Screenshots live in `data/assets/screenshots/<projectId>/` and are referenced relatively from project JSON.
+- Dev working copies of the distribution repo (origin = nel-neru/provenfolio): add `data/` to `.git/info/exclude` (machine-local) right after cloning, and never stage `data/` there — ensure-data creates an untracked `data/` tree in every working copy, and CI `data-guard` is a tripwire, not prevention.

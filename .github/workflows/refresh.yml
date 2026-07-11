@@ -43,6 +43,13 @@ jobs:
 
       - name: Commit refreshed data
         run: |
+          # State gate, independent of the repo-name `if:` above: only repos
+          # that already track data/ (= instances) may commit it. Keeps the
+          # distribution repo data-less even after a rename/transfer.
+          if [ -z "$(git ls-files -- data/)" ]; then
+            echo "no tracked data/ in this repo (distribution repo?) — skipping commit"
+            exit 0
+          fi
           git config user.name "provenfolio-refresh[bot]"
           git config user.email "provenfolio-refresh@users.noreply.github.com"
           git add data/

@@ -9,6 +9,7 @@
     "prebuild": "tsx ../engine/scripts/ensure-data.ts && node scripts/copy-assets.mjs && tsx ../engine/exporters/og-images/generate.ts",
     "build": "astro build",
     "preview": "astro preview",
+    "presync": "tsx ../engine/scripts/ensure-data.ts",
     "sync": "astro sync"
   },
   "dependencies": {
