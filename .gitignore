@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# transient analysis workspace (clones, raw stats, agent findings)
+workspace/
+
+# build outputs
+site/dist/
+site/.astro/
+studio/dist/
+
+# machine-local
+.claude/settings.local.json
+CLAUDE.local.md
+.env
+.env.*
+*.local
+
+# backup artifacts
+*.bak
+
+# OS noise
+Thumbs.db
+.DS_Store
+site/public/assets/
+site/public/og/

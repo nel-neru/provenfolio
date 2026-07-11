@@ -1,0 +1,105 @@
+---
+/**
+ * Language composition — one horizontal stacked bar (rounded, 12px tall)
+ * plus legend chips. Pure server-rendered SVG, zero JS. Colors are assigned
+ * in fixed order --viz-4, --viz-3, --viz-2, --viz-1, --accent (largest share
+ * gets the brightest ramp step); more than 5 languages fold the tail into
+ * "Other" so a hue is never reused. Density-gated upstream by showLanguages().
+ */
+interface Props {
+  languages: Array<{ name: string; pct: number }>;
+}
+
+const { languages } = Astro.props;
+
+const COLORS = ["var(--viz-4)", "var(--viz-3)", "var(--viz-2)", "var(--viz-1)", "var(--accent)"];
+const MAX_SEGMENTS = COLORS.length;
+
+let items = [...languages].filter((l) => l.pct > 0).sort((a, b) => b.pct - a.pct);
+if (items.length > MAX_SEGMENTS) {
+  const head = items.slice(0, MAX_SEGMENTS - 1);
+  const tail = items.slice(MAX_SEGMENTS - 1);
+  const tailPct = Math.round(tail.reduce((s, l) => s + l.pct, 0) * 10) / 10;
+  items = [...head, { name: "Other", pct: tailPct }];
+}
+
+// Normalize to the shown total so the bar always fills 0–100 viewBox units.
+const total = items.reduce((s, l) => s + l.pct, 0) || 1;
+const GAP = 0.35; // ≈2px surface gap between segments at typical card width
+let cursor = 0;
+const segments = items.map((l, i) => {
+  const w = (l.pct / total) * 100;
+  const seg = {
+    x: cursor,
+    w: i === items.length - 1 ? Math.max(100 - cursor, 0.2) : Math.max(w - GAP, 0.2),
+    color: COLORS[i],
+    label: `${l.name}: ${l.pct}%`,
+  };
+  cursor += w;
+  return seg;
+});
+
+const ariaLabel = items.map((l) => `${l.name} ${l.pct}%`).join(", ");
+---
+
+{
+  items.length > 0 && (
+    <div class="langbars">
+      <svg viewBox="0 0 100 12" preserveAspectRatio="none" role="img" aria-label={ariaLabel}>
+        <title>{ariaLabel}</title>
+        {segments.map((s) => (
+          <rect x={s.x} y="0" width={s.w} height="12" fill={s.color}>
+            <title>{s.label}</title>
+          </rect>
+        ))}
+      </svg>
+      <ul class="legend">
+        {items.map((l, i) => (
+          <li>
+            <span class="dot" style={`background:${COLORS[i]}`} />
+            <span class="name">{l.name}</span>
+            <span class="pct">{l.pct}%</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+<style>
+  .langbars svg {
+    display: block;
+    width: 100%;
+    height: 12px;
+    border-radius: 999px;
+  }
+  .legend {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.1rem;
+    margin: 0.65rem 0 0;
+    padding: 0;
+  }
+  .legend li {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45em;
+    font-size: 0.82rem;
+  }
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    align-self: center;
+    flex: none;
+  }
+  .name {
+    color: var(--text-dim);
+  }
+  .pct {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-faint);
+  }
+</style>

@@ -1,0 +1,111 @@
+---
+/**
+ * Projects index — placement sections in fixed order (products → lab →
+ * archive). Products and lab get full cards; archive is a compact list of
+ * name + one summary line. Empty placements render nothing.
+ */
+import Base from "../../layouts/Base.astro";
+import ProjectCard from "../ProjectCard.astro";
+import { t, ui, localePath } from "../../lib/i18n.js";
+import { getProfile, getProjects, byPlacement } from "../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const placed = byPlacement(await getProjects());
+
+const sections = [
+  { key: "projects.products", items: placed.products },
+  { key: "projects.lab", items: placed.lab },
+] as const;
+---
+
+<Base locale={locale} title={ui("projects.title", locale)} path="/projects">
+  <div class="container page">
+    <h1 class="page-title">{ui("projects.title", locale)}</h1>
+
+    {
+      sections.map(
+        (s) =>
+          s.items.length > 0 && (
+            <section class="block">
+              <h2 class="section-title" data-reveal>{ui(s.key, locale)}</h2>
+              <div class="grid" data-reveal-group>
+                {s.items.map((p) => (
+                  <ProjectCard
+                    project={p}
+                    locale={locale}
+                    sourceLang={sl}
+                    defaultLocale={defaultLocale}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+      )
+    }
+
+    {
+      placed.archive.length > 0 && (
+        <section class="block">
+          <h2 class="section-title" data-reveal>{ui("projects.archive", locale)}</h2>
+          <ul class="archive-list" role="list">
+            {placed.archive.map((p) => (
+              <li class="archive-item">
+                <a href={localePath(`/projects/${p.id}`, locale, defaultLocale)}>
+                  {p.name}
+                </a>
+                {t(p.summary, locale, sl) && (
+                  <span class="archive-summary">
+                    — {t(p.summary, locale, sl)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: 3rem;
+  }
+  .page-title {
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    margin: 0 0 2rem;
+  }
+  .block + .block {
+    margin-top: 3rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .archive-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .archive-summary {
+    color: var(--text-faint);
+    font-size: 0.9rem;
+  }
+  .archive-item {
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

@@ -1,0 +1,168 @@
+---
+/**
+ * GitHub-style contribution calendar — pure server-rendered SVG, zero JS.
+ * Weeks are columns (ISO convention: weeks start Monday), 7 rows Mon–Sun,
+ * covering the data's date range capped at the last 53 columns. Intensity is
+ * bucketed linearly on the max day into --viz-0..4 (0 commits = --viz-0).
+ * The first column may be partial; days outside the data range don't render.
+ * Density-gated upstream by showHeatmap() — never renders sparse data.
+ */
+import { ui } from "../../lib/i18n.js";
+import type { DayCount } from "../../../../engine/schemas/index.js";
+
+interface Props {
+  commitsByDay: DayCount[];
+  locale: string;
+}
+
+const { commitsByDay, locale } = Astro.props;
+
+const DAY = 86_400_000;
+const WEEK = 7 * DAY;
+const parseDay = (s: string) => Date.parse(`${s}T00:00:00Z`);
+const fmtDay = (t: number) => new Date(t).toISOString().slice(0, 10);
+/** UTC midnight of the Monday of the week containing t (Mon=0 … Sun=6). */
+const mondayOf = (t: number) => t - ((new Date(t).getUTCDay() + 6) % 7) * DAY;
+
+const counts = new Map<string, number>();
+for (const d of commitsByDay) {
+  counts.set(d.date, (counts.get(d.date) ?? 0) + d.count);
+}
+
+const times = commitsByDay.map((d) => parseDay(d.date));
+const hasData = times.length > 0;
+const minT = hasData ? Math.min(...times) : 0;
+const maxT = hasData ? Math.max(...times) : 0;
+
+const endMonday = mondayOf(maxT);
+let startMonday = mondayOf(minT);
+// Cap at 53 columns: the final week plus at most 52 full weeks before it.
+if ((endMonday - startMonday) / WEEK + 1 > 53) startMonday = endMonday - 52 * WEEK;
+const weeks = hasData ? (endMonday - startMonday) / WEEK + 1 : 0;
+// First column may be partial — cells before the (possibly capped) data start don't render.
+const visLo = Math.max(minT, startMonday);
+
+const maxCount = Math.max(1, ...commitsByDay.map((d) => d.count));
+const bucket = (c: number) =>
+  c === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((c / maxCount) * 4)));
+
+const CELL = 12;
+const PITCH = 15; // 12px cell + 3px gap
+const GUTTER_L = 32; // weekday hints
+const GUTTER_T = 18; // month labels
+const W = GUTTER_L + weeks * PITCH - 3 + 2;
+const H = GUTTER_T + 7 * PITCH - 3;
+
+const commitsWord = ui("metrics.commits", locale);
+
+const cells: Array<{ x: number; y: number; level: number; label: string }> = [];
+for (let w = 0; w < weeks; w++) {
+  for (let d = 0; d < 7; d++) {
+    const t = startMonday + w * WEEK + d * DAY;
+    if (t < visLo || t > maxT) continue;
+    const date = fmtDay(t);
+    const count = counts.get(date) ?? 0;
+    cells.push({
+      x: GUTTER_L + w * PITCH,
+      y: GUTTER_T + d * PITCH,
+      level: bucket(count),
+      label: `${date}: ${count} ${commitsWord}`,
+    });
+  }
+}
+
+// Month labels: one above each column where the month changes.
+const monthFmt = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+let monthLabels: Array<{ x: number; col: number; text: string }> = [];
+let prevMonth = -1;
+for (let w = 0; w < weeks; w++) {
+  const t = Math.max(startMonday + w * WEEK, visLo);
+  const m = new Date(t).getUTCMonth();
+  if (m !== prevMonth) {
+    monthLabels.push({ x: GUTTER_L + w * PITCH, col: w, text: monthFmt.format(new Date(t)) });
+    prevMonth = m;
+  }
+}
+// A partial first column can put two labels almost on top of each other — drop the first.
+if (monthLabels.length > 1 && monthLabels[1]!.col - monthLabels[0]!.col < 3) {
+  monthLabels = monthLabels.slice(1);
+}
+
+// Weekday hints on Mon/Wed/Fri rows (2024-01-01 is a known Monday).
+const weekdayFmt = new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" });
+const weekdayHints = [0, 2, 4].map((row) => ({
+  y: GUTTER_T + row * PITCH + CELL - 2.5,
+  text: weekdayFmt.format(new Date(Date.UTC(2024, 0, 1 + row))),
+}));
+
+const ariaLabel = hasData
+  ? `${ui("metrics.activity", locale)}: ${fmtDay(visLo)} – ${fmtDay(maxT)}`
+  : ui("metrics.activity", locale);
+---
+
+{
+  hasData && (
+    <figure class="heatmap">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={ariaLabel} style={`max-width:${W}px`}>
+        <title>{ariaLabel}</title>
+        {monthLabels.map((m) => (
+          <text x={m.x} y="11" class="axis">
+            {m.text}
+          </text>
+        ))}
+        {weekdayHints.map((h) => (
+          <text x={GUTTER_L - 7} y={h.y} class="axis" text-anchor="end">
+            {h.text}
+          </text>
+        ))}
+        {cells.map((c) => (
+          <rect x={c.x} y={c.y} width={CELL} height={CELL} rx="2.5" fill={`var(--viz-${c.level})`}>
+            <title>{c.label}</title>
+          </rect>
+        ))}
+      </svg>
+      <figcaption class="legend">
+        <span>{ui("viz.less", locale)}</span>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span class="swatch" style={`background:var(--viz-${i})`} />
+        ))}
+        <span>{ui("viz.more", locale)}</span>
+      </figcaption>
+    </figure>
+  )
+}
+
+<style>
+  .heatmap {
+    margin: 0;
+  }
+  .heatmap svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .axis {
+    font: 500 9px/1 var(--font-sans);
+    fill: var(--text-faint);
+  }
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+    color: var(--text-faint);
+  }
+  .legend > span:first-child {
+    margin-right: 3px;
+  }
+  .legend > span:last-child {
+    margin-left: 3px;
+  }
+  .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2.5px;
+    flex: none;
+  }
+</style>

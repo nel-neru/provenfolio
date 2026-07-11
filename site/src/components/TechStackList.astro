@@ -1,0 +1,39 @@
+---
+/**
+ * Tech stack as plain chips. With `max`, shows the first `max` and a "+N"
+ * overflow chip so cards stay one line of noise, not a wall.
+ */
+interface Props {
+  techStack: Array<{ name: string; category: string }>;
+  max?: number;
+}
+
+const { techStack, max } = Astro.props;
+const shown = max !== undefined ? techStack.slice(0, max) : techStack;
+const rest = techStack.length - shown.length;
+---
+
+{
+  techStack.length > 0 && (
+    <ul class="tech-list" role="list">
+      {shown.map((t) => (
+        <li class="chip">{t.name}</li>
+      ))}
+      {rest > 0 && <li class="chip tech-more">+{rest}</li>}
+    </ul>
+  )
+}
+
+<style>
+  .tech-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tech-more {
+    color: var(--text-faint);
+  }
+</style>

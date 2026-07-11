@@ -1,0 +1,60 @@
+---
+/**
+ * The receipt affordance — renders one evidence ref as a tiny verifiable
+ * link (or plain code when the repo is private/unlinked). Trust signal of
+ * the whole product: no prefix, no decoration, just the receipt.
+ */
+interface Props {
+  evidence: { kind: string; ref: string; label?: string };
+  repoUrl?: string;
+  isPrivate?: boolean;
+  locale: string;
+}
+
+const { evidence, repoUrl, isPrivate = false } = Astro.props;
+const { kind, ref, label } = evidence;
+
+/** Tolerate trailing slash / .git on the repo URL. */
+const base = repoUrl?.replace(/\/+$/, "").replace(/\.git$/, "");
+const linkable = !!base && !isPrivate;
+
+let href: string | undefined;
+let text = label ?? ref;
+let title: string | undefined;
+
+if (kind === "commit") {
+  text = ref.slice(0, 7);
+  if (linkable) href = `${base}/commit/${ref}`;
+} else if (kind === "file") {
+  text = ref.split("/").pop() ?? ref;
+  title = ref;
+  if (linkable) href = `${base}/blob/HEAD/${ref}`;
+} else if (kind === "pr") {
+  const n = ref.replace(/^#/, "");
+  text = `#${n}`;
+  if (linkable) href = `${base}/pull/${n}`;
+} else if (kind === "release") {
+  text = ref;
+  if (linkable) href = `${base}/releases/tag/${encodeURIComponent(ref)}`;
+} else if (kind === "url") {
+  // External source: verifiable independently of the repo, so always a link.
+  try {
+    text = new URL(ref).hostname;
+  } catch {
+    text = ref;
+  }
+  href = ref;
+}
+---
+
+{
+  kind === "ownerInput" ? (
+    <span class="evidence-link" title="owner-provided">{label ?? "owner"}</span>
+  ) : href ? (
+    <a class="evidence-link" href={href} title={title} rel="noopener">
+      {kind === "commit" ? <code>{text}</code> : text}
+    </a>
+  ) : (
+    <code class="evidence-link" title={title}>{text}</code>
+  )
+}

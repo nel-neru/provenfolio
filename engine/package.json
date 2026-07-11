@@ -1,0 +1,11 @@
+{
+  "name": "@provenfolio/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Provenfolio core: schemas, source adapters, pipeline scripts, exporters.",
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "satori": "^0.26.0"
+  }
+}

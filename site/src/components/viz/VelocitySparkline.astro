@@ -1,0 +1,120 @@
+---
+/**
+ * Commit-velocity sparkline — commits bucketed by ISO week (Monday start),
+ * rendered as an area + line over a baseline axis, capped at the last 26
+ * weeks. Pure server-rendered SVG, zero JS: stroke --accent, area fill
+ * --accent-soft. Gaps between active weeks are zero-filled so the line never
+ * lies about pace. Density-gated upstream by showVelocity().
+ */
+import { ui } from "../../lib/i18n.js";
+import type { DayCount } from "../../../../engine/schemas/index.js";
+
+interface Props {
+  commitsByDay: DayCount[];
+  locale: string;
+}
+
+const { commitsByDay, locale } = Astro.props;
+
+const DAY = 86_400_000;
+const WEEK = 7 * DAY;
+const parseDay = (s: string) => Date.parse(`${s}T00:00:00Z`);
+/** UTC midnight of the Monday of the week containing t (ISO weeks). */
+const mondayOf = (t: number) => t - ((new Date(t).getUTCDay() + 6) % 7) * DAY;
+
+// Bucket by ISO week, keyed by the week's Monday.
+const byWeek = new Map<number, number>();
+for (const d of commitsByDay) {
+  const wk = mondayOf(parseDay(d.date));
+  byWeek.set(wk, (byWeek.get(wk) ?? 0) + d.count);
+}
+
+const mondays = [...byWeek.keys()].sort((a, b) => a - b);
+const hasData = mondays.length > 0;
+
+// Continuous zero-filled week series, capped at the last 26 weeks.
+const series: Array<{ monday: number; count: number }> = [];
+if (hasData) {
+  const last = mondays[mondays.length - 1]!;
+  const first = Math.max(mondays[0]!, last - 25 * WEEK);
+  for (let t = first; t <= last; t += WEEK) {
+    series.push({ monday: t, count: byWeek.get(t) ?? 0 });
+  }
+}
+const n = series.length;
+const maxCount = Math.max(1, ...series.map((w) => w.count));
+const totalShown = series.reduce((s, w) => s + w.count, 0);
+
+// Geometry
+const W = 520;
+const H = 120;
+const PAD_X = 6;
+const TOP = 10;
+const BASE = 92;
+const x = (i: number) => (n > 1 ? PAD_X + (i * (W - PAD_X * 2)) / (n - 1) : W / 2);
+const y = (c: number) => BASE - (c / maxCount) * (BASE - TOP);
+
+const pts = series.map((w, i) => `${x(i).toFixed(1)},${y(w.count).toFixed(1)}`);
+const linePoints = pts.join(" ");
+const areaPoints =
+  n > 1 ? `${x(0).toFixed(1)},${BASE} ${linePoints} ${x(n - 1).toFixed(1)},${BASE}` : "";
+
+// Min/max week labels (the Mondays of the first and last plotted weeks).
+const labelFmt = new Intl.DateTimeFormat(locale, {
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+const firstLabel = hasData ? labelFmt.format(new Date(series[0]!.monday)) : "";
+const lastLabel = hasData ? labelFmt.format(new Date(series[n - 1]!.monday)) : "";
+
+const summary = hasData
+  ? `${ui("metrics.activity", locale)}: ${totalShown} ${ui("metrics.commits", locale)} / ${n} ${ui("viz.weeks", locale)}`
+  : "";
+---
+
+{
+  hasData && (
+    <svg class="spark" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary}>
+      <title>{summary}</title>
+      {n > 1 && <polygon points={areaPoints} fill="var(--accent-soft)" />}
+      {n > 1 && (
+        <polyline
+          points={linePoints}
+          fill="none"
+          stroke="var(--accent)"
+          stroke-width="2"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+      )}
+      <line x1={PAD_X} y1={BASE} x2={W - PAD_X} y2={BASE} stroke="var(--line)" stroke-width="1" />
+      <circle cx={x(n - 1)} cy={y(series[n - 1]!.count)} r="3" fill="var(--accent)" />
+      <text
+        x={n > 1 ? PAD_X : W / 2}
+        y={H - 8}
+        class="axis"
+        text-anchor={n > 1 ? undefined : "middle"}
+      >
+        {firstLabel}
+      </text>
+      {n > 1 && (
+        <text x={W - PAD_X} y={H - 8} class="axis" text-anchor="end">
+          {lastLabel}
+        </text>
+      )}
+    </svg>
+  )
+}
+
+<style>
+  .spark {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .axis {
+    font: 500 10px/1 var(--font-sans);
+    fill: var(--text-faint);
+  }
+</style>

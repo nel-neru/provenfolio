@@ -1,0 +1,43 @@
+---
+/**
+ * Compact metric chips — honest at any project size (no density gate).
+ * Values come exclusively from metricChips() / metrics (script-produced).
+ */
+import { ui } from "../lib/i18n.js";
+import { metricChips } from "../lib/data.js";
+import type { ProjectData } from "../lib/data.js";
+
+interface Props {
+  project: ProjectData;
+  locale: string;
+}
+
+const { project, locale } = Astro.props;
+const chips = metricChips(project);
+const durationDays = project.metrics?.total.durationDays;
+---
+
+{
+  chips.length > 0 && (
+    <div class="metric-chips">
+      {chips.map((c) => (
+        <span class="chip">
+          <b>{c.value}</b> {ui(c.key, locale)}
+        </span>
+      ))}
+      {durationDays !== undefined && (
+        <span class="chip">
+          <b>{durationDays}</b>{ui("metrics.days", locale)}
+        </span>
+      )}
+    </div>
+  )
+}
+
+<style>
+  .metric-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+</style>

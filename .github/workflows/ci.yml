@@ -1,0 +1,59 @@
+# Engine CI: typecheck, contract validation, extraction smoke test, and a
+# full site build on all three OSes buyers actually use.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck engine
+        run: npx tsc --noEmit
+
+      - name: Validate data contract
+        run: npm run validate
+
+      - name: Extraction smoke test (fixture repo)
+        shell: bash
+        run: |
+          mkdir -p workspace/ci-fixture/repo
+          cd workspace/ci-fixture/repo
+          git init -q -b main
+          git config user.email ci@example.com
+          git config user.name CI
+          echo hello > a.txt && git add . && git commit -qm "feat: first | pipe-safe"
+          echo world > b.ts && git add . && git commit -qm "fix(core): second"
+          cd "$GITHUB_WORKSPACE"
+          npx tsx engine/sources/github/extract-git-stats.ts ci-fixture
+          node -e "const s=require('./workspace/ci-fixture/stats.json'); if(s.git.total.commits!==2) {console.error('expected 2 commits, got', s.git.total.commits); process.exit(1)}"
+
+      - name: Zod/Astro version compatibility gate
+        shell: bash
+        run: |
+          node -e "
+          const root = require('zod/package.json').version;
+          const astroDep = require('astro/package.json').dependencies?.zod;
+          console.log('root zod:', root, '| astro vendored zod:', astroDep);
+          const semver = astroDep && astroDep.replace(/^[^0-9]*/, '').split('.')[0];
+          if (semver && semver !== root.split('.')[0]) { console.error('MAJOR MISMATCH — dual-enforcement premise broken'); process.exit(1); }
+          "
+
+      - name: Build site (dual enforcement)
+        run: npm run build

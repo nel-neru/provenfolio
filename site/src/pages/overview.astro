@@ -1,0 +1,8 @@
+---
+import OverviewPage from "../components/pages/OverviewPage.astro";
+import { getProfile } from "../lib/data.js";
+
+const profile = await getProfile();
+---
+
+<OverviewPage locale={profile.sourceLang} />

@@ -1,0 +1,33 @@
+{
+  "name": "provenfolio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-driven portfolio & development-history engine: analyze your repositories, generate an evidence-linked portfolio site that updates itself.",
+  "type": "module",
+  "workspaces": [
+    "engine",
+    "site",
+    "studio"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "validate": "tsx engine/scripts/validate-data.ts",
+    "aggregate": "tsx engine/scripts/aggregate.ts",
+    "refresh": "tsx engine/scripts/refresh.ts",
+    "migrate": "tsx engine/scripts/migrate-data.ts",
+    "dev": "npm run dev -w site",
+    "build": "npm run validate && npm run build -w site",
+    "preview": "npm run preview -w site",
+    "studio": "npm run dev -w studio"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsx": "^4.23.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

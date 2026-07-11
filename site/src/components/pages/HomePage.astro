@@ -1,0 +1,186 @@
+---
+/**
+ * Home — cinematic hero (with the #hero-canvas mount point M6's 3D layer
+ * takes over), featured project grid, and evidence-linked skills chips.
+ * Shared by / and /<lang>/ routes; everything localizes through {locale}.
+ */
+import Base from "../../layouts/Base.astro";
+import ProjectCard from "../ProjectCard.astro";
+import HeroCanvas from "../three/HeroCanvas.astro";
+import { t, ui, localePath } from "../../lib/i18n.js";
+import { getProfile, getAggregates, getFeatured, computeSkills } from "../../lib/data.js";
+import type { HeroSeed } from "../../scripts/hero-scene.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const aggregates = await getAggregates();
+const featured = await getFeatured();
+
+const skills = computeSkills(aggregates, profile);
+// Group chips by category, language/framework first.
+const CAT_ORDER = ["language", "framework", "runtime", "infra", "tool"];
+const catRank = (c: string) => {
+  const i = CAT_ORDER.indexOf(c);
+  return i === -1 ? 99 : i;
+};
+const categories = [...new Set(skills.map((s) => s.category))].sort(
+  (a, b) => catRank(a) - catRank(b) || a.localeCompare(b)
+);
+const skillGroups = categories.map((cat) => ({
+  cat,
+  items: skills.filter((s) => s.category === cat),
+}));
+
+/** The 3D hero's geometry derives entirely from the owner's real git data. */
+const heroSeed: HeroSeed = {
+  commits: aggregates?.totals.commits ?? 0,
+  activeDays: aggregates?.totals.activeDays ?? 0,
+  projects: aggregates?.totals.projects ?? 0,
+  techCount: aggregates?.techFrequency.length ?? 0,
+  yearlySeries: (aggregates?.yearlyActivity ?? []).map((y) => y.commits),
+};
+---
+
+<Base locale={locale} path="/" ogImage="/og/profile.png">
+  <section id="hero" class="hero">
+    <div id="hero-canvas" aria-hidden="true">
+      <HeroCanvas seed={heroSeed} />
+    </div>
+    <div class="hero-inner container">
+      <h1 class="hero-name">{profile.name}</h1>
+      <p class="hero-line">
+        {t(profile.role, locale, sl)}
+        <span class="sep" aria-hidden="true">•</span>
+        {t(profile.tagline, locale, sl)}
+      </p>
+      <div class="hero-socials">
+        {
+          profile.socials.map((s) => (
+            <a href={s.url} rel="me noopener">
+              {s.platform}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  {
+    featured.length > 0 && (
+      <section class="container block">
+        <h2 class="section-title" data-reveal>{ui("home.featured", locale)}</h2>
+        <div class="grid" data-reveal-group>
+          {featured.map((p) => (
+            <ProjectCard
+              project={p}
+              locale={locale}
+              sourceLang={sl}
+              defaultLocale={defaultLocale}
+            />
+          ))}
+        </div>
+        <p class="view-all">
+          <a href={localePath("/projects", locale, defaultLocale)}>
+            {ui("home.viewAll", locale)} →
+          </a>
+        </p>
+      </section>
+    )
+  }
+
+  {
+    skills.length > 0 && (
+      <section class="container block">
+        <h2 class="section-title" data-reveal>{ui("home.skills", locale)}</h2>
+        <div class="skill-groups" data-reveal-group>
+          {skillGroups.map((g) => (
+            <div class="skill-row" data-reveal>
+              {g.items.map((s) => (
+                <span class="chip" title={s.projectIds.join(", ")}>
+                  {s.name}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+  }
+  /* Placeholder mount point — M6 replaces this gradient with the 3D canvas. */
+  #hero-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 65% 55% at 50% 42%,
+      var(--accent-soft),
+      transparent 72%
+    );
+  }
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+  }
+  .hero-name {
+    margin: 0;
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .hero-line {
+    margin: 1rem 0 0;
+    color: var(--text-dim);
+    font-size: clamp(1rem, 2.2vw, 1.2rem);
+  }
+  .sep {
+    margin-inline: 0.5em;
+    color: var(--text-faint);
+  }
+  .hero-socials {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    font-size: 0.95rem;
+  }
+  .block {
+    margin-top: 4rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .view-all {
+    margin: 1.25rem 0 0;
+  }
+  .skill-groups {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .skill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+</style>

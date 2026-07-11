@@ -1,0 +1,70 @@
+---
+/**
+ * Mount point for the data-seeded 3D hero. Renders a bare <canvas> over the
+ * CSS poster gradient (which stays as the no-JS / reduced-motion / no-WebGL
+ * fallback) and lazily boots the Three.js scene. The seed is serialized at
+ * build time from aggregates — the scene module (and three itself) is only
+ * fetched on this page, never in the shared bundle.
+ */
+import type { HeroSeed } from "../../scripts/hero-scene.js";
+
+interface Props {
+  seed: HeroSeed;
+}
+
+const { seed } = Astro.props;
+---
+
+<canvas id="hero-webgl" data-seed={JSON.stringify(seed)} aria-hidden="true"
+></canvas>
+
+<script>
+  import type { HeroSeed } from "../../scripts/hero-scene.js";
+
+  let dispose: (() => void) | null = null;
+  let booting = false;
+
+  async function setup() {
+    if (dispose || booting) return;
+    const canvas = document.getElementById("hero-webgl") as HTMLCanvasElement | null;
+    if (!canvas) return;
+    // Reduced motion → do nothing; the static poster gradient stays.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let seed: HeroSeed;
+    try {
+      seed = JSON.parse(canvas.dataset.seed ?? "") as HeroSeed;
+    } catch {
+      return;
+    }
+
+    booting = true;
+    try {
+      // Dynamic import keeps three out of every other page's JS.
+      const { initHero } = await import("../../scripts/hero-scene.js");
+      if (canvas.isConnected) dispose = initHero(canvas, seed);
+    } finally {
+      booting = false;
+    }
+  }
+
+  function teardown() {
+    dispose?.();
+    dispose = null;
+  }
+
+  setup();
+  // View Transitions: re-init when navigating back to home, dispose on leave.
+  document.addEventListener("astro:page-load", setup);
+  document.addEventListener("astro:before-swap", teardown);
+</script>
+
+<style>
+  canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>

@@ -1,0 +1,44 @@
+---
+/**
+ * Screenshot grid. `src` in project JSON is relative to data/ (e.g.
+ * "assets/screenshots/<id>/home.png") and is served from the site root.
+ */
+import { t } from "../lib/i18n.js";
+
+interface Props {
+  screenshots: Array<{ src: string; alt: Record<string, string> }>;
+  locale: string;
+  sourceLang: string;
+}
+
+const { screenshots, locale, sourceLang } = Astro.props;
+---
+
+{
+  screenshots.length > 0 && (
+    <div class="shots">
+      {screenshots.map((s) => (
+        <figure class="card shot">
+          <img loading="lazy" src={"/" + s.src} alt={t(s.alt, locale, sourceLang)} />
+        </figure>
+      ))}
+    </div>
+  )
+}
+
+<style>
+  .shots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .shot {
+    margin: 0;
+    overflow: hidden;
+  }
+  .shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+</style>

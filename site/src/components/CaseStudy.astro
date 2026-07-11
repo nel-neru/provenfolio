@@ -1,0 +1,91 @@
+---
+/**
+ * Category-templated case-study body. Business categories get a
+ * problem/solution/results frame; craft categories (oss/hobby/learning)
+ * get motivation/approach. `results` renders ONLY when the owner supplied
+ * real outcome text (golden rule #3); otherwise, when metrics exist, an
+ * engineering-outcomes strip is built purely from script-produced numbers.
+ */
+import { ui, t } from "../lib/i18n.js";
+import type { ProjectData } from "../lib/data.js";
+
+interface Props {
+  project: ProjectData;
+  locale: string;
+  sourceLang: string;
+}
+
+const { project, locale, sourceLang } = Astro.props;
+const businesslike = ["product", "service", "client"].includes(project.category);
+
+const hasResults = !!project.caseStudy.results?.[sourceLang]?.trim();
+const m = project.metrics;
+---
+
+<div class="case-study">
+  <section>
+    <h2 class="section-title">
+      {ui(businesslike ? "project.problem" : "project.motivation", locale)}
+    </h2>
+    <p class="prose">{t(project.caseStudy.problem, locale, sourceLang)}</p>
+  </section>
+
+  <section>
+    <h2 class="section-title">{ui("project.solution", locale)}</h2>
+    <p class="prose">{t(project.caseStudy.solution, locale, sourceLang)}</p>
+  </section>
+
+  {
+    hasResults ? (
+      <section>
+        <h2 class="section-title">{ui("project.results", locale)}</h2>
+        <p class="prose">{t(project.caseStudy.results, locale, sourceLang)}</p>
+      </section>
+    ) : (
+      m && (
+        <section>
+          <h2 class="section-title">{ui("project.outcomes", locale)}</h2>
+          <div class="outcomes">
+            <span class="chip">
+              <b>{m.total.commits}</b> {ui("metrics.commits", locale)}
+            </span>
+            <span class="chip">
+              <b>{m.total.activeDays}</b> {ui("metrics.activeDays", locale)}
+            </span>
+            <span class="chip">
+              <b>{m.total.durationDays}</b>{ui("metrics.days", locale)}
+            </span>
+            {m.conventionalCommitPct !== undefined && m.conventionalCommitPct > 0 && (
+              <span class="chip">
+                <b>{m.conventionalCommitPct}%</b> {ui("metrics.conventional", locale)}
+              </span>
+            )}
+            {m.prCount !== undefined && m.prCount > 0 && (
+              <span class="chip">
+                <b>{m.prCount}</b> {ui("metrics.prs", locale)}
+              </span>
+            )}
+          </div>
+        </section>
+      )
+    )
+  }
+</div>
+
+<style>
+  .case-study {
+    display: grid;
+    gap: 2.5rem;
+  }
+  .prose {
+    margin: 0;
+    white-space: pre-line;
+    color: var(--text);
+    max-width: 65ch;
+  }
+  .outcomes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+</style>

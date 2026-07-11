@@ -1,0 +1,156 @@
+---
+/**
+ * About — identity, bio, computed evidence-linked skills (chip title lists
+ * the backing project ids), socials, and email. No hand-typed skill lists:
+ * everything comes from computeSkills(aggregates, profile).
+ */
+import Base from "../../layouts/Base.astro";
+import { t, ui } from "../../lib/i18n.js";
+import { getProfile, getAggregates, computeSkills } from "../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const aggregates = await getAggregates();
+
+const skills = computeSkills(aggregates, profile);
+const CAT_ORDER = ["language", "framework", "runtime", "infra", "tool"];
+const catRank = (c: string) => {
+  const i = CAT_ORDER.indexOf(c);
+  return i === -1 ? 99 : i;
+};
+const categories = [...new Set(skills.map((s) => s.category))].sort(
+  (a, b) => catRank(a) - catRank(b) || a.localeCompare(b)
+);
+const skillGroups = categories.map((cat) => ({
+  cat,
+  items: skills.filter((s) => s.category === cat),
+}));
+---
+
+<Base locale={locale} title={ui("about.title", locale)} path="/about">
+  <div class="container page">
+    <header class="who">
+      {
+        profile.avatar && (
+          <img
+            class="avatar"
+            src={"/" + profile.avatar}
+            alt={profile.name}
+            width="96"
+            height="96"
+          />
+        )
+      }
+      <div>
+        <h1 class="name">{profile.name}</h1>
+        <p class="role">{t(profile.role, locale, sl)}</p>
+      </div>
+    </header>
+
+    <p class="bio">{t(profile.bio, locale, sl)}</p>
+
+    {
+      skills.length > 0 && (
+        <section class="block">
+          <h2 class="section-title">{ui("about.skills", locale)}</h2>
+          <div class="skill-groups">
+            {skillGroups.map((g) => (
+              <div class="skill-row">
+                {g.items.map((s) => (
+                  <span
+                    class="chip"
+                    title={s.projectIds.join(", ") || undefined}
+                  >
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <section class="block">
+      <ul class="contact" role="list">
+        {
+          profile.socials.map((s) => (
+            <li>
+              <a href={s.url} rel="me noopener">
+                {s.platform}
+              </a>
+              {s.handle && <span class="handle">@{s.handle}</span>}
+            </li>
+          ))
+        }
+        {
+          profile.email && (
+            <li>
+              <a href={`mailto:${profile.email}`}>{profile.email}</a>
+            </li>
+          )
+        }
+      </ul>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: 3rem;
+    max-width: 46rem;
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+  .avatar {
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    flex: none;
+  }
+  .name {
+    margin: 0;
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+  }
+  .role {
+    margin: 0.25rem 0 0;
+    color: var(--text-dim);
+  }
+  .bio {
+    margin: 1.75rem 0 0;
+    white-space: pre-line;
+    line-height: 1.9;
+  }
+  .block {
+    margin-top: 2.75rem;
+  }
+  .skill-groups {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .skill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .contact {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .handle {
+    margin-left: 0.5rem;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+  }
+</style>

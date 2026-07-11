@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone:*)",
+      "Bash(git fetch:*)",
+      "Bash(git log:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git shortlog:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(gh api:*)",
+      "Bash(gh repo view:*)",
+      "Bash(npm run validate:*)",
+      "Bash(npm run aggregate:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsx engine/*)",
+      "Bash(tsx engine/*)",
+      "Read(./**)"
+    ],
+    "deny": []
+  }
+}

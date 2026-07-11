@@ -1,0 +1,66 @@
+---
+/**
+ * Small chip labeling the project category with a per-category accent dot.
+ * The tiny label map is deliberately local (UI furniture, two locales only).
+ */
+interface Props {
+  category: string;
+  locale: string;
+}
+
+const { category, locale } = Astro.props;
+
+const LABELS: Record<string, Record<string, string>> = {
+  ja: {
+    product: "製品",
+    service: "サービス",
+    client: "クライアント",
+    oss: "OSS",
+    hobby: "趣味",
+    learning: "学習",
+  },
+  en: {
+    product: "Product",
+    service: "Service",
+    client: "Client",
+    oss: "OSS",
+    hobby: "Hobby",
+    learning: "Learning",
+  },
+};
+
+const lang = locale.startsWith("ja") ? "ja" : "en";
+const label = LABELS[lang][category] ?? category;
+---
+
+<span class:list={["chip", "category-badge", `cat-${category}`]}>
+  <span class="dot" aria-hidden="true"></span>{label}
+</span>
+
+<style>
+  .category-badge {
+    align-items: center;
+    gap: 0.45em;
+  }
+  .dot {
+    inline-size: 0.5em;
+    block-size: 0.5em;
+    border-radius: 50%;
+    background: var(--text-faint);
+    flex: none;
+  }
+  .cat-product .dot,
+  .cat-service .dot {
+    background: var(--accent);
+  }
+  .cat-client .dot {
+    background: var(--warn);
+  }
+  .cat-oss .dot,
+  .cat-hobby .dot {
+    background: var(--ok);
+  }
+  .cat-learning .dot {
+    background: var(--text-faint);
+  }
+</style>

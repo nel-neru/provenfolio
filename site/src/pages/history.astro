@@ -1,0 +1,8 @@
+---
+import HistoryPage from "../components/pages/HistoryPage.astro";
+import { getProfile } from "../lib/data.js";
+
+const profile = await getProfile();
+---
+
+<HistoryPage locale={profile.sourceLang} />

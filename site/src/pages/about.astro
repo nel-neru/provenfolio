@@ -1,0 +1,8 @@
+---
+import AboutPage from "../components/pages/AboutPage.astro";
+import { getProfile } from "../lib/data.js";
+
+const profile = await getProfile();
+---
+
+<AboutPage locale={profile.sourceLang} />

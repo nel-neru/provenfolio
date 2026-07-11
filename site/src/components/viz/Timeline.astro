@@ -1,0 +1,191 @@
+---
+/**
+ * Vertical timeline (left rail + dots) with an evidence "receipt row" per
+ * event. Zero JS. Evidence chips are compact monospace tokens:
+ *   commit → 7-char SHA   → {repoUrl}/commit/{sha}
+ *   pr     → #N           → {repoUrl}/pull/{N}
+ *   file   → path         → {repoUrl}/blob/HEAD/{path}
+ *   release→ tag          → {repoUrl}/releases/tag/{tag}
+ *   url    → domain       → the URL itself
+ *   ownerInput → "owner" chip with the intake pointer in its title attr
+ * Repo-relative kinds only link when repoUrl is present AND the source is not
+ * private; otherwise they render as plain <code> receipts.
+ */
+import { t, ui } from "../../lib/i18n.js";
+import type { TimelineEvent, EvidenceRef } from "../../../../engine/schemas/index.js";
+
+interface Props {
+  timeline: TimelineEvent[];
+  locale: string;
+  sourceLang: string;
+  repoUrl?: string;
+  isPrivate?: boolean;
+}
+
+const { timeline, locale, sourceLang, repoUrl, isPrivate = false } = Astro.props;
+
+const base = repoUrl?.replace(/\.git$/, "").replace(/\/+$/, "");
+const linkable = !!base && !isPrivate;
+
+interface Receipt {
+  text: string;
+  href?: string;
+  title?: string;
+}
+
+function receipt(e: EvidenceRef): Receipt {
+  switch (e.kind) {
+    case "commit":
+      return {
+        text: e.ref.slice(0, 7),
+        href: linkable ? `${base}/commit/${e.ref}` : undefined,
+        title: e.label,
+      };
+    case "pr": {
+      const n = e.ref.replace(/^#/, "");
+      return {
+        text: `#${n}`,
+        href: linkable ? `${base}/pull/${n}` : undefined,
+        title: e.label,
+      };
+    }
+    case "file":
+      return {
+        text: e.ref,
+        href: linkable ? `${base}/blob/HEAD/${e.ref}` : undefined,
+        title: e.label,
+      };
+    case "release":
+      return {
+        text: e.ref,
+        href: linkable ? `${base}/releases/tag/${encodeURIComponent(e.ref)}` : undefined,
+        title: e.label,
+      };
+    case "url": {
+      let domain = e.ref;
+      try {
+        domain = new URL(e.ref).hostname.replace(/^www\./, "");
+      } catch {
+        /* keep raw ref as text */
+      }
+      return { text: domain, href: e.ref, title: e.label ?? e.ref };
+    }
+    case "ownerInput":
+      return { text: ui("evidence.owner", locale), title: e.label ?? e.ref };
+    default:
+      return { text: e.ref, title: e.label };
+  }
+}
+
+const events = timeline.map((ev) => ({
+  date: ev.date,
+  title: t(ev.title, locale, sourceLang),
+  description: ev.description ? t(ev.description, locale, sourceLang) : "",
+  receipts: (ev.evidence ?? []).map(receipt),
+}));
+---
+
+{
+  events.length > 0 && (
+    <ol class="timeline" data-reveal-group>
+      {events.map((ev) => (
+        <li class="event" data-reveal>
+          <time class="date" datetime={ev.date}>
+            {ev.date}
+          </time>
+          <p class="event-title">{ev.title}</p>
+          {ev.description && <p class="desc">{ev.description}</p>}
+          {ev.receipts.length > 0 && (
+            <p class="receipts">
+              {ev.receipts.map((r) =>
+                r.href ? (
+                  <a
+                    class="evidence-link"
+                    href={r.href}
+                    title={r.title}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    {r.text}
+                  </a>
+                ) : (
+                  <code class="evidence-code" title={r.title}>
+                    {r.text}
+                  </code>
+                )
+              )}
+            </p>
+          )}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+<style>
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+  }
+  /* the rail */
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--line);
+  }
+  .event {
+    position: relative;
+    padding-left: 1.75rem;
+  }
+  .event + .event {
+    margin-top: 1.9rem;
+  }
+  /* the dot */
+  .event::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.4em;
+    width: 12px;
+    height: 12px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    background: var(--bg-raised);
+    border: 2px solid var(--accent);
+  }
+  .date {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-faint);
+  }
+  .event-title {
+    margin: 0.2rem 0 0;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .desc {
+    margin: 0.35rem 0 0;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+  .receipts {
+    margin: 0.55rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.8rem;
+  }
+  .evidence-code {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-faint);
+  }
+</style>
