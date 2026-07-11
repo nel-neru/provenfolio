@@ -2,7 +2,7 @@
 
 > English: [UPDATING.md](UPDATING.md)
 
-購入にはエンジンの更新が含まれています。あなたの `data/` が更新とコンフリクトすることは**構造上**ありません。配布リポジトリは `data/` 配下のパスを一切トラッキングしていないため、エンジンの merge があなたのデータに触れることはできないのです。
+エンジンの更新は無料です — いつでも取り込めます。あなたの `data/` が更新とコンフリクトすることは**構造上**ありません。配布リポジトリは `data/` 配下のパスを一切トラッキングしていないため、エンジンの merge があなたのデータに触れることはできないのです。
 
 ## 初回のみのセットアップ
 
@@ -40,4 +40,4 @@ npm run validate && npm run build           # green = done
 - スキーマ変更は `SCHEMA_VERSION` を上げ、必ずマイグレーションを同梱します — あなたのデータが取り残されることはありません。
 - zod のメジャーバージョンは Astro が vendor するものに固定されています。どのワークスペースにも別の zod を追加しないでください（CI がこれをガードしています）。
 
-<!-- i18n:source=engine/docs/UPDATING.md sha256=61775a4e952ffb50440fe023cd3985ef73654e62a77bfe17c0ad5bb67f4bcbb3 -->
+<!-- i18n:source=engine/docs/UPDATING.md sha256=ed73d2f76db6b42d976a1bdd465e286843b8277ea795cecd6213ce7430996f69 -->

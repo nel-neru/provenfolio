@@ -26,7 +26,7 @@ engine/sources/<type>/
 無料 API / 素の RSS。fetch = 投稿の取得、extract = 件数・日付・タグ、enrich = 投稿ごとの関連度評価と、あなたのプロジェクトの技術スタックに対する `relatedProjectIds` のマッチング、emit → `data/activities/`。サイトには「執筆」セクションとプロジェクトごとの関連記事が追加されます。認証不要、コストゼロ — しかも activities スキーマをエンドツーエンドで検証できます。
 
 ### x (twitter)
-**まずはアーカイブインポート**: X では全アーカイブをダウンロードできます(Settings → Your account → Download an archive)。アダプタは `tweets.js` をローカルでパースします — API コストゼロ、認証ゼロ、全履歴を取得。extract = 投稿頻度、トピック、エンゲージメント数(すべての数値はアーカイブ由来 = 出所の面で安全)、enrich = スレッド/トピックのクラスタリングとプロジェクトへの紐づけ。有料 API による継続的な refresh は意図的にスコープ外としています(購入者ごとに発生する継続コストに加え、ベーシックティアの読み取り制限では割に合わないため — 必要になったらアーカイブを再インポートしてください)。
+**まずはアーカイブインポート**: X では全アーカイブをダウンロードできます(Settings → Your account → Download an archive)。アダプタは `tweets.js` をローカルでパースします — API コストゼロ、認証ゼロ、全履歴を取得。extract = 投稿頻度、トピック、エンゲージメント数(すべての数値はアーカイブ由来 = 出所の面で安全)、enrich = スレッド/トピックのクラスタリングとプロジェクトへの紐づけ。有料 API による継続的な refresh は意図的にスコープ外としています(利用者ごとに発生する継続コストに加え、ベーシックティアの読み取り制限では割に合わないため — 必要になったらアーカイブを再インポートしてください)。
 
 ### local(同梱スタブのフル版)
 `.git` はあるがホスト先リモートのないディレクトリを分析します: `workspace/<id>/repo` に配置(またはジャンクション)し、github の extract を実行(任意の git リポジトリで動作)、`fetch-github-meta` はスキップします。リンクを張れないクライアントワークが、正直なメトリクスと `visibility: "private"` を備えた完全なケーススタディになります。
@@ -42,4 +42,4 @@ engine/sources/<type>/
 4. コストのガードレールを守る: エージェントに読ませる量に予算を設け、大きな入力は事前チェックする。
 5. `/analyze` のモードディスパッチを配線し、ソースがオーナー由来の情報を必要とするなら Studio の intake バリアントも用意する。
 
-<!-- i18n:source=engine/docs/EXTENDING-SOURCES.md sha256=2f605ae71863dbce1d5dcaa48fba52c66632885cb2f1d480872cde4ae0566861 -->
+<!-- i18n:source=engine/docs/EXTENDING-SOURCES.md sha256=bad73dc58891b6105914705785e53877aaee88160c48844d1d938eea1e1a7df2 -->

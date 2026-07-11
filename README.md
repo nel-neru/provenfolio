@@ -52,6 +52,6 @@ See `engine/docs/GETTING-STARTED.md` for details.
 
 ## License
 
-Proprietary — see [LICENSE.md](LICENSE.md). Not open source.
+Free to use (reselling or redistributing the product itself is prohibited). See [LICENSE.md](LICENSE.md) — source-available, not open source.
 
-<!-- i18n:source=README.ja.md sha256=f87d2c52eb657aafff033ebec5496d7c549f5597a02f5ce0ee4e77a11feca42b -->
+<!-- i18n:source=README.ja.md sha256=d155aa4de4eca159ea3e5621b982c311ab4d3f37827141d657a5447d402ca83e -->

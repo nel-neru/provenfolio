@@ -52,4 +52,4 @@ npm install
 
 ## License
 
-Proprietary — see [LICENSE.md](LICENSE.md). Not open source.
+無料で利用できます(プロダクト自体の再販売・再配布は禁止)。詳細は [LICENSE.md](LICENSE.md) — オープンソースではなく source-available です。

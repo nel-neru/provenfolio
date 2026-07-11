@@ -2,7 +2,7 @@
 
 > 日本語版: [UPDATING.ja.md](UPDATING.ja.md)
 
-Your purchase includes engine updates. Your `data/` never conflicts with them **by structure**: the distribution repo tracks no `data/` paths at all, so an engine merge cannot touch your data.
+Engine updates are free — pull them any time. Your `data/` never conflicts with them **by structure**: the distribution repo tracks no `data/` paths at all, so an engine merge cannot touch your data.
 
 ## One-time setup
 
