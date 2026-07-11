@@ -1,6 +1,8 @@
 /* Provenfolio Studio GUI — vanilla JS, no framework, no CDN.
  * All user data is inserted via textContent / el() (never innerHTML with
- * interpolated strings) — XSS hygiene even though this is localhost-only. */
+ * interpolated strings) — XSS hygiene even though this is localhost-only.
+ * UI strings come from STUDIO_I18N (i18n.js, loaded first); the locale is
+ * derived from profile.sourceLang, defaulting to English before load. */
 "use strict";
 
 // ---------------------------------------------------------------------------
@@ -12,21 +14,21 @@ const state = {
   tab: "overview",
 };
 
-const MISSING_LABELS = {
-  role: "役割が未設定",
-  "demo-link": "デモ/ストア/動画リンクがない",
-  visual: "スクリーンショットかアーキ図がない",
-  "case-study": "ケーススタディ未完成",
-  results: "定量成果が未入力(任意)",
-  highlights: "ハイライトが1件のみ",
-  timeline: "タイムラインが空",
+const MISSING_KEYS = {
+  role: "missingRole",
+  "demo-link": "missingDemoLink",
+  visual: "missingVisual",
+  "case-study": "missingCaseStudy",
+  results: "missingResults",
+  highlights: "missingHighlights",
+  timeline: "missingTimeline",
 };
 
 function missingLabel(key) {
   if (key.startsWith("translation:")) {
-    return key.slice("translation:".length) + "翻訳が未完了";
+    return t("missingTranslation", { lang: key.slice("translation:".length) });
   }
-  return MISSING_LABELS[key] || key;
+  return MISSING_KEYS[key] ? t(MISSING_KEYS[key]) : key;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,8 +86,18 @@ async function api(path, options = {}) {
   return body;
 }
 
+/** Swap the static English defaults in index.html to the active locale. */
+function hydrateStaticText() {
+  for (const node of document.querySelectorAll("[data-i18n]")) {
+    node.textContent = t(node.getAttribute("data-i18n"));
+  }
+  document.documentElement.lang = studioLang;
+}
+
 async function refreshState() {
   state.data = await api("/api/state");
+  setStudioLang(state.data.profile.sourceLang);
+  hydrateStaticText();
   render();
 }
 
@@ -140,12 +152,12 @@ function renderSidebar() {
       el("div", { class: "meter" }, [
         el("span", { style: `width:${score}%;background:${meterColor(score)}` }),
       ]),
-      el("div", { class: "meter-score" }, `完成度 ${score} / 100`),
+      el("div", { class: "meter-score" }, t("completenessScore", { score })),
     ]);
     projectList.append(li);
   }
   if (projects.length === 0) {
-    projectList.append(el("div", { class: "empty-hint" }, "プロジェクトなし"));
+    projectList.append(el("div", { class: "empty-hint" }, t("noProjects")));
   }
 
   const projectIds = new Set(projects.map((p) => p.id));
@@ -165,7 +177,7 @@ function renderSidebar() {
     intakeList.append(li);
   }
   if (pending.length === 0) {
-    intakeList.append(el("div", { class: "empty-hint" }, "保留中のインテークなし"));
+    intakeList.append(el("div", { class: "empty-hint" }, t("noPendingIntakes")));
   }
 }
 
@@ -190,11 +202,11 @@ function render() {
   content.hidden = false;
 
   document.getElementById("main-title").textContent =
-    project ? project.name : (intake.displayName || intake.id) + "(分析待ち)";
+    project ? project.name : (intake.displayName || intake.id) + t("awaitingAnalysisSuffix");
 
   const tabs = project
-    ? [["overview", "概要"], ["intake", "インテーク"], ["prose", "プロース"], ["media", "メディア"]]
-    : [["intake", "インテーク"]];
+    ? [["overview", t("tabOverview")], ["intake", t("tabIntake")], ["prose", t("tabProse")], ["media", t("tabMedia")]]
+    : [["intake", t("tabIntake")]];
   if (!tabs.some(([id]) => id === state.tab)) state.tab = tabs[0][0];
 
   const nav = document.getElementById("tabs");
@@ -215,19 +227,19 @@ function render() {
   else if (state.tab === "media") body.append(mediaTab(project));
 }
 
-// ---------------- 概要 ----------------
+// ---------------- Overview ----------------
 function overviewTab(project) {
   const frag = document.createDocumentFragment();
   const comp = project.completeness || { score: 0, missing: [] };
 
   frag.append(el("div", { class: "card" }, [
-    el("h3", {}, "完成度"),
+    el("h3", {}, t("completeness")),
     el("div", { class: "big-score", style: `color:${meterColor(comp.score)}` }, String(comp.score)),
     el("div", { class: "meter big-meter" }, [
       el("span", { style: `width:${comp.score}%;background:${meterColor(comp.score)}` }),
     ]),
     comp.missing.length === 0
-      ? el("p", { class: "all-done" }, "✓ すべての項目が揃っています")
+      ? el("p", { class: "all-done" }, t("allItemsDone"))
       : el("ul", { class: "missing-list" }, comp.missing.map((k) => el("li", {}, missingLabel(k)))),
   ]));
 
@@ -239,17 +251,17 @@ function overviewTab(project) {
     el("option", { value: v, selected: project.status === v }, v)));
 
   frag.append(el("div", { class: "card" }, [
-    el("h3", {}, "掲載設定"),
+    el("h3", {}, t("listingSettings")),
     el("div", { class: "field-row" }, [
       el("div", { class: "field" }, [
-        el("label", {}, "featured(トップ掲載)"),
+        el("label", {}, t("fieldFeatured")),
         el("label", { style: "display:flex;gap:8px;align-items:center;color:var(--text)" }, [
-          featured, el("span", {}, "★ フィーチャーする"),
+          featured, el("span", {}, t("featureThis")),
         ]),
       ]),
-      el("div", { class: "field" }, [el("label", {}, "placement(掲載面)"), placement]),
-      el("div", { class: "field" }, [el("label", {}, "order(並び順)"), order]),
-      el("div", { class: "field" }, [el("label", {}, "status(状態)"), status]),
+      el("div", { class: "field" }, [el("label", {}, t("fieldPlacement")), placement]),
+      el("div", { class: "field" }, [el("label", {}, t("fieldOrder")), order]),
+      el("div", { class: "field" }, [el("label", {}, t("fieldStatus")), status]),
     ]),
     el("button", { class: "accent", onclick: async () => {
       try {
@@ -262,23 +274,22 @@ function overviewTab(project) {
             status: status.value,
           },
         });
-        toast("掲載設定を保存しました");
+        toast(t("listingSettingsSaved"));
         await refreshState();
-      } catch (e) { toast("保存失敗: " + e.message, true); }
-    } }, "保存"),
+      } catch (e) { toast(t("saveFailed", { message: e.message }), true); }
+    } }, t("save")),
   ]));
 
   return frag;
 }
 
-// ---------------- インテーク ----------------
+// ---------------- Intake ----------------
 function intakeTab(intake, project) {
   const frag = document.createDocumentFragment();
   if (!intake) {
     frag.append(el("div", { class: "card" }, [
-      el("h3", {}, "インテーク"),
-      el("p", { style: "color:var(--dim)" },
-        "このプロジェクトのインテークファイルがありません。「+ リポジトリ追加」から登録してください。"),
+      el("h3", {}, t("tabIntake")),
+      el("p", { style: "color:var(--dim)" }, t("noIntakeFile")),
     ]));
     return frag;
   }
@@ -312,7 +323,7 @@ function intakeTab(intake, project) {
         else doc[key] = e.target.value;
       },
     }, [
-      allowEmpty ? el("option", { value: "", selected: !doc[key] }, "(未設定)") : null,
+      allowEmpty ? el("option", { value: "", selected: !doc[key] }, t("notSet")) : null,
       ...options.map((v) => el("option", { value: v, selected: doc[key] === v }, v)),
     ]);
     return el("div", { class: "field" }, [el("label", {}, label), sel]);
@@ -320,19 +331,19 @@ function intakeTab(intake, project) {
 
   // --- basics ---
   const basics = el("div", { class: "card" }, [
-    el("h3", {}, "基本情報"),
+    el("h3", {}, t("basicInfo")),
     el("div", { class: "field" }, [
       el("label", {}, "ID"),
       el("input", { value: intake.id, disabled: true }),
     ]),
-    textField("表示名 (displayName)", "displayName"),
-    textField("リポジトリURL (repoUrl)", "repoUrl"),
+    textField(t("fieldDisplayName"), "displayName"),
+    textField(t("fieldRepoUrl"), "repoUrl"),
     el("div", { class: "field-row" }, [
-      selectField("ソース種別 (sourceType)", "sourceType", ["github", "manual", "local"]),
-      selectField("状態 (state)", "state", ["pending", "analyzed"]),
-      selectField("カテゴリ (category)", "category",
+      selectField(t("fieldSourceType"), "sourceType", ["github", "manual", "local"]),
+      selectField(t("fieldState"), "state", ["pending", "analyzed"]),
+      selectField(t("fieldCategory"), "category",
         ["product", "service", "client", "oss", "hobby", "learning"], { allowEmpty: true }),
-      selectField("ステータス (status)", "status",
+      selectField(t("fieldIntakeStatus"), "status",
         ["active", "maintained", "archived"], { allowEmpty: true }),
     ]),
   ]);
@@ -348,7 +359,7 @@ function intakeTab(intake, project) {
       roleScope.disabled = e.target.value === "";
     },
   }, [
-    el("option", { value: "", selected: !doc.role }, "(未設定)"),
+    el("option", { value: "", selected: !doc.role }, t("notSet")),
     ...["solo", "lead", "contributor"].map((v) =>
       el("option", { value: v, selected: doc.role && doc.role.type === v }, v)),
   ]);
@@ -362,22 +373,22 @@ function intakeTab(intake, project) {
     },
   });
   const roleCard = el("div", { class: "card" }, [
-    el("h3", {}, "役割 (role)"),
+    el("h3", {}, t("roleHeading")),
     el("div", { class: "field-row" }, [
-      el("div", { class: "field" }, [el("label", {}, "種別"), roleType]),
-      el("div", { class: "field" }, [el("label", {}, "担当範囲 (scope)"), roleScope]),
+      el("div", { class: "field" }, [el("label", {}, t("roleType")), roleType]),
+      el("div", { class: "field" }, [el("label", {}, t("roleScope")), roleScope]),
     ]),
   ]);
 
   // --- narrative ---
   const narrative = el("div", { class: "card" }, [
-    el("h3", {}, "説明"),
-    textField("一言でいうと (whatIsIt)", "whatIsIt", { multiline: true }),
-    textField("動機 (motivation)", "motivation", { multiline: true }),
-    textField("想定ユーザー (targetAudience)", "targetAudience"),
+    el("h3", {}, t("description")),
+    textField(t("fieldWhatIsIt"), "whatIsIt", { multiline: true }),
+    textField(t("fieldMotivation"), "motivation", { multiline: true }),
+    textField(t("fieldTargetAudience"), "targetAudience"),
     el("div", { class: "field-row" }, [
       el("div", { class: "field" }, [
-        el("label", {}, "チーム人数 (teamSize)"),
+        el("label", {}, t("fieldTeamSize")),
         el("input", {
           type: "number", min: "1", step: "1", value: doc.teamSize ?? "",
           oninput: (e) => {
@@ -387,10 +398,10 @@ function intakeTab(intake, project) {
           },
         }),
       ]),
-      selectField("公開範囲の上書き (visibilityOverride)", "visibilityOverride",
+      selectField(t("fieldVisibilityOverride"), "visibilityOverride",
         ["public", "private"], { allowEmpty: true }),
     ]),
-    textField("メモ (notes)", "notes", { multiline: true }),
+    textField(t("fieldNotes"), "notes", { multiline: true }),
   ]);
 
   // --- dynamic rows: outcomes ---
@@ -399,23 +410,22 @@ function intakeTab(intake, project) {
     outcomesBox.replaceChildren(
       ...doc.outcomes.map((o, i) =>
         el("div", { class: "dyn-row" }, [
-          el("input", { placeholder: "ラベル(例: 月間ユーザー)", value: o.label || "",
+          el("input", { placeholder: t("outcomeLabelPlaceholder"), value: o.label || "",
             oninput: (e) => (o.label = e.target.value) }),
-          el("input", { placeholder: "値(例: 1200)", value: o.value || "",
+          el("input", { placeholder: t("outcomeValuePlaceholder"), value: o.value || "",
             oninput: (e) => (o.value = e.target.value) }),
-          el("input", { placeholder: "出典(例: Cloudflare Analytics)", value: o.source || "",
+          el("input", { placeholder: t("outcomeSourcePlaceholder"), value: o.source || "",
             oninput: (e) => { if (e.target.value === "") delete o.source; else o.source = e.target.value; } }),
-          el("button", { class: "small danger", onclick: () => { doc.outcomes.splice(i, 1); renderOutcomes(); } }, "削除"),
+          el("button", { class: "small danger", onclick: () => { doc.outcomes.splice(i, 1); renderOutcomes(); } }, t("delete")),
         ])
       ),
-      el("button", { class: "small", onclick: () => { doc.outcomes.push({ label: "", value: "" }); renderOutcomes(); } }, "+ 成果を追加")
+      el("button", { class: "small", onclick: () => { doc.outcomes.push({ label: "", value: "" }); renderOutcomes(); } }, t("addOutcome"))
     );
   };
   renderOutcomes();
   const outcomesCard = el("div", { class: "card" }, [
-    el("h3", {}, "定量成果 (outcomes)"),
-    el("p", { style: "color:var(--dim);font-size:12px;margin-top:0" },
-      "ケーススタディの数値はここか計測メトリクスのみが出典になります(golden rule 3)"),
+    el("h3", {}, t("outcomesHeading")),
+    el("p", { style: "color:var(--dim);font-size:12px;margin-top:0" }, t("outcomesNote")),
     outcomesBox,
   ]);
 
@@ -426,46 +436,46 @@ function intakeTab(intake, project) {
       ...doc.links.map((l, i) => {
         l.label = l.label || {};
         return el("div", { class: "dyn-row" }, [
-          el("input", { placeholder: `ラベル (${sl})`, value: l.label[sl] || "",
+          el("input", { placeholder: t("linkLabelPlaceholder", { lang: sl }), value: l.label[sl] || "",
             oninput: (e) => (l.label[sl] = e.target.value) }),
           el("input", { placeholder: "https://...", value: l.url || "",
             oninput: (e) => (l.url = e.target.value) }),
           el("select", { onchange: (e) => (l.kind = e.target.value) },
             ["demo", "store", "video", "docs", "repo", "article", "other"].map((k) =>
               el("option", { value: k, selected: (l.kind || "other") === k }, k))),
-          el("button", { class: "small danger", onclick: () => { doc.links.splice(i, 1); renderLinks(); } }, "削除"),
+          el("button", { class: "small danger", onclick: () => { doc.links.splice(i, 1); renderLinks(); } }, t("delete")),
         ]);
       }),
-      el("button", { class: "small", onclick: () => { doc.links.push({ label: { [sl]: "" }, url: "", kind: "other" }); renderLinks(); } }, "+ リンクを追加")
+      el("button", { class: "small", onclick: () => { doc.links.push({ label: { [sl]: "" }, url: "", kind: "other" }); renderLinks(); } }, t("addLink"))
     );
   };
   renderLinks();
-  const linksCard = el("div", { class: "card" }, [el("h3", {}, "リンク (links)"), linksBox]);
+  const linksCard = el("div", { class: "card" }, [el("h3", {}, t("linksHeading")), linksBox]);
 
   // --- dynamic rows: testimonials ---
   const testiBox = el("div");
   const renderTesti = () => {
     testiBox.replaceChildren(
-      ...doc.testimonials.map((t, i) =>
+      ...doc.testimonials.map((tm, i) =>
         el("div", { class: "dyn-row" }, [
-          el("input", { placeholder: "引用", value: t.quote || "", oninput: (e) => (t.quote = e.target.value) }),
-          el("input", { placeholder: "発言者", value: t.author || "", oninput: (e) => (t.author = e.target.value) }),
-          el("button", { class: "small danger", onclick: () => { doc.testimonials.splice(i, 1); renderTesti(); } }, "削除"),
+          el("input", { placeholder: t("quotePlaceholder"), value: tm.quote || "", oninput: (e) => (tm.quote = e.target.value) }),
+          el("input", { placeholder: t("authorPlaceholder"), value: tm.author || "", oninput: (e) => (tm.author = e.target.value) }),
+          el("button", { class: "small danger", onclick: () => { doc.testimonials.splice(i, 1); renderTesti(); } }, t("delete")),
         ])
       ),
-      el("button", { class: "small", onclick: () => { doc.testimonials.push({ quote: "", author: "" }); renderTesti(); } }, "+ 推薦の声を追加")
+      el("button", { class: "small", onclick: () => { doc.testimonials.push({ quote: "", author: "" }); renderTesti(); } }, t("addTestimonial"))
     );
   };
   renderTesti();
-  const testiCard = el("div", { class: "card" }, [el("h3", {}, "推薦の声 (testimonials)"), testiBox]);
+  const testiCard = el("div", { class: "card" }, [el("h3", {}, t("testimonialsHeading")), testiBox]);
 
   // --- tech stack corrections ---
   const tscAdd = el("input", {
-    placeholder: "追加(カンマ区切り)",
+    placeholder: t("tscAddPlaceholder"),
     value: ((doc.techStackCorrections || {}).add || []).join(", "),
   });
   const tscRemove = el("input", {
-    placeholder: "除外(カンマ区切り)",
+    placeholder: t("tscRemovePlaceholder"),
     value: ((doc.techStackCorrections || {}).remove || []).join(", "),
   });
   const syncTsc = () => {
@@ -478,7 +488,7 @@ function intakeTab(intake, project) {
   tscAdd.addEventListener("input", syncTsc);
   tscRemove.addEventListener("input", syncTsc);
   const tscCard = el("div", { class: "card" }, [
-    el("h3", {}, "技術スタック補正 (techStackCorrections)"),
+    el("h3", {}, t("tscHeading")),
     el("div", { class: "field-row" }, [
       el("div", { class: "field" }, [el("label", {}, "add"), tscAdd]),
       el("div", { class: "field" }, [el("label", {}, "remove"), tscRemove]),
@@ -491,16 +501,16 @@ function intakeTab(intake, project) {
     interviewBox.replaceChildren(
       ...doc.interview.map((qa, i) =>
         el("div", { class: "dyn-row" }, [
-          el("input", { placeholder: "質問", value: qa.question || "", oninput: (e) => (qa.question = e.target.value) }),
-          el("input", { placeholder: "回答", value: qa.answer || "", oninput: (e) => (qa.answer = e.target.value) }),
-          el("button", { class: "small danger", onclick: () => { doc.interview.splice(i, 1); renderInterview(); } }, "削除"),
+          el("input", { placeholder: t("questionPlaceholder"), value: qa.question || "", oninput: (e) => (qa.question = e.target.value) }),
+          el("input", { placeholder: t("answerPlaceholder"), value: qa.answer || "", oninput: (e) => (qa.answer = e.target.value) }),
+          el("button", { class: "small danger", onclick: () => { doc.interview.splice(i, 1); renderInterview(); } }, t("delete")),
         ])
       ),
-      el("button", { class: "small", onclick: () => { doc.interview.push({ question: "", answer: "" }); renderInterview(); } }, "+ Q&Aを追加")
+      el("button", { class: "small", onclick: () => { doc.interview.push({ question: "", answer: "" }); renderInterview(); } }, t("addQa"))
     );
   };
   renderInterview();
-  const interviewCard = el("div", { class: "card" }, [el("h3", {}, "インタビュー (interview)"), interviewBox]);
+  const interviewCard = el("div", { class: "card" }, [el("h3", {}, t("interviewHeading")), interviewBox]);
 
   const saveBtn = el("button", { class: "accent", onclick: async () => {
     try {
@@ -508,15 +518,15 @@ function intakeTab(intake, project) {
       delete payload.id; // filename-derived, not part of the schema
       payload.outcomes = payload.outcomes.filter((o) => o.label && o.value);
       payload.links = payload.links.filter((l) => l.url);
-      payload.testimonials = payload.testimonials.filter((t) => t.quote && t.author);
+      payload.testimonials = payload.testimonials.filter((tm) => tm.quote && tm.author);
       payload.interview = payload.interview.filter((qa) => qa.question || qa.answer);
       if (payload.role && !payload.role.type) delete payload.role;
       payload.updatedAt = new Date().toISOString();
       await api(`/api/intake/${encodeURIComponent(intake.id)}`, { method: "PUT", json: payload });
-      toast("インテークを保存しました");
+      toast(t("intakeSaved"));
       await refreshState();
-    } catch (e) { toast("保存失敗: " + e.message, true); }
-  } }, "インテークを保存");
+    } catch (e) { toast(t("saveFailed", { message: e.message }), true); }
+  } }, t("saveIntake"));
 
   container.append(basics, roleCard, narrative, outcomesCard, linksCard,
     testiCard, tscCard, interviewCard, saveBtn);
@@ -524,7 +534,7 @@ function intakeTab(intake, project) {
   return frag;
 }
 
-// ---------------- プロース ----------------
+// ---------------- Prose ----------------
 function proseTab(project) {
   const frag = document.createDocumentFragment();
   const langs = locales();
@@ -554,57 +564,56 @@ function proseTab(project) {
     card.append(el("h3", {}, title));
     build(card, edits);
     card.append(el("button", { class: "accent", onclick: async () => {
-      if (edits.size === 0) { toast("変更はありません"); return; }
+      if (edits.size === 0) { toast(t("noChanges")); return; }
       try {
         await api(`/api/project/${encodeURIComponent(project.id)}/prose`, {
           method: "PUT",
           json: { edits: [...edits.values()] },
         });
-        toast(title + "を保存しました");
+        toast(t("sectionSaved", { title }));
         await refreshState();
-      } catch (e) { toast("保存失敗: " + e.message, true); }
-    } }, "保存"));
+      } catch (e) { toast(t("saveFailed", { message: e.message }), true); }
+    } }, t("save")));
     return card;
   };
 
-  frag.append(section("概要文 (summary)", (card, edits) => {
+  frag.append(section(t("summaryHeading"), (card, edits) => {
     card.append(proseField("summary", "summary", project.summary, edits));
   }));
 
-  frag.append(section("ケーススタディ", (card, edits) => {
+  frag.append(section(t("caseStudyHeading"), (card, edits) => {
     card.append(
-      proseField("problem(課題/動機)", "caseStudy.problem", project.caseStudy.problem, edits),
-      proseField("solution(解決策)", "caseStudy.solution", project.caseStudy.solution, edits),
-      proseField("results(定量成果 — intakeのoutcomes由来のみ)", "caseStudy.results",
+      proseField(t("problemLabel"), "caseStudy.problem", project.caseStudy.problem, edits),
+      proseField(t("solutionLabel"), "caseStudy.solution", project.caseStudy.solution, edits),
+      proseField(t("resultsLabel"), "caseStudy.results",
         project.caseStudy.results, edits),
     );
   }));
 
-  frag.append(section("ハイライト", (card, edits) => {
+  frag.append(section(t("highlightsHeading"), (card, edits) => {
     project.highlights.forEach((h, i) => {
       card.append(proseField(`highlight ${i + 1}`, `highlights[${i}].text`, h.text, edits));
     });
   }));
 
-  frag.append(section("タイムライン", (card, edits) => {
+  frag.append(section(t("timelineHeading"), (card, edits) => {
     project.timeline.forEach((ev, i) => {
       card.append(
         el("h4", {}, `${i + 1}. ${ev.date}`),
-        proseField("タイトル", `timeline[${i}].title`, ev.title, edits),
-        proseField("説明", `timeline[${i}].description`, ev.description, edits),
+        proseField(t("titleLabel"), `timeline[${i}].title`, ev.title, edits),
+        proseField(t("description"), `timeline[${i}].description`, ev.description, edits),
       );
     });
     if (project.timeline.length === 0) {
-      card.append(el("p", { style: "color:var(--dim)" }, "タイムラインはまだありません(/analyzeが生成します)"));
+      card.append(el("p", { style: "color:var(--dim)" }, t("noTimeline")));
     }
   }));
 
-  frag.append(el("p", { style: "color:var(--dim);font-size:12px" },
-    "ここで編集した文章は「人間所有」となり、再分析でも上書きされません(contentHashesの不一致が設計上の保護になります)。"));
+  frag.append(el("p", { style: "color:var(--dim);font-size:12px" }, t("proseOwnershipNote")));
   return frag;
 }
 
-// ---------------- メディア ----------------
+// ---------------- Media ----------------
 function mediaTab(project) {
   const frag = document.createDocumentFragment();
   const langs = locales();
@@ -612,7 +621,7 @@ function mediaTab(project) {
   const fileInput = el("input", { type: "file", accept: ".png,.jpg,.jpeg,.webp,.gif", multiple: true });
   const uploadBtn = el("button", { class: "accent", onclick: async () => {
     const files = [...fileInput.files];
-    if (files.length === 0) { toast("ファイルを選択してください", true); return; }
+    if (files.length === 0) { toast(t("selectFile"), true); return; }
     try {
       for (const file of files) {
         await fetch(
@@ -625,32 +634,31 @@ function mediaTab(project) {
           }
         });
       }
-      toast(`${files.length}件アップロードしました`);
+      toast(t("uploadedCount", { count: files.length }));
       await refreshState();
-    } catch (e) { toast("アップロード失敗: " + e.message, true); }
-  } }, "アップロード");
+    } catch (e) { toast(t("uploadFailed", { message: e.message }), true); }
+  } }, t("upload"));
 
   frag.append(el("div", { class: "card" }, [
-    el("h3", {}, "スクリーンショット追加"),
+    el("h3", {}, t("addScreenshots")),
     el("div", { class: "dyn-row" }, [fileInput, uploadBtn]),
-    el("p", { style: "color:var(--dim);font-size:12px;margin-bottom:0" },
-      "png / jpg / jpeg / webp / gif、最大10MB。data/assets/screenshots/ に保存されます。"),
+    el("p", { style: "color:var(--dim);font-size:12px;margin-bottom:0" }, t("screenshotNote")),
   ]));
 
   const grid = el("div", { class: "shots-grid" });
   for (const shot of project.screenshots) {
     const altRows = langs.map((lang) => {
-      const input = el("input", { placeholder: `altテキスト (${lang})`, value: shot.alt[lang] || "" });
+      const input = el("input", { placeholder: t("altPlaceholder", { lang }), value: shot.alt[lang] || "" });
       const save = el("button", { class: "small", onclick: async () => {
         try {
           await api(`/api/screenshot/${encodeURIComponent(project.id)}/alt`, {
             method: "PUT",
             json: { src: shot.src, lang, value: input.value },
           });
-          toast("altテキストを保存しました");
+          toast(t("altSaved"));
           await refreshState();
-        } catch (e) { toast("保存失敗: " + e.message, true); }
-      } }, "保存");
+        } catch (e) { toast(t("saveFailed", { message: e.message }), true); }
+      } }, t("save"));
       return el("div", { class: "alt-row" }, [el("span", { class: "lang-tag" }, lang), input, save]);
     });
 
@@ -659,20 +667,20 @@ function mediaTab(project) {
       el("div", { class: "src" }, shot.src),
       ...altRows,
       el("button", { class: "small danger", onclick: async () => {
-        if (!confirm("このスクリーンショットを削除しますか?(ファイルも削除されます)")) return;
+        if (!confirm(t("confirmDeleteScreenshot"))) return;
         try {
           await api(`/api/screenshot/${encodeURIComponent(project.id)}?src=${encodeURIComponent(shot.src)}`,
             { method: "DELETE" });
-          toast("削除しました");
+          toast(t("deleted"));
           await refreshState();
-        } catch (e) { toast("削除失敗: " + e.message, true); }
-      } }, "削除"),
+        } catch (e) { toast(t("deleteFailed", { message: e.message }), true); }
+      } }, t("delete")),
     ]));
   }
   if (project.screenshots.length === 0) {
-    grid.append(el("p", { style: "color:var(--dim)" }, "スクリーンショットはまだありません"));
+    grid.append(el("p", { style: "color:var(--dim)" }, t("noScreenshots")));
   }
-  frag.append(el("div", { class: "card" }, [el("h3", {}, "登録済み"), grid]));
+  frag.append(el("div", { class: "card" }, [el("h3", {}, t("registeredHeading")), grid]));
   return frag;
 }
 
@@ -710,7 +718,7 @@ async function runAnalyze() {
     await api("/api/analyze", { method: "POST" });
   } catch (e) {
     if (!/already running|409/i.test(e.message)) {
-      toast("分析の起動に失敗: " + e.message, true);
+      toast(t("analyzeStartFailed", { message: e.message }), true);
     }
   }
   attachStream();
@@ -720,28 +728,28 @@ async function runAnalyze() {
 // Wiring + boot
 // ---------------------------------------------------------------------------
 document.getElementById("btn-add-repo").addEventListener("click", async () => {
-  const url = prompt("GitHubリポジトリのURL(または owner/name):");
+  const url = prompt(t("promptRepoUrl"));
   if (!url || !url.trim()) return;
   try {
     const created = await api("/api/intake", { method: "POST", json: { repoUrl: url.trim() } });
-    toast("インテークを作成しました: " + created.id);
+    toast(t("intakeCreated", { id: created.id }));
     await refreshState();
     selectProject(created.id);
-  } catch (e) { toast("作成失敗: " + e.message, true); }
+  } catch (e) { toast(t("createFailed", { message: e.message }), true); }
 });
 
 document.getElementById("btn-add-manual").addEventListener("click", async () => {
-  const name = prompt("プロジェクトの表示名:");
+  const name = prompt(t("promptDisplayName"));
   if (!name || !name.trim()) return;
   try {
     const created = await api("/api/intake", {
       method: "POST",
       json: { manual: true, displayName: name.trim() },
     });
-    toast("手動インテークを作成しました: " + created.id);
+    toast(t("manualIntakeCreated", { id: created.id }));
     await refreshState();
     selectProject(created.id);
-  } catch (e) { toast("作成失敗: " + e.message, true); }
+  } catch (e) { toast(t("createFailed", { message: e.message }), true); }
 });
 
 document.getElementById("btn-analyze").addEventListener("click", runAnalyze);
@@ -751,4 +759,4 @@ document.getElementById("drawer-close").addEventListener("click", () => {
 
 refreshState()
   .then(applyHash)
-  .catch((e) => toast("状態の取得に失敗: " + e.message, true));
+  .catch((e) => toast(t("stateFetchFailed", { message: e.message }), true));

@@ -1,8 +1,10 @@
 ---
 /**
  * Small chip labeling the project category with a per-category accent dot.
- * The tiny label map is deliberately local (UI furniture, two locales only).
+ * Labels live in the shared UI dictionary (site/src/lib/i18n.ts).
  */
+import { ui } from "../lib/i18n";
+
 interface Props {
   category: string;
   locale: string;
@@ -10,27 +12,9 @@ interface Props {
 
 const { category, locale } = Astro.props;
 
-const LABELS: Record<string, Record<string, string>> = {
-  ja: {
-    product: "製品",
-    service: "サービス",
-    client: "クライアント",
-    oss: "OSS",
-    hobby: "趣味",
-    learning: "学習",
-  },
-  en: {
-    product: "Product",
-    service: "Service",
-    client: "Client",
-    oss: "OSS",
-    hobby: "Hobby",
-    learning: "Learning",
-  },
-};
-
-const lang = locale.startsWith("ja") ? "ja" : "en";
-const label = LABELS[lang][category] ?? category;
+const key = `category.${category}`;
+const resolved = ui(key, locale);
+const label = resolved === key ? category : resolved;
 ---
 
 <span class:list={["chip", "category-badge", `cat-${category}`]}>

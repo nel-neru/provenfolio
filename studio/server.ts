@@ -213,7 +213,7 @@ function startAnalyze(): void {
   if (analyzeChild) throw new HttpError(409, "Analysis already running");
   analyzeLog = [];
   lastExitCode = null;
-  pushLog(`[studio] ${nowIso()} claude -p "/analyze --pending" を起動します…`);
+  pushLog(`[studio] ${nowIso()} launching claude -p "/analyze --pending" ...`);
 
   let child: ChildProcess;
   try {
@@ -223,7 +223,7 @@ function startAnalyze(): void {
       windowsHide: true,
     });
   } catch {
-    pushLog("Claude Code CLIが見つかりません。Claude Codeで「/analyze --pending」を実行してください。");
+    pushLog('Claude Code CLI not found. Run "/analyze --pending" in Claude Code instead.');
     pushDone(-1);
     return;
   }
@@ -236,9 +236,9 @@ function startAnalyze(): void {
 
   child.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "ENOENT") {
-      pushLog("Claude Code CLIが見つかりません。Claude Codeで「/analyze --pending」を実行してください。");
+      pushLog('Claude Code CLI not found. Run "/analyze --pending" in Claude Code instead.');
     } else {
-      pushLog(`[studio] 起動エラー: ${err.message}`);
+      pushLog(`[studio] spawn error: ${err.message}`);
     }
     analyzeChild = null;
     pushDone(-1);
@@ -247,7 +247,7 @@ function startAnalyze(): void {
   child.on("close", (code) => {
     if (outCarry.buf) pushLog(outCarry.buf);
     if (errCarry.buf) pushLog(errCarry.buf);
-    pushLog(`[studio] 終了 (exit code ${code ?? "?"})`);
+    pushLog(`[studio] exited (exit code ${code ?? "?"})`);
     analyzeChild = null;
     pushDone(code);
   });
