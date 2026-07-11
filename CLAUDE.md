@@ -29,6 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run refresh` — deterministic re-extract of all sources (no AI cost)
 - `npm run studio` — local GUI at http://localhost:4600 (never deployed)
 - `npm run migrate` — apply schema migrations to `data/`
+- `npm run check:i18n` — bilingual-docs guard + stray-Japanese lint (`-- --stamp` refreshes markers after translating)
 - Engine scripts run via `tsx engine/scripts/<name>.ts` / `tsx engine/sources/github/<name>.ts`
 
 ## Skills
@@ -55,3 +56,4 @@ Idempotency: `generated.contentHashes` detects human-edited prose (hash mismatch
 - Buyer-safe customization surface: `site/src/theme.ts` + `site/src/overrides/` — engine updates must never touch these paths.
 - Screenshots live in `data/assets/screenshots/<projectId>/` and are referenced relatively from project JSON.
 - Dev working copies of the distribution repo (origin = nel-neru/provenfolio): add `data/` to `.git/info/exclude` (machine-local) right after cloning, and never stage `data/` there — ensure-data creates an untracked `data/` tree in every working copy, and CI `data-guard` is a tripwire, not prevention.
+- **Language policy (CI-enforced by `check:i18n`)**: every user-facing doc ships as an EN+JA pair — canonical side is `README.ja.md` (marketing, Japanese) and `engine/docs/*.md` (technical, English); the translation file carries an `<!-- i18n:source=... sha256=... -->` marker. Editing a canonical doc REQUIRES updating its pair in the same commit, then `npm run check:i18n -- --stamp`. Japanese text is allowed only in `*.ja.md` and the i18n dictionaries (`site/src/lib/i18n.ts`, `studio/public/i18n.js`, `engine/scripts/lib/lints.ts`, translator agent example); everything else — code, comments, CLI output, CHANGELOG, commit messages — is English-only. Studio UI strings go through `studio/public/i18n.js` keyed on `profile.sourceLang`.

@@ -27,6 +27,9 @@ jobs:
       - name: Typecheck engine
         run: npx tsc --noEmit
 
+      - name: i18n guard (bilingual docs in sync, no stray Japanese)
+        run: npm run check:i18n
+
       - name: Validate data contract
         run: npm run validate
 

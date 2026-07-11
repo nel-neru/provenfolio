@@ -14,6 +14,7 @@
   },
   "scripts": {
     "validate": "tsx engine/scripts/ensure-data.ts && tsx engine/scripts/validate-data.ts",
+    "check:i18n": "tsx engine/scripts/check-i18n.ts",
     "aggregate": "tsx engine/scripts/aggregate.ts",
     "refresh": "tsx engine/scripts/refresh.ts",
     "migrate": "tsx engine/scripts/migrate-data.ts",
