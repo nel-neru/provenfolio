@@ -1,12 +1,14 @@
 # Product-repo guard: data/ belongs to instances, never to the distribution repo.
 #
-# This repo ships a blank seed under data/ (written by engine/scripts/reset-data.ts)
-# so a fresh clone builds out of the box. Any change to data/ after that seed would
-# leak an owner's instance into every buyer's `git merge engine/main` — so it fails CI.
+# The distribution repo must contain ZERO tracked data/ paths. A blank seed is
+# bootstrapped on demand by engine/scripts/ensure-data.ts (wired into
+# `npm run validate`), so nothing under data/ ever needs to be committed here —
+# not even for schema migrations (those change seed CODE, not tracked files).
+# This is a state check, not a diff check: it inspects what HEAD tracks, so it
+# has no bypass and survives any history shape.
 #
-# Runs ONLY on the canonical distribution repo (the `if:` below); owner instances and
-# buyer copies commit their own data/ freely and never trigger this.
-# Intentional seed changes (e.g. a schema migration): include "[seed]" in the commit message.
+# Runs ONLY on the canonical distribution repo (the `if:` below); owner
+# instances and buyer copies commit their own data/ freely and never trigger it.
 name: data-guard
 
 on:
@@ -20,23 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Fail if data/ changed
+      - name: Fail if any data/ path is tracked
         run: |
-          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
-          if [ -z "$BASE" ] || ! git cat-file -e "$BASE" 2>/dev/null; then
-            BASE=$(git rev-list --max-parents=0 HEAD)
-          fi
-          if git log --format=%B "$BASE"..HEAD | grep -qF "[seed]"; then
-            echo "Seed change explicitly marked with [seed] — skipping guard."
-            exit 0
-          fi
-          CHANGED=$(git diff --name-only "$BASE" HEAD -- data/)
-          if [ -n "$CHANGED" ]; then
-            echo "::error::data/ must never change in the distribution repo (instance data lives only in private instance repos):"
-            echo "$CHANGED"
+          TRACKED=$(git ls-files -- data/)
+          if [ -n "$TRACKED" ]; then
+            echo "::error::The distribution repo must contain zero tracked data/ paths (instance data lives only in private instance repos):"
+            echo "$TRACKED"
             exit 1
           fi
-          echo "data/ untouched — OK."
+          echo "no tracked data/ paths — OK."

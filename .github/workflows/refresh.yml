@@ -6,6 +6,9 @@
 #      Optional: GH_TOKEN with repo read scope if you analyze private repos.
 #   2. Repo variable: CF_PAGES_PROJECT (your Pages project name).
 #   3. Enable the workflow. Disable anytime — /publish still works manually.
+#
+# This workflow is for INSTANCE repos: the job is skipped on the canonical
+# distribution repo, which tracks no data/ to refresh or commit.
 name: refresh
 
 on:
@@ -18,6 +21,7 @@ permissions:
 
 jobs:
   refresh:
+    if: github.repository != 'nel-neru/provenfolio'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
