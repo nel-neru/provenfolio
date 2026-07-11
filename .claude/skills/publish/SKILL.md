@@ -33,4 +33,5 @@ description: Gate-check, build, and deploy the portfolio to Cloudflare Pages (wi
 
 ## 5. After
 
-- Suggest committing the data changes (`git add data/ && git commit`) so the deployed state is reproducible.
+- Run `git remote get-url origin` and normalize it (strip protocol/host prefix and trailing `.git`). If the repo path is EXACTLY `nel-neru/provenfolio` (the public distribution repo; exact match only — substring matching would wrongly flag instance repos like `provenfolio-instance`), do NOT suggest or run any `data/` commit: explain that instance data must never enter the distribution repo, and point to engine/docs/GETTING-STARTED.md ("Your instance repo must be private") for re-pointing origin.
+- Otherwise, suggest committing the data changes (`git add data/ && git commit`) so the deployed state is reproducible.
