@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-**Provenfolio** — a distributable (sellable) product that analyzes a developer's repositories with AI agents and generates an evidence-linked, bilingual portfolio site that updates itself. It is NOT any one person's portfolio: the engine is owner-agnostic; `data/` holds the current owner's instance and can be reset for a new owner.
+**Provenfolio** — a distributable (sellable) product that analyzes a developer's repositories with AI agents and generates an evidence-linked, bilingual portfolio site that updates itself. It is NOT any one person's portfolio: the engine is owner-agnostic; `data/` holds the current owner's instance and can be reset for a new owner. The distribution repo tracks no `data/` paths — a blank seed is bootstrapped on demand by `engine/scripts/ensure-data.ts`; instances commit `data/` only in their own PRIVATE repos (CI `data-guard` enforces the zero-tracked-data state on the canonical repo).
 
 ```
 [Engine: source adapters + agents + Studio] → [Data contract: data/*.json (Zod)] → [Consumers: site / exporters]
@@ -24,7 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 - `npm run dev` / `npm run build` / `npm run preview` — site (build runs `validate` first)
-- `npm run validate` — Zod-check everything in `data/`
+- `npm run validate` — bootstrap a blank `data/` seed if missing (ensure-data), then Zod-check everything in `data/`
 - `npm run aggregate` — recompute `data/derived/aggregates.json`
 - `npm run refresh` — deterministic re-extract of all sources (no AI cost)
 - `npm run studio` — local GUI at http://localhost:4600 (never deployed)

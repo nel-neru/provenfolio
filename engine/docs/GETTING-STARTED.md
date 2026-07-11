@@ -13,6 +13,24 @@ From clone to a live portfolio in under 45 minutes.
 
 **Token cost per analysis** (rough, at typical API pricing): small repo (<300 commits, <500 files) ≈ $0.5–2; medium (<3k commits) ≈ $2–6; large repos get a pre-flight size warning and a file-sampling budget. Re-analysis is cheaper (unchanged stages are skipped); `npm run refresh` metric updates cost **zero** AI tokens.
 
+## Your instance repo must be PRIVATE
+
+Your clone becomes your **instance**: `data/` will hold your real name, contact links, project history, and screenshots, and you will commit all of it. So:
+
+- **Never fork the distribution repo on GitHub.** A public repo's fork cannot be made private — your instance data would be published.
+- The distribution repo ships **no `data/` at all**; a blank seed is generated on first `npm run validate`/`build` (or by `/setup`). Commit `data/` freely in YOUR private repo — that's the design.
+- Recommended flow:
+
+```bash
+gh repo create <you>/<your-portfolio-repo> --private
+git clone https://github.com/nel-neru/provenfolio.git <dir> && cd <dir>
+git remote rename origin engine        # engine updates arrive from here (see UPDATING.md)
+git remote add origin https://github.com/<you>/<your-portfolio-repo>.git
+git push -u origin main
+```
+
+`/setup` and `/publish` refuse to commit instance data while `origin` still points at the distribution repo.
+
 ## Data handling (read this if you have NDA constraints)
 
 Analysis runs **on your machine**. Cloned repos never leave it, except: selected file contents, commit messages, and PR titles are sent to the Anthropic API as agent context during enrichment. Metrics extraction (`refresh`) is fully local + GitHub API. Private repos work through your own `gh` auth. Set `visibilityOverride: "private"` in a project's intake to keep source links off the site.
@@ -22,8 +40,10 @@ Analysis runs **on your machine**. Cloned repos never leave it, except: selected
 ```bash
 npm install
 claude        # open Claude Code in the repo
-> /setup      # interview → resets demo data → writes YOUR profile
+> /setup      # interview → writes YOUR profile
 ```
+
+A fresh clone has no `data/` — `/setup` (and any `npm run validate`/`build`) creates the blank seed automatically.
 
 ## First project
 

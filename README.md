@@ -25,6 +25,8 @@ npm install
 /publish      # Cloudflare Pages へ公開
 ```
 
+> ⚠️ あなたのインスタンスは必ず**プライベート**リポジトリで運用してください(このリポジトリのフォークは非公開化できません)。手順は `engine/docs/GETTING-STARTED.md` の "Your instance repo must be PRIVATE" を参照。
+
 詳細は `engine/docs/GETTING-STARTED.md` を参照。
 
 ## 前提条件
@@ -42,7 +44,7 @@ npm install
 ```
 
 - `engine/` — 分析パイプライン・スキーマ・エクスポータ(= 製品本体)
-- `data/` — あなたのインスタンスデータ(`/setup` でリセット可能)
+- `data/` — あなたのインスタンスデータ(配布リポジトリには含まれない — 初回の validate/build/`/setup` で自動生成)
 - `site/` — Astro + Three.js のレンダー層
 - `studio/` — ローカル管理GUI(公開されない)
 

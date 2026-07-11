@@ -1,6 +1,6 @@
 # Pulling Engine Updates
 
-Your purchase includes engine updates. Your `data/` never conflicts with them by design — the engine writes owner content nowhere else.
+Your purchase includes engine updates. Your `data/` never conflicts with them **by structure**: the distribution repo tracks no `data/` paths at all, so an engine merge cannot touch your data.
 
 ## One-time setup
 
@@ -15,7 +15,7 @@ git fetch engine
 git log --oneline HEAD..engine/main        # see what's new (CHANGELOG.md too)
 git merge engine/main
 npm install                                 # deps may have moved
-npm run migrate                             # applies schema migrations to your data/ (no-op when none)
+npm run migrate                             # applies schema migrations to your data/ (no-op when none or when files are missing)
 npm run validate && npm run build           # green = done
 ```
 
@@ -23,8 +23,12 @@ npm run validate && npm run build           # green = done
 
 | You edited | Merge result |
 |---|---|
-| only `data/`, `site/src/theme.ts`, `site/src/overrides/` | clean merge, always (the customization contract) |
+| only `data/`, `site/src/theme.ts`, `site/src/overrides/` | clean merge, always — structurally guaranteed for `data/` (upstream contains zero `data/` paths) |
 | engine files (`site/src/**` beyond the contract, `engine/**`, `.claude/**`) | possible conflicts — you own them; resolve normally |
+
+### If you cloned before data/ was removed from the distribution repo (2026-07)
+
+Clones made before the distribution repo untracked `data/` will hit one-time modify/delete conflicts on `data/profile.json`, `data/manifest.json`, and `data/derived/aggregates.json` at their next `git merge engine/main` (and the `.gitkeep` placeholders delete silently). Your versions are already in your working tree — keep them: `git add data/ && git commit`. Engine scripts recreate any empty directories automatically. After this one merge, `data/` never conflicts again.
 
 ## Version discipline
 
