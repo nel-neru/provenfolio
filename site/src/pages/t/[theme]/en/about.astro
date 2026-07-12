@@ -1,0 +1,11 @@
+---
+import { getManifest, listPrerenderThemes } from "../../../../lib/theme-registry.js";
+
+export function getStaticPaths() {
+  return listPrerenderThemes().map((theme) => ({ params: { theme } }));
+}
+
+const { AboutPage } = (await getManifest(Astro.params.theme!)).components;
+---
+
+<AboutPage locale="en" />

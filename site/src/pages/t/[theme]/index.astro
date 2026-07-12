@@ -1,0 +1,14 @@
+---
+/** Theme-preview home ("/t/<theme>/") — prerendered per visitor-exposed theme. */
+import { getManifest, listPrerenderThemes } from "../../../lib/theme-registry.js";
+import { getProfile } from "../../../lib/data.js";
+
+export function getStaticPaths() {
+  return listPrerenderThemes().map((theme) => ({ params: { theme } }));
+}
+
+const profile = await getProfile();
+const { HomePage } = (await getManifest(Astro.params.theme!)).components;
+---
+
+<HomePage locale={profile.sourceLang} />

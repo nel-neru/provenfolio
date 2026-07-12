@@ -1,21 +1,26 @@
 ---
 /**
  * Shared page shell — SEO/hreflang plumbing, a11y skeleton, theme token
- * injection, and motion boot. The look lives in the active theme package
- * ("@theme" alias, selected in site/theme.config.mjs): the theme owns the
- * Header/Footer components, its stylesheet, and every token value.
+ * injection, motion boot, and the visitor design switcher. The look lives
+ * in theme packages (site/src/themes/<name>/), resolved through the
+ * registry: root URLs render the active theme (theme.config.mjs), and the
+ * prerendered /t/<theme>/ trees render every visitor-exposed theme — the
+ * `theme` route param, visible here via Astro.params, selects it with no
+ * prop threading. Dynamic manifest loading keeps each built page's CSS
+ * scoped to its own theme.
  *
  * `surface` marks the page as the expressive "showcase" surface (home) or
  * the calm "read" surface (everything else); themes scope wilder rules
  * under body[data-surface="showcase"].
  */
 import { ClientRouter } from "astro:transitions";
-import { theme } from "@theme/tokens";
-import Header from "@theme/components/Header.astro";
-import Footer from "@theme/components/Footer.astro";
-import "@theme/styles.css";
 import { cssVarsFor, fontFacesFor } from "../lib/theme-css.js";
-import { t, localePath } from "../lib/i18n.js";
+import {
+  getManifest,
+  listVisitorThemes,
+  activeTheme,
+} from "../lib/theme-registry.js";
+import { t, ui, localePath } from "../lib/i18n.js";
 import { getProfile } from "../lib/data.js";
 import "../styles/global.css";
 
@@ -30,6 +35,17 @@ interface Props {
 }
 
 const { locale, title, description, path, ogImage, surface = "read" } = Astro.props;
+
+// Under /t/[theme]/ routes the param selects the theme; everywhere else
+// the active theme renders. Child components see the same params object.
+const themeParam = (Astro.params as { theme?: string } | undefined)?.theme;
+const themeName = themeParam ?? activeTheme;
+const isOverride = themeParam !== undefined;
+const manifest = await getManifest(themeName);
+const tokens = manifest.tokens;
+const Header = manifest.components.Header;
+const Footer = manifest.components.Footer;
+
 const profile = await getProfile();
 const sl = profile.sourceLang;
 const defaultLocale = sl;
@@ -40,8 +56,15 @@ const pageDesc = description ?? t(profile.seo.description, locale, sl);
 const lp = (p: string) => localePath(p, locale, defaultLocale);
 
 const site = Astro.site?.href?.replace(/\/$/, "") ?? "";
-const fontFaces = fontFacesFor(theme);
-const fontPreloads = (theme.webfonts ?? []).filter((f) => f.preload);
+const fontFaces = fontFacesFor(tokens);
+const fontPreloads = (tokens.webfonts ?? []).filter((f) => f.preload);
+
+// Visitor design switcher: hidden when fewer than two themes are exposed.
+const visitorList = listVisitorThemes();
+const showSwitcher = visitorList.length >= 2;
+const logicalPath = lp(path);
+const themeHref = (name: string) =>
+  name === activeTheme ? logicalPath : `/t/${name}${logicalPath}`;
 ---
 
 <!doctype html>
@@ -52,7 +75,8 @@ const fontPreloads = (theme.webfonts ?? []).filter((f) => f.preload);
     <title>{pageTitle}</title>
     <meta name="description" content={pageDesc} />
     <meta name="generator" content={Astro.generator} />
-    <link rel="canonical" href={`${site}${lp(path)}`} />
+    {isOverride && <meta name="robots" content="noindex" />}
+    <link rel="canonical" href={`${site}${logicalPath}`} />
     {
       locales.map((l) => (
         <link
@@ -65,7 +89,7 @@ const fontPreloads = (theme.webfonts ?? []).filter((f) => f.preload);
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDesc} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={`${site}${lp(path)}`} />
+    <meta property="og:url" content={`${site}${logicalPath}`} />
     {ogImage && <meta property="og:image" content={`${site}${ogImage}`} />}
     {ogImage && <meta name="twitter:card" content="summary_large_image" />}
     {
@@ -79,7 +103,7 @@ const fontPreloads = (theme.webfonts ?? []).filter((f) => f.preload);
         />
       ))
     }
-    <style set:html={`:root{${cssVarsFor(theme)}}`}></style>
+    <style set:html={`:root{${cssVarsFor(tokens)}}`}></style>
     {fontFaces && <style set:html={fontFaces}></style>}
     <ClientRouter />
     <script>
@@ -100,12 +124,128 @@ const fontPreloads = (theme.webfonts ?? []).filter((f) => f.preload);
       )
     }
   </head>
-  <body data-surface={surface}>
+  <body data-surface={surface} data-theme={themeName}>
     <a href="#main" class="skip-link">Skip to content</a>
     <Header locale={locale} path={path} />
     <main id="main">
       <slot />
     </main>
     <Footer locale={locale} />
+    {
+      showSwitcher && (
+        <nav class="theme-dock no-print" aria-label={ui("theme.switcher", locale)}>
+          <details>
+            <summary>
+              <span class="dock-label">{ui("theme.switcher", locale)}</span>
+              <span class="dock-current">{themeName}</span>
+            </summary>
+            <ul role="list">
+              {visitorList.map((name) => (
+                <li>
+                  <a
+                    href={themeHref(name)}
+                    data-theme-link
+                    aria-current={name === themeName ? "page" : undefined}
+                  >
+                    {name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </nav>
+      )
+    }
+    {
+      isOverride && (
+        <script is:inline>
+          /* Keep in-site links inside the current /t/<theme>/ tree. Reads
+             the prefix from the URL each run, so stale listeners left by
+             View Transitions can never mis-prefix root pages. */
+          if (!window.__themePrefixer) {
+            window.__themePrefixer = true;
+            const rewrite = () => {
+              const m = location.pathname.match(/^\/t\/([^/]+)(?=\/|$)/);
+              if (!m) return;
+              const prefix = m[0];
+              document.querySelectorAll('a[href^="/"]').forEach((a) => {
+                const href = a.getAttribute("href");
+                if (!href || href.startsWith("/t/") || a.hasAttribute("data-theme-link")) return;
+                a.setAttribute("href", prefix + href);
+              });
+            };
+            rewrite();
+            document.addEventListener("astro:page-load", rewrite);
+          }
+        </script>
+      )
+    }
   </body>
 </html>
+
+<style>
+  .theme-dock {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 60;
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+  }
+  .theme-dock summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45em;
+    padding: 0.35rem 0.8rem;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--text-dim);
+  }
+  .theme-dock summary::-webkit-details-marker {
+    display: none;
+  }
+  .theme-dock summary:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .dock-label {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.68em;
+    color: var(--text-faint);
+  }
+  .dock-current {
+    color: var(--accent);
+  }
+  .theme-dock ul {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 0.4rem);
+    margin: 0;
+    padding: 0.35rem;
+    list-style: none;
+    min-width: 11rem;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display: grid;
+    gap: 0.1rem;
+  }
+  .theme-dock ul a {
+    display: block;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--radius-sm);
+    color: var(--text-dim);
+  }
+  .theme-dock ul a:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .theme-dock ul a[aria-current="page"] {
+    color: var(--accent);
+  }
+</style>
