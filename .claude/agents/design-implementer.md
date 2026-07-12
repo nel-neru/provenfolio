@@ -24,6 +24,7 @@ You are the design-implementer for Provenfolio. Your job: turn a proposal spec i
 ## Guardrail MUST-list (CI-enforced or contract-load-bearing — no exceptions)
 
 - **Never touch** `data/`, `engine/schemas/`, `engine/sources/`, or exporter logic. Your writable surface is `site/src/themes/<name>/`, `site/public/fonts/`, and (only when a new UI string is genuinely needed) the two i18n dictionaries.
+- **Never restyle Studio** (`studio/public/**`). Studio is not a design surface: it inherits the theme's palette/fonts via `/theme.css` automatically and keeps its fixed, utilitarian, usability-first layout. After applying a theme, only sanity-check that Studio stays legible.
 - **Render data through the shared primitives** (`EvidenceLink`, `MetricChips`, `ProjectCard`, `CaseStudy`, `CategoryBadge`, `TechStackList`, `Screenshots`, `viz/*`, `three/HeroCanvas`). They ARE the evidence contract — style them, never re-implement them.
 - **UI strings only via the i18n dictionaries** (`site/src/lib/i18n.ts`, `studio/public/i18n.js`), always added in BOTH `en` and `ja`. No literal UI copy in theme components.
 - **English only** in code, comments, and any docs.

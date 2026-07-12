@@ -35,8 +35,8 @@ Default n=6. All intermediate files live under `workspace/design/` (transient, g
 1. **Sample content** — build `workspace/design/sample-content.json` from `data/profile.json` plus up to 2 `data/projects/*.json` (prefer featured): real name, role, tagline, project titles, summary prose, and metric chips in every locale present. If the instance is a blank seed, fabricate clearly neutral bilingual placeholders (a generic name in Latin and Japanese scripts, a plausible project with fake-but-labeled metrics) — never invent content that could be mistaken for the real owner's.
 2. **Direction cards** — write n cards to `workspace/design/directions/<slug>.md` (slug is kebab-case). Each card: direction name, one-line concept, energy rating (calm/mid/wild), 3-5 keywords, and any brief.md constraints it must honor. Spread the energy: 2 calm (e.g. editorial-swiss, quiet-luxury), 2 mid (e.g. neo-brutalist, data-forensic), 2 wild (e.g. kinetic-type, acid-lab). If `data/design/brief.md` exists, read it FIRST and bias the directions toward it (respect hard nos absolutely; skew the energy split toward the owner's stated levels).
 3. **Research** — spawn one `design-researcher` subagent per card, in parallel. Each writes a dossier to `workspace/design/research/<direction>.md`.
-4. **Mockups** — spawn one `design-mockup-builder` subagent per dossier, in parallel. Each produces `workspace/design/proposals/<nn-slug>/` (`nn` = 01..n) containing `proposal.md`, `tokens.json`, `home.html`, `project.html`, `studio.html`.
-5. **Gallery** — write `workspace/design/proposals/index.html`: one card per proposal with its name, concept line, energy badge, a swatch strip rendered from its `tokens.json`, and links to the 3 screens.
+4. **Mockups** — spawn one `design-mockup-builder` subagent per dossier, in parallel. Each produces `workspace/design/proposals/<nn-slug>/` (`nn` = 01..n) containing `proposal.md`, `tokens.json`, `home.html`, `project.html`. The two pages must share their site chrome (header/nav/footer) and design DNA — the case study is the read surface of the SAME theme, not a second design. Studio is NOT mocked (out of design scope).
+5. **Gallery** — write `workspace/design/proposals/index.html`: one card per proposal with its name, concept line, energy badge, a swatch strip rendered from its `tokens.json`, and links to the 2 screens.
 6. **Review** — start the design-proposals preview in the Browser pane (launch config `design-proposals`, port 4700 — it serves `workspace/design/proposals/` via `engine/scripts/design-preview.ts`). Screenshot the gallery, walk the user through each direction (concept, energy, how it treats showcase vs read), then **STOP and wait for the user's pick**. Do not apply anything without it.
 
 ## apply <proposal-id>
@@ -46,7 +46,7 @@ Default n=6. All intermediate files live under `workspace/design/` (transient, g
 3. **Ask the user for explicit confirmation** before switching. Only after a clear yes: set `activeTheme` in `site/theme.config.mjs` to the new theme, and update the `@theme/*` paths mapping in `site/tsconfig.json` to match.
 4. Verification loop (repeat until all pass):
    - `npx tsc --noEmit`, `npm run check:i18n`, `npm run validate`, `npm run build` — all green.
-   - Browser: site at 4321 (launch config `site`) and Studio at 4600 (launch config `studio`), compared side-by-side against the mockups at 4700. Check both locales, both surfaces (home = showcase, a project page = read), narrow viewport, and reduced-motion.
+   - Browser: site at 4321 (launch config `site`) compared side-by-side against the mockups at 4700. Check both locales, both surfaces (home = showcase, a project page = read), narrow viewport, and reduced-motion. Studio (4600) gets a sanity check only — it inherits the new tokens via `/theme.css` and must stay legible, but its layout is never redesigned.
    - Feed discrepancies back to `design-implementer` until the real pages honor the proposal.
 5. Remind the user: dev servers must be restarted after the `theme.config.mjs` change (the `@theme` alias is resolved at config load).
 
@@ -66,6 +66,7 @@ Report, concisely:
 
 ## Never
 
+- Studio is not a design surface: proposals never mock it and `apply` never restyles `studio/public/**`. It inherits palette/fonts via `/theme.css` and keeps its fixed, utilitarian, usability-first layout.
 - Never hardcode owner-specific values (names, URLs, locales) in anything under `site/` or `studio/` — read `data/profile.json`.
 - UI strings only via the two i18n dictionaries (`site/src/lib/i18n.ts`, `studio/public/i18n.js`), added in both locales.
 - English only in all code, comments, and engine files; owner-language text belongs only in `data/**`.

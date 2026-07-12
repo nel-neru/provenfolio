@@ -75,6 +75,8 @@
 - JavaScript なしでも名前・ナビゲーション・コンテンツは表示されます。WebGL やキネティック演出はサーバーレンダリング済み HTML の上の強化にすぎません。
 - `/overview` は印刷セーフを維持します(「この PDF を採用担当者に渡す」ページです)。
 
+**Studio はデザインサーフェスではありません。** コックピットは `/theme.css` ルートを通じてアクティブテーマのパレットとフォントを継承しますが、そこまでです: レイアウトは固定・実用本位で、編集速度に最適化されています。`/design` の提案が Studio をモックすることはなく、`apply` が `studio/public/**` を再スタイルすることもありません — オーナー自身の道具では、使いやすさがアートディレクションに勝ちます。
+
 ## デザイン変更のガードレール
 
 デザインを刷新するエージェント/人間のための MUST リスト。すべて CI 強制または契約の荷重を受けています:
@@ -117,4 +119,4 @@ npm run build
 - Webフォントは `site/public/fonts/` の**セルフホスト** woff2 ファイルで、テーマごとに `tokens.webfonts`(family、file、weight、style、任意で preload/unicodeRange)で宣言します。`fontFacesFor()` がデフォルト `font-display: swap` で `@font-face` ブロックを描画します。
 - **数 MB 級の CJK フォントを同梱しないこと。** CJK テキストはシステムスタックに任せます(`fontSans` に JP フォールバックを列挙)。デザインが本当にカスタム CJK 書体を必要とする場合は、先にサブセット化してください — レシピへのポインタは [CUSTOMIZING.md](CUSTOMIZING.md) にあります。
 
-<!-- i18n:source=engine/docs/DESIGN.md sha256=39a641cae6bffe3dc42e068d1db15cb036a9426f931d610c4da9b3b1b66f6648 -->
+<!-- i18n:source=engine/docs/DESIGN.md sha256=6fa0402c5c5332cc1ff941cc48517102f30c7a4efbfdc2b132f545113dca4856 -->
