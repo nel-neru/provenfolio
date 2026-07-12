@@ -27,8 +27,12 @@ npm run validate && npm run build           # green = done
 
 | 編集した範囲 | merge の結果 |
 |---|---|
-| `data/`、`site/src/theme.ts`、`site/src/overrides/` のみ | 常にクリーンに merge — `data/` については構造的に保証（upstream には `data/` 配下のパスが一切存在しません） |
-| エンジン側のファイル（コントラクト外の `site/src/**`、`engine/**`、`.claude/**`） | コンフリクトの可能性あり — 所有者はあなたなので、通常どおり解決してください |
+| `data/`、`site/theme.config.mjs`、`site/src/themes/<あなたのテーマ>/` のみ | 常にクリーンに merge — `data/` とあなた自身のテーマディレクトリについては構造的に保証（upstream にはどちらも存在しません） |
+| エンジン側のファイル（コントラクト外の `site/src/**`、`site/src/themes/midnight/` のようなエンジン同梱テーマ、`engine/**`、`.claude/**`） | コンフリクトの可能性あり — 所有者はあなたなので、通常どおり解決してください |
+
+### テーマシステム以前（0.x の `site/src/theme.ts`）にカスタマイズしていた場合
+
+旧 `site/src/theme.ts` を直接編集していたオーナーへ: トークン値を `site/src/themes/<name>/tokens.ts` にコピーし（`midnight` テーマディレクトリのコピーから始めてください）、`site/theme.config.mjs` の `activeTheme` を設定すれば完了です。旧 `theme.ts` は現在アクティブテーマの上に被さるエンジン側のシムであり、編集を残したままにすると今後の merge でコンフリクトします。
 
 ### 配布リポジトリから data/ が削除される前（2026-07）に clone した場合
 
@@ -40,4 +44,4 @@ npm run validate && npm run build           # green = done
 - スキーマ変更は `SCHEMA_VERSION` を上げ、必ずマイグレーションを同梱します — あなたのデータが取り残されることはありません。
 - zod のメジャーバージョンは Astro が vendor するものに固定されています。どのワークスペースにも別の zod を追加しないでください（CI がこれをガードしています）。
 
-<!-- i18n:source=engine/docs/UPDATING.md sha256=ed73d2f76db6b42d976a1bdd465e286843b8277ea795cecd6213ce7430996f69 -->
+<!-- i18n:source=engine/docs/UPDATING.md sha256=4ff8c6318d794a1bbcfc2e91521000f05cdfc3f6b208fd20cae60211d3430c42 -->
