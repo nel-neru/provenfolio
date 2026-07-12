@@ -16,14 +16,17 @@
 |---|---|
 | `tokens.ts` | `export const theme: ThemeTokens` — すべての色、フォント、角丸、余白、Webフォント宣言。CSS 変数・3D ヒーロー・OG 画像・Studio がすべてここから導出される単一ソース。 |
 | `styles.css` | テーマのスタイルシート。エンジンコンポーネントが期待する共有プリミティブクラスを含みます: `.card`、`.chip`、`.section-title`、`.evidence-link`。 |
+| `manifest.ts` | レジストリのエントリポイント: `./styles.css` を import し、`{ name, tokens, components }` をエクスポート。マニフェストをロードすればテーマ全体がロードされます。 |
 | `components/Header.astro`、`Footer.astro` | サイトのクローム。共有レイアウト `Base.astro` から委譲されます。 |
 | `components/HomePage.astro`、`ProjectsPage.astro`、`ProjectPage.astro`、`AboutPage.astro`、`HistoryPage.astro`、`OverviewPage.astro` | ページ構成。それぞれがロード済みデータを受け取ってレイアウトします。データ自体はエンジン所有のプリミティブを通って流れます。 |
 
 仕組み:
 
-- **`site/theme.config.mjs`** が買い手向けのスイッチ — 1行だけ: `export const activeTheme = "midnight";`。
-- **`@theme` Vite エイリアス** — `astro.config.mjs` が `@theme` を `src/themes/<activeTheme>` に向けるので、Astro コードは `@theme/components/Header.astro` のようにテーマファイルを import します。Astro/Vite のコードは必ずこのエイリアスを使い、`site/src/theme.ts` は決して import しません。
-- **`site/src/theme.ts`** は非 Vite コンシューマ(OG エクスポーター、Studio)向けの tsx 側シムです。自力で `activeTheme` を解決し、`theme`、`themeCssVars()`、`themeFontFaces()` を再エクスポートします。
+- **`site/theme.config.mjs`** が買い手向けのスイッチ: `activeTheme`(ルート URL で提供されるデザイン)と `visitorThemes`(サイト内スイッチャーが公開するインストール済みテーマ — `"all"` または明示的な配列)。
+- **レジストリ**(`site/src/lib/theme-registry.ts`)がすべての `src/themes/*/manifest.ts` を遅延発見し、`Base.astro` は描画するテーマをレジストリ経由で解決します。遅延ロードにより、ビルドされた各ページの CSS はそのページのテーマ分だけに収まります。
+- **訪問者スイッチャー + `/t/<theme>/` ツリー** — 訪問者に公開される各テーマは `/t/<theme>/…` に事前レンダリングされます(同じページ群をそのテーマのクロームで)。`Base.astro` はルートパラメータ `theme` を読み、固定の「Design」ドックを描画し(公開テーマが2未満なら非表示)、`/t/` ページに `noindex` を刻印しつつ `rel=canonical` はルート URL を指し続け、小さなインラインスクリプトがサイト内リンクを現在の `/t/<theme>/` ツリー内に保ちます。
+- **`@theme` Vite エイリアス** — `astro.config.mjs` が `@theme` を `src/themes/<activeTheme>` に向け、ルートのページラッパーはこれを通じてアクティブテーマのページコンポーネントを import します。Astro/Vite のコードは `site/src/theme.ts` を決して import しません。
+- **`site/src/theme.ts`** は非 Vite コンシューマ(OG エクスポーター、Studio)向けの tsx 側シムです。自力で `activeTheme` を解決し、`theme`、`themeCssVars()`、`themeFontFaces()` を再エクスポートします。OG 画像・ヒーローのパレット・Studio は常に**アクティブ**テーマに追従します。
 - **切り替え後は再起動。** エイリアスは設定ロード時に解決されるため、`theme.config.mjs` の変更には `npm run dev` の再起動が必要です(素の `npm run build` は常に反映します)。
 
 ## トークン語彙
@@ -119,4 +122,4 @@ npm run build
 - Webフォントは `site/public/fonts/` の**セルフホスト** woff2 ファイルで、テーマごとに `tokens.webfonts`(family、file、weight、style、任意で preload/unicodeRange)で宣言します。`fontFacesFor()` がデフォルト `font-display: swap` で `@font-face` ブロックを描画します。
 - **数 MB 級の CJK フォントを同梱しないこと。** CJK テキストはシステムスタックに任せます(`fontSans` に JP フォールバックを列挙)。デザインが本当にカスタム CJK 書体を必要とする場合は、先にサブセット化してください — レシピへのポインタは [CUSTOMIZING.md](CUSTOMIZING.md) にあります。
 
-<!-- i18n:source=engine/docs/DESIGN.md sha256=6fa0402c5c5332cc1ff941cc48517102f30c7a4efbfdc2b132f545113dca4856 -->
+<!-- i18n:source=engine/docs/DESIGN.md sha256=e3837bca28f9f280c77e17f941fd423d559850e82c8ecfc3fffd59910301c863 -->

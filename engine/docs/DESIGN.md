@@ -16,14 +16,17 @@ A theme is a directory under `site/src/themes/<name>/` with an exact required sh
 |---|---|
 | `tokens.ts` | `export const theme: ThemeTokens` — every color, font, radius, spacing, webfont declaration. The single source the CSS vars, 3D hero, OG images, and Studio all derive from. |
 | `styles.css` | The theme stylesheet, including the shared primitive classes the engine components expect: `.card`, `.chip`, `.section-title`, `.evidence-link`. |
+| `manifest.ts` | The registry entry point: imports `./styles.css`, exports `{ name, tokens, components }`. Loading the manifest loads the whole theme. |
 | `components/Header.astro`, `Footer.astro` | Site chrome, delegated to by the shared `Base.astro` layout. |
 | `components/HomePage.astro`, `ProjectsPage.astro`, `ProjectPage.astro`, `AboutPage.astro`, `HistoryPage.astro`, `OverviewPage.astro` | Page composition. Each receives the loaded data and lays it out; data itself flows through the engine-owned primitives. |
 
 Mechanism:
 
-- **`site/theme.config.mjs`** is the buyer-facing switch — one line: `export const activeTheme = "midnight";`.
-- **`@theme` Vite alias** — `astro.config.mjs` points `@theme` at `src/themes/<activeTheme>`, so Astro code imports theme files as `@theme/components/Header.astro` etc. Astro/Vite code must use this alias, never `site/src/theme.ts`.
-- **`site/src/theme.ts`** is the tsx-facing shim for non-Vite consumers (OG exporter, Studio); it resolves `activeTheme` itself and re-exports `theme`, `themeCssVars()`, `themeFontFaces()`.
+- **`site/theme.config.mjs`** is the buyer-facing switch: `activeTheme` (the design served at the root URLs) and `visitorThemes` (which installed themes the on-site switcher exposes — `"all"` or an explicit array).
+- **The registry** (`site/src/lib/theme-registry.ts`) discovers every `src/themes/*/manifest.ts` lazily; `Base.astro` resolves the theme to render through it. Lazy loading keeps each built page's CSS scoped to its own theme.
+- **The visitor switcher + `/t/<theme>/` trees** — every visitor-exposed theme is prerendered under `/t/<theme>/…` (same pages, that theme's chrome). `Base.astro` reads the `theme` route param, renders a fixed "Design" dock (hidden when fewer than two themes are exposed), stamps `noindex` on `/t/` pages while `rel=canonical` keeps pointing at the root URLs, and a tiny inline script keeps in-site links inside the current `/t/<theme>/` tree.
+- **`@theme` Vite alias** — `astro.config.mjs` points `@theme` at `src/themes/<activeTheme>`; the root page wrappers import the active theme's page components through it. Astro/Vite code must never import `site/src/theme.ts`.
+- **`site/src/theme.ts`** is the tsx-facing shim for non-Vite consumers (OG exporter, Studio); it resolves `activeTheme` itself and re-exports `theme`, `themeCssVars()`, `themeFontFaces()`. OG images, the hero palette, and Studio always follow the ACTIVE theme.
 - **Restart after switching.** The alias is resolved at config load; changing `theme.config.mjs` requires restarting `npm run dev` (a plain `npm run build` always picks it up).
 
 ## Token vocabulary

@@ -8,7 +8,7 @@
 
 | パス | 管理できる内容 |
 |---|---|
-| `site/theme.config.mjs` | 1行だけ: どのテーマをアクティブにするか。 |
+| `site/theme.config.mjs` | どのテーマをアクティブにするか、そして訪問者スイッチャーがどのテーマを公開するか。 |
 | `site/src/themes/<あなた自身のテーマ>/` | あなたのテーマパッケージ — トークン、スタイルシート、ページコンポーネント。外観のすべて。3D ヒーローと OG 画像も同じトークンを読むため、一度の編集で全体のスキンが変わります。 |
 | `data/**` | すべてのコンテンツ(デザインブリーフ `data/design/brief.md` を含む)。 |
 
@@ -25,7 +25,10 @@
 あなたのテーマの `tokens.ts` → `fontSans`/`fontMono`、加えてファイルごとの `webfonts` エントリ。`.woff2` ファイルは `site/public/fonts/` に置きます(`display: "swap"` は維持すること)。CJK はサブセットをダウンロードし(例: google-webfonts-helper)、`unicodeRange` エントリを追加してください — 数 MB のフォントを同梱してはいけません。
 
 ### 自分のテーマを作る
-`site/src/themes/midnight` → `site/src/themes/<name>` にコピーし、`tokens.ts` / `styles.css` / `components/` を編集し、`site/theme.config.mjs` の `activeTheme` を設定して dev サーバーを再起動します。パッケージ形状のすべてのファイルが必須です — 欠けているファイルは静かなフォールバックではなく、明示的なビルドエラーになります。
+`site/src/themes/midnight` → `site/src/themes/<name>` にコピーし、`tokens.ts` / `styles.css` / `manifest.ts`(`name` を設定)/ `components/` を編集し、`site/theme.config.mjs` の `activeTheme` を設定して dev サーバーを再起動します。パッケージ形状のすべてのファイルが必須です — 欠けているファイルは静かなフォールバックではなく、明示的なビルドエラーになります。
+
+### 訪問者向けデザインスイッチャー
+`site/theme.config.mjs` → `visitorThemes`。`"all"`(デフォルト)はインストール済みの全テーマを公開します: 各テーマは `/t/<name>/` に事前レンダリングされ、「Design」ドックから訪問者がサイト全体のデザインをその場で切り替えられます(`noindex` 付き、canonical はあなたのルート URL のまま)。名前を列挙すればメニューを絞れ、`["<activeTheme>"]` にすればスイッチャーを完全に無効化できます。
 
 ### ページの追加
 `Base` レイアウトと `lib/data.ts` のアクセサを使って `site/src/pages/<name>.astro`(+ `en/<name>.astro` ラッパー)を作成します。新規ページはあなたのものです — エンジン更新と衝突しません。
@@ -42,4 +45,4 @@
 ### レンダリング層を丸ごと置き換える
 サイトは `data/*.json` を消費する差し替え可能なコンシューマです。`engine/` を残したまま、任意のフレームワークを同じ契約に向ければ動きます(`engine/schemas` はプレーンな Zod + TS 型をエクスポートしています)。メンテナンス済みのテーマ群は失いますが、パイプラインは何も失いません。
 
-<!-- i18n:source=engine/docs/CUSTOMIZING.md sha256=24d9dd7314e81e7d32a1b35fdeb29a0f02980c788e8004ffad61494f2758ce06 -->
+<!-- i18n:source=engine/docs/CUSTOMIZING.md sha256=3e7d86128a13af3990b9a845de9c5df1777ce911cffaa6f67187dacf16396c09 -->

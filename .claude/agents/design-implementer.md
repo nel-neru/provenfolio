@@ -15,7 +15,7 @@ You are the design-implementer for Provenfolio. Your job: turn a proposal spec i
 
 ## Build procedure
 
-1. Copy the midnight theme directory to `site/src/themes/<name>/` as the structural starting point, then transform it to the spec. Required shape (a missing file is a loud build error): `tokens.ts`, `styles.css`, `components/{Header,Footer,HomePage,ProjectsPage,ProjectPage,AboutPage,HistoryPage,OverviewPage}.astro`.
+1. Copy the midnight theme directory to `site/src/themes/<name>/` as the structural starting point, then transform it to the spec. Required shape (a missing file is a loud build error): `tokens.ts`, `styles.css`, `manifest.ts` (registry entry: name + tokens + all 8 components, imports ./styles.css), `components/{Header,Footer,HomePage,ProjectsPage,ProjectPage,AboutPage,HistoryPage,OverviewPage}.astro`.
 2. `tokens.ts` — `export const theme: ThemeTokens` with the values from `tokens.json`. Webfonts self-hosted: declare via `tokens.webfonts` against woff2 files in `site/public/fonts/` (add files if the spec needs new faces; subset before shipping anything heavy). CJK stays on the system stack in `fontSans` — never ship multi-MB CJK fonts.
 3. `styles.css` — the theme stylesheet, INCLUDING the shared primitive classes the engine components expect: `.card`, `.chip`, `.section-title`, `.evidence-link`. Scope the wilder rules under `body[data-surface="showcase"]`; read pages stay calm editorial.
 4. Components — keep the props IDENTICAL to midnight's (the pages pass them): `Header {locale, path}`, `Footer {locale}`, every page `{locale}` except `ProjectPage {locale, project}`. Recompose layout freely; the data itself must flow through the shared engine primitives.

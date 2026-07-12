@@ -8,7 +8,7 @@
 
 | Path | What you control |
 |---|---|
-| `site/theme.config.mjs` | One line: which theme is active. |
+| `site/theme.config.mjs` | Which theme is active, and which themes the visitor switcher exposes. |
 | `site/src/themes/<your-own-theme>/` | Your theme package — tokens, stylesheet, page components. The whole look. The 3D hero and OG images read the same tokens, so one edit re-skins everything. |
 | `data/**` | All content (including `data/design/brief.md`, your design brief). |
 
@@ -25,7 +25,10 @@ Your theme's `tokens.ts` → `accent`, `viz` ramp (base colors too). Still on an
 Your theme's `tokens.ts` → `fontSans`/`fontMono`, plus a `webfonts` entry per file; drop the `.woff2` files into `site/public/fonts/` (keep `display: "swap"`). For CJK, download subsets (e.g. via google-webfonts-helper) and add `unicodeRange` entries — don't ship multi-MB fonts.
 
 ### Create your own theme
-Copy `site/src/themes/midnight` → `site/src/themes/<name>`, edit `tokens.ts` / `styles.css` / `components/`, set `activeTheme` in `site/theme.config.mjs`, restart the dev server. Every file in the package shape is required — a missing one is a loud build error, not a silent fallback.
+Copy `site/src/themes/midnight` → `site/src/themes/<name>`, edit `tokens.ts` / `styles.css` / `manifest.ts` (set its `name`) / `components/`, set `activeTheme` in `site/theme.config.mjs`, restart the dev server. Every file in the package shape is required — a missing one is a loud build error, not a silent fallback.
+
+### The visitor design switcher
+`site/theme.config.mjs` → `visitorThemes`. `"all"` (default) exposes every installed theme: each is prerendered under `/t/<name>/` and a "Design" dock lets visitors flip the whole site live (`noindex`, canonical stays on your root URLs). List specific names to trim the menu, or `["<activeTheme>"]` to disable the switcher entirely.
 
 ### Add a page
 `site/src/pages/<name>.astro` (+ `en/<name>.astro` wrapper) using the `Base` layout and `lib/data.ts` accessors. New pages are yours — engine updates won't collide.

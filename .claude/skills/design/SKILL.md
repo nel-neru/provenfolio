@@ -52,7 +52,7 @@ Default n=6. All intermediate files live under `workspace/design/` (transient, g
 
 ## switch <theme>
 
-1. Validate `site/src/themes/<theme>/` exists and is complete: `tokens.ts`, `styles.css`, and all 8 components (`Header`, `Footer`, `HomePage`, `ProjectsPage`, `ProjectPage`, `AboutPage`, `HistoryPage`, `OverviewPage`). Missing anything → report and stop; suggest `/design apply` or fixing the theme.
+1. Validate `site/src/themes/<theme>/` exists and is complete: `tokens.ts`, `styles.css`, `manifest.ts`, and all 8 components (`Header`, `Footer`, `HomePage`, `ProjectsPage`, `ProjectPage`, `AboutPage`, `HistoryPage`, `OverviewPage`). Missing anything → report and stop; suggest `/design apply` or fixing the theme.
 2. Set `activeTheme` in `site/theme.config.mjs`, and update the `@theme/*` paths mapping in `site/tsconfig.json` to the same theme directory (editor/astro-check mirror of the Vite alias).
 3. `npm run build` — must be green.
 4. Remind the user to restart any running dev servers (alias resolved at config load).
