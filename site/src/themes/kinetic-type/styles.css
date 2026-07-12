@@ -1,0 +1,537 @@
+/*
+ * Kinetic Type theme stylesheet — the poster system shared by every page:
+ * body rhythm, the mono/kicker/sec-head/band/stat/pill chrome components,
+ * and the shared primitive classes the engine leaf components rely on
+ * (.card, .chip, .section-title, .evidence-link). Showcase-only drama is
+ * scoped under body[data-surface="showcase"]; every keyframe lives inside
+ * prefers-reduced-motion: no-preference so the static page is a designed
+ * poster, not a degraded one.
+ */
+
+:root {
+  /* Body-size links on the dark ground (AA); large/bold type uses --accent. */
+  --accent-lift: #ff6b2b;
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+  /* One section rhythm everywhere. */
+  --sect: clamp(3.5rem, 12vh, 6rem);
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+body {
+  font-size: var(--text-base, 1rem);
+  line-height: 1.7;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 900;
+}
+
+a {
+  color: var(--accent-lift);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 0;
+}
+
+[lang="ja"] {
+  font-feature-settings: "palt" 1;
+  letter-spacing: 0.03em;
+}
+
+section[id] {
+  scroll-margin-top: 5.5rem;
+}
+
+/* ---------------- shared chrome: mono strip + kicker ---------------- */
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 0.75rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kicker {
+  color: var(--text-dim);
+}
+.kicker .sep {
+  color: var(--accent);
+  margin-inline: 0.6em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ---------------- numbered section heads ---------------- */
+
+.sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.8rem;
+}
+.sec-head h2,
+.sec-head .sec-label {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.sec-head h2::before,
+.sec-head .sec-label::before {
+  content: "/ ";
+  color: var(--accent);
+}
+.sec-head .idx {
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- keyword band (marquee / static specimen strip) ------ */
+
+.band {
+  border-block: 1px solid var(--line);
+}
+.band .lane {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.band .lane + .lane {
+  border-top: 1px solid var(--line);
+}
+.band .seg {
+  flex-shrink: 0;
+  min-width: 100%;
+  display: flex;
+  align-items: center;
+  padding-block: 0.6rem;
+}
+.band .seg > span {
+  padding-right: 0.65em;
+}
+.band .dot {
+  color: var(--accent);
+  -webkit-text-stroke: 0;
+}
+.lane-solid .seg {
+  font-weight: 850;
+  font-size: clamp(1.6rem, 4.5vw, 3.4rem);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+.lane-ghost .seg {
+  font-weight: 850;
+  font-size: clamp(1.35rem, 3.6vw, 2.7rem);
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--text-faint);
+}
+
+/* ---------------- stat cells (specimen scale / compact) --------------- */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-block: 1px solid var(--line);
+}
+.stat {
+  padding: 2.2rem clamp(1rem, 2.5vw, 2rem) 2rem;
+  border-left: 1px solid var(--line);
+}
+.stat:first-child {
+  border-left: none;
+}
+.stat .num {
+  font-family: var(--font-mono);
+  font-size: clamp(2.2rem, 6vw, 5.5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.stat .rule {
+  width: 2.2rem;
+  height: 3px;
+  background: var(--accent);
+  margin-top: 0.9rem;
+}
+.stat .lbl {
+  margin-top: 0.7rem;
+  color: var(--text-dim);
+}
+.stat .lbl .u {
+  color: var(--accent);
+  margin-right: 0.5em;
+}
+.stats.compact {
+  grid-template-columns: repeat(3, 1fr);
+}
+.stats.compact .stat {
+  padding: 1.4rem clamp(1rem, 2.5vw, 2rem) 1.3rem;
+}
+.stats.compact .num {
+  font-size: clamp(1.6rem, 3.2vw, var(--text-xl, 2.5rem));
+}
+.stats.compact .rule {
+  height: 2px;
+  margin-top: 0.7rem;
+}
+.stats.compact .lbl {
+  margin-top: 0.5rem;
+}
+
+/* ---------------- pills — the single soft shape ---------------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0.85rem 1.7rem;
+  border: 1px solid var(--line);
+  color: var(--text);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.pill:hover {
+  text-decoration: none;
+}
+.pill.solid {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+.pill.solid:hover,
+.pill.solid:focus-visible {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+.pill.ghost:hover,
+.pill.ghost:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-lift);
+  background: var(--accent-soft);
+}
+
+/* ---------------- shared primitives (engine leaf components) ---------- */
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 0.75rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  background: transparent;
+  white-space: nowrap;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.chip b {
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Category badge: the one accent-filled chip. Its dot inverts to ground. */
+.chip.category-badge {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-weight: 700;
+}
+.chip.category-badge .dot {
+  background: var(--bg);
+}
+
+/* Default section title — the numbered mono head voice. */
+.section-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.8rem;
+  margin: 0 0 1.4rem;
+}
+.section-title::before {
+  content: "/ ";
+  color: var(--accent);
+}
+
+/* Case-study prose heads (Problem. / Approach. / Results.) go display
+   scale with the accent full stop — the read surface's accent em. */
+.case-study .section-title {
+  font-family: var(--font-sans);
+  font-size: clamp(1.5rem, 3vw, var(--text-xl, 2.5rem));
+  font-weight: 900;
+  font-variation-settings: "wght" 900, "wdth" 102;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1.05;
+  color: var(--text);
+  border-bottom: none;
+  padding-bottom: 0;
+  margin: 0 0 0.8rem;
+}
+.case-study .section-title::before {
+  content: none;
+}
+.case-study .section-title::after {
+  content: ".";
+  color: var(--accent);
+}
+
+/* Evidence receipts — bordered mono tokens ("machine-made"). */
+.evidence-link,
+.evidence-code {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--accent-lift);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 0.25rem 0.6rem;
+  word-break: break-all;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+.evidence-link:hover {
+  text-decoration: none;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-lift);
+}
+.evidence-code {
+  color: var(--text-dim);
+}
+
+/* ---------------- shared component recolors (square the system) ------- */
+
+/* Timeline: square accent plots instead of ringed dots. */
+.timeline .event::before {
+  border-radius: 0;
+  background: var(--accent);
+  border-color: var(--accent);
+  width: 9px;
+  height: 9px;
+  left: 1.5px;
+}
+.timeline::before {
+  width: 1px;
+  border-radius: 0;
+}
+
+/* Language bars: specimen ruler — square, ruled frame, 10% tick grid. */
+.langbars svg {
+  border-radius: 0;
+  height: 16px;
+  outline: 1px solid var(--line);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent calc(10% - 1px),
+    var(--bg) calc(10% - 1px),
+    var(--bg) 10%
+  );
+}
+.langbars .legend .dot {
+  border-radius: 0;
+}
+.langbars .legend .pct {
+  color: var(--text);
+}
+
+/* History span chart squared. */
+.span-chart .track,
+.span-chart .bar {
+  border-radius: 0;
+}
+
+/* ---------------- footer chrome ---------------- */
+
+.foot {
+  margin-top: var(--sect);
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  flex-wrap: wrap;
+  padding: 1.2rem var(--gutter) 1.4rem;
+  color: var(--text-dim);
+}
+.foot .sq {
+  color: var(--accent);
+  margin-right: 0.5em;
+}
+.foot a {
+  color: var(--text-dim);
+}
+.foot a:hover,
+.foot a:focus-visible {
+  color: var(--accent-lift);
+  text-decoration: none;
+}
+
+/* ---------------- kinetic layer (allowed-motion only) ---------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Marquee lanes run only on the showcase surface; the same band sits
+     still on read pages as the specimen strip. */
+  body[data-surface="showcase"] .band--kinetic .lane-solid .seg {
+    animation: kt-mq 26s linear infinite;
+  }
+  body[data-surface="showcase"] .band--kinetic .lane-ghost .seg {
+    animation: kt-mq 34s linear infinite reverse;
+  }
+  body[data-surface="showcase"] .band--kinetic .lane:hover .seg,
+  body[data-surface="showcase"] .band--kinetic .lane:focus-within .seg {
+    animation-play-state: paused;
+  }
+
+  /* Entrance rises: initial offsets exist ONLY here, so reduced motion
+     (and no-JS) renders the composed poster. */
+  .kt-rise .word {
+    transform: translateY(110%);
+    animation: kt-rise 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .kt-rise .line:nth-child(2) .word {
+    animation-delay: 0.09s;
+  }
+  .kt-fade {
+    opacity: 0;
+    animation: kt-fade 0.8s ease 0.55s forwards;
+  }
+}
+
+@keyframes kt-rise {
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes kt-fade {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes kt-mq {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* ---------------- small screens (375px must hold) ---------------- */
+
+@media (max-width: 720px) {
+  .stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stat {
+    border-top: 1px solid var(--line);
+  }
+  .stat:nth-child(-n + 2) {
+    border-top: none;
+  }
+  .stat:nth-child(odd) {
+    border-left: none;
+  }
+  .stats.compact {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .stats.compact .stat {
+    border-top: none;
+  }
+  .stats.compact .stat:nth-child(odd) {
+    border-left: 1px solid var(--line);
+  }
+  .stats.compact .stat:first-child {
+    border-left: none;
+  }
+  .stats.compact .num {
+    font-size: clamp(1.25rem, 5.5vw, var(--text-xl, 2.5rem));
+  }
+}
+
+/* ---------------- print (overview must stay ink-friendly) ------------- */
+
+@media print {
+  .band,
+  .stats .rule {
+    display: none !important;
+  }
+  .chip,
+  .evidence-link,
+  .evidence-code {
+    background: #fff;
+    color: #333;
+    border-color: #ccc;
+  }
+  .section-title,
+  .sec-head h2 {
+    color: #111;
+  }
+  .section-title::before,
+  .sec-head h2::before {
+    color: #111;
+  }
+}

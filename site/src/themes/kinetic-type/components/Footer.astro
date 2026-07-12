@@ -1,0 +1,57 @@
+---
+/**
+ * Kinetic Type footer — the shared chrome strip both surfaces end on:
+ * accent square + owner signature left, socials center, script-produced
+ * aggregate stats and the generator note right.
+ */
+import { t, ui } from "../../../lib/i18n.js";
+import { getProfile, getAggregates } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const aggregates = await getAggregates();
+const totals = aggregates?.totals;
+const fmt = (n: number) => n.toLocaleString("en-US");
+---
+
+<footer class="foot mono">
+  <span>
+    <span class="sq" aria-hidden="true">■</span>{profile.name}
+    {t(profile.role, locale, sl) && <> — {t(profile.role, locale, sl)}</>}
+  </span>
+  <span class="socials">
+    {profile.socials.map((s) => <a href={s.url} rel="me noopener">{s.platform}</a>)}
+  </span>
+  <span class="stats-note">
+    {
+      totals && (
+        <span class="totals">
+          {fmt(totals.commits)} {ui("metrics.commits", locale)} ·{" "}
+          {fmt(totals.activeDays)} {ui("metrics.activeDays", locale)}
+        </span>
+      )
+    }
+    <span class="gen">{ui("footer.builtWith", locale)}</span>
+  </span>
+</footer>
+
+<style>
+  .socials {
+    display: flex;
+    gap: 1.2rem;
+  }
+  .stats-note {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1.2rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .gen {
+    color: var(--text-faint);
+  }
+</style>

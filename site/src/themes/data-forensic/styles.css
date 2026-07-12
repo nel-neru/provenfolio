@@ -1,0 +1,504 @@
+/*
+ * Data-forensic theme stylesheet — the "shared chrome" of the dossier:
+ * body rhythm, the primitive classes every leaf component relies on
+ * (.card, .chip, .section-title, .evidence-link), and the chrome DNA both
+ * surfaces share (meta lines, stats ledger, signal bars, trace, caret).
+ * Showcase-only drama is scoped under body[data-surface="showcase"];
+ * reduced motion always resolves to a designed static state.
+ */
+
+body {
+  font-size: var(--text-base, 1rem);
+  line-height: 1.65;
+  /* One dossier-wide section counter: every .section-title gets a § index. */
+  counter-reset: section;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+::marker {
+  color: var(--text-faint);
+}
+
+:lang(ja) {
+  line-height: 1.9;
+  font-feature-settings: "palt";
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+/* Hairline focus ring, square like everything else. */
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+.skip-link {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 12px);
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+/* ---------------- primitives (contract classes) ---------------- */
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm, 0.875rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 4px var(--space-3, 12px);
+  background: var(--bg-raised);
+  color: var(--text);
+  white-space: nowrap;
+}
+.chip b {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Section head: § index + caps mono title + hairline rule, one element. */
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3, 12px);
+  margin: 0 0 var(--space-5, 24px);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.section-title::before {
+  counter-increment: section;
+  content: "\00a7" counter(section, decimal-leading-zero);
+  font-weight: 400;
+  color: var(--text-faint);
+}
+.section-title::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--line);
+  transform: translateY(-4px);
+}
+
+/* The receipt affordance: bordered mono token, phosphor on hover. */
+.evidence-link {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 12px);
+  line-height: 1.6;
+  border: 1px solid var(--viz-1);
+  border-radius: var(--radius-sm);
+  padding: 1px var(--space-2, 8px);
+  color: var(--accent);
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s;
+  word-break: break-all;
+}
+a.evidence-link:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  text-decoration: none;
+}
+/* Unlinked receipts (private repo, owner input) read as dim stamps. */
+code.evidence-link,
+span.evidence-link {
+  color: var(--text-dim);
+  border-color: var(--line);
+}
+.evidence-code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 12px);
+  color: var(--text-dim);
+}
+
+/* ---------------- shared chrome components ---------------- */
+
+/* Caps labels: 12px floor, tracked, transform (never typed caps). */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* FILE / HEAD / STATUS meta strip. */
+.meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1, 4px) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 12px);
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.meta-line .sep {
+  color: var(--text-faint);
+  padding-inline: var(--space-3, 12px);
+}
+.meta-line .st-ok {
+  color: var(--ok);
+  font-weight: 600;
+}
+.meta-line a {
+  color: var(--text-dim);
+}
+.meta-line a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* Square mono button (hero socials, demo/repo links). */
+.btn {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm, 14px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2, 8px) 18px;
+  color: var(--text);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.btn:hover {
+  text-decoration: none;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.btn:focus-visible {
+  outline-offset: 3px;
+}
+.btn.primary {
+  border-color: var(--viz-1);
+  color: var(--accent);
+}
+.btn .ext {
+  margin-left: var(--space-2, 8px);
+  color: var(--text-faint);
+}
+.btn:hover .ext {
+  color: var(--accent);
+}
+.ext {
+  color: var(--text-faint);
+}
+
+/* Stats ledger strip: full-bleed ruled cells with mono tabular values. */
+.stats {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-raised);
+}
+.stats .container {
+  padding-inline: 0;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.stat {
+  padding: var(--space-5, 24px);
+  border-left: 1px solid var(--line);
+}
+.stat:first-child {
+  border-left: none;
+}
+.stat .v {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl, 28px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: var(--text);
+}
+.stat .v small {
+  font-size: var(--text-xs, 12px);
+  color: var(--text-faint);
+  font-weight: 400;
+}
+.stat .k {
+  margin-top: 2px;
+}
+.stats--sub .stats-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+.stats--sub .stat {
+  padding: var(--space-4, 16px) var(--space-5, 24px);
+}
+.stats--sub .stat .v {
+  font-size: var(--text-lg, 22px);
+}
+
+/* Signal bars: segmented cell meters in the phosphor ramp. The mockup drew
+   these with block glyphs (which self-hosted latin subsets cannot carry),
+   so the cells are CSS gradients — same voice, font-proof. Bars are
+   aria-hidden; the % value is always visible text. */
+.sig-table {
+  border-top: 1px solid var(--line);
+}
+.sig-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 56px 110px;
+  gap: var(--space-4, 16px);
+  align-items: center;
+  padding: var(--space-3, 12px);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm, 14px);
+  transition: background 0.15s;
+}
+.sig-row:hover {
+  background: var(--bg-raised);
+}
+.sig-row .name {
+  color: var(--text);
+}
+.sig-row .bar {
+  position: relative;
+  height: 12px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--viz-0) 0 6px,
+    transparent 6px 9px
+  );
+  overflow: hidden;
+}
+.sig-row .bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--pct, 0%);
+  background: repeating-linear-gradient(
+    to right,
+    var(--fill, var(--viz-1)) 0 6px,
+    transparent 6px 9px
+  );
+  /* Bright partial-cell "live edge" cap on the fill. */
+  border-right: 3px solid var(--viz-4);
+  box-sizing: border-box;
+}
+.sig-row .pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.sig-row .src {
+  font-size: var(--text-xs, 12px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sig-table--nosrc .sig-row {
+  grid-template-columns: 120px minmax(0, 1fr) 56px;
+}
+
+/* Oscilloscope trace: home draws it once, read pages print it static. */
+.trace {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  width: 100%;
+  height: 72px;
+  pointer-events: none;
+}
+.trace polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  opacity: 0.45;
+}
+.trace--static polyline {
+  opacity: 0.18;
+}
+body[data-surface="showcase"] .trace polyline {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: trace-draw 1.8s ease-out 0.4s forwards;
+}
+@keyframes trace-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Masthead caret: blinks on the showcase surface only; a printed static
+   glyph everywhere else. */
+.caret {
+  display: inline-block;
+  color: var(--accent);
+}
+body[data-surface="showcase"] .caret {
+  animation: caret-blink 1.1s steps(1) infinite;
+}
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+.caret--static {
+  opacity: 0.45;
+}
+
+/* ---------------- shared-component restyles ----------------
+ * Scoped component styles compile with attribute selectors that outweigh
+ * plain theme classes, so load-bearing overrides carry !important. */
+
+/* Category badge: bordered caps stamp, amber for business categories,
+   phosphor for craft — color is never the only signal (label text stays). */
+.chip.category-badge {
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  padding: 2px var(--space-2, 8px);
+  border-color: currentColor;
+  color: var(--text-dim);
+}
+.category-badge .dot {
+  display: none;
+}
+.chip.cat-product,
+.chip.cat-service,
+.chip.cat-client {
+  color: var(--warn);
+}
+.chip.cat-oss,
+.chip.cat-hobby {
+  color: var(--accent);
+}
+.chip.cat-learning {
+  color: var(--text-dim);
+}
+
+/* Project cards: square ledger blocks, mono names, no hover lift. */
+.project-card {
+  transform: none !important;
+}
+.project-card:hover {
+  background: var(--bg-overlay);
+}
+.project-card .name {
+  font-family: var(--font-mono) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+}
+
+/* Timeline: the git ledger — flat ruled rows instead of rail-and-dots. */
+.timeline {
+  border-top: 1px solid var(--line);
+}
+.timeline::before {
+  display: none !important;
+}
+.timeline .event {
+  padding: var(--space-3, 12px) var(--space-2, 8px) !important;
+  border-bottom: 1px solid var(--line);
+}
+.timeline .event::before {
+  display: none !important;
+}
+.timeline .event + .event {
+  margin-top: 0 !important;
+}
+.timeline .date {
+  font-size: var(--text-sm, 14px) !important;
+  color: var(--text-dim) !important;
+  font-variant-numeric: tabular-nums;
+}
+.timeline .event-title {
+  font-weight: 600 !important;
+}
+
+/* Language bars: squared, legend % bumped from faint to dim (AA). */
+.langbars svg {
+  border-radius: 0 !important;
+}
+.langbars .legend .dot {
+  border-radius: 0 !important;
+}
+.langbars .legend .pct {
+  color: var(--text-dim) !important;
+}
+
+/* ---------------- theme switcher dock (square voice) ---------------- */
+.theme-dock summary,
+.theme-dock ul {
+  border-radius: var(--radius) !important;
+}
+
+/* ---------------- reduced motion: designed static states ------------- */
+@media (prefers-reduced-motion: reduce) {
+  body[data-surface="showcase"] .trace polyline {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  body[data-surface="showcase"] .caret {
+    animation: none;
+  }
+}
+
+/* ---------------- print: the dossier on paper ---------------- */
+@media print {
+  body {
+    color: #111;
+  }
+  .section-title {
+    color: #111;
+  }
+  .section-title::before {
+    color: #666;
+  }
+  .section-title::after {
+    border-color: #ccc;
+  }
+  .chip,
+  .chip b {
+    background: #fff;
+    color: #333;
+    border-color: #ccc;
+  }
+  .evidence-link {
+    color: #333;
+    border-color: #ccc;
+  }
+  .meta-line,
+  .label {
+    color: #444;
+  }
+  .trace {
+    display: none;
+  }
+}

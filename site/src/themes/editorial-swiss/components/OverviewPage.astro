@@ -1,0 +1,217 @@
+---
+/**
+ * Overview — the recruiter one-pager. Compact header, then one tight card
+ * per non-archive project: name, category, summary, honest metric chips,
+ * top-3 stack, demo link. No hero, no viz; print-friendly on purpose (the
+ * "hand this PDF to a recruiter" page). Data logic matches the default
+ * theme; the print stylesheet stays ink-friendly.
+ */
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import MetricChips from "../../../components/MetricChips.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getProjects } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const projects = (await getProjects()).filter((p) => p.placement !== "archive");
+
+const DEMO_KINDS = ["demo", "store", "video"];
+const demoLink = (p: (typeof projects)[number]) =>
+  p.links.find((l) => DEMO_KINDS.includes(l.kind));
+---
+
+<Base locale={locale} title={ui("overview.title", locale)} path="/overview">
+  <div class="container page">
+    <p class="note micro">{ui("overview.note", locale)}</p>
+
+    <header class="head">
+      <h1 class="name">{profile.name}</h1>
+      <p class="line">
+        {t(profile.role, locale, sl)}
+        <span class="sep" aria-hidden="true">&middot;</span>
+        {t(profile.tagline, locale, sl)}
+      </p>
+      <p class="socials">
+        {
+          profile.socials.map((s) => (
+            <a class="u-sweep" href={s.url} rel="me noopener">
+              {s.platform}
+            </a>
+          ))
+        }
+        {profile.email && <a class="u-sweep" href={`mailto:${profile.email}`}>{profile.email}</a>}
+      </p>
+    </header>
+
+    <div class="stack">
+      {
+        projects.map((p) => {
+          const demo = demoLink(p);
+          return (
+            <article class="card ov-card">
+              <div class="row">
+                <h2 class="p-name">
+                  <a href={localePath(`/projects/${p.id}`, locale, defaultLocale)}>{p.name}</a>
+                </h2>
+                <CategoryBadge category={p.category} locale={locale} />
+                {demo && (
+                  <a class="demo micro" href={demo.url} target="_blank" rel="noopener">
+                    {t(demo.label, locale, sl) || demo.kind}
+                  </a>
+                )}
+              </div>
+              <p class="p-summary">{t(p.summary, locale, sl)}</p>
+              <div class="row meta">
+                <MetricChips project={p} locale={locale} />
+                <TechStackList techStack={p.techStack} max={3} />
+              </div>
+            </article>
+          );
+        })
+      }
+    </div>
+  </div>
+</Base>
+
+<style>
+  .page {
+    padding-block: clamp(28px, 4vw, 44px) 0;
+  }
+  .note {
+    margin: 0 0 22px;
+    color: var(--text-faint);
+  }
+  .head {
+    margin-bottom: 26px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--text);
+  }
+  .name {
+    margin: 0;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: clamp(1.8rem, 1.2rem + 2.4vw, 2.6rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .line {
+    margin: 10px 0 0;
+    color: var(--text-dim);
+    font-size: var(--fs-note);
+  }
+  .line .sep {
+    margin-inline: 0.45em;
+    color: var(--text-faint);
+  }
+  .socials {
+    margin: 12px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-meta);
+  }
+  .socials a {
+    color: var(--text-dim);
+  }
+  .socials a:hover,
+  .socials a:focus-visible {
+    color: var(--text);
+  }
+
+  .stack {
+    display: grid;
+    gap: 12px;
+  }
+  .ov-card {
+    padding: 16px 18px;
+    display: grid;
+    gap: 10px;
+  }
+  .row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+  .p-name {
+    margin: 0;
+    font-size: var(--fs-h3);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .p-name a {
+    color: var(--text);
+  }
+  .demo {
+    margin-left: auto;
+    color: var(--accent);
+    border-bottom: 1px solid var(--accent-soft);
+    padding-bottom: 2px;
+  }
+  .demo:hover,
+  .demo:focus-visible {
+    border-bottom-color: var(--accent);
+    text-decoration: none;
+  }
+  .p-summary {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: var(--fs-note);
+    line-height: 1.6;
+    max-width: 70ch;
+  }
+  .meta {
+    row-gap: 8px;
+  }
+
+  /* Print: dense, ink-friendly (global rules hide header/footer and set the
+     white background); square borders, black ink, no accent fills. */
+  @media print {
+    .page {
+      padding-top: 0;
+    }
+    .note {
+      display: none;
+    }
+    .head {
+      border-color: #111;
+    }
+    .name,
+    .line,
+    .p-name a,
+    .p-summary,
+    .socials a {
+      color: #111;
+    }
+    .ov-card {
+      break-inside: avoid;
+      border: 1px solid #999;
+      border-top: 1px solid #111;
+      background: #fff;
+    }
+    .demo {
+      color: #111;
+      border-bottom-color: #999;
+    }
+    a {
+      text-decoration: none;
+    }
+    .ov-card :global(.chip) {
+      background: #fff;
+      color: #333;
+      border-color: #bbb;
+    }
+    .ov-card :global(.chip b) {
+      color: #111;
+    }
+  }
+</style>

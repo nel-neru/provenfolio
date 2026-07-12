@@ -1,0 +1,88 @@
+---
+/**
+ * Editorial Swiss header — the shared chrome's topbar: a hairline-ruled bar
+ * with a mono-uppercase brand, the primary nav, and the language switch,
+ * all set in the small-caps micro face. Reused by every page through
+ * Base.astro. Data logic mirrors the default theme's header (nothing
+ * owner-specific is hardcoded).
+ */
+import { ui, localePath, languageLabel } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, showHistoryPage } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  /** Path WITHOUT locale prefix, e.g. "/projects/foo" — for the switcher. */
+  path: string;
+}
+
+const { locale, path } = Astro.props;
+const profile = await getProfile();
+const aggregates = await getAggregates();
+const defaultLocale = profile.sourceLang;
+const locales = [profile.sourceLang, ...profile.targetLangs];
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+const historyVisible = showHistoryPage(aggregates);
+
+const nav = [
+  { href: lp("/projects"), label: ui("nav.projects", locale) },
+  ...(historyVisible ? [{ href: lp("/history"), label: ui("nav.history", locale) }] : []),
+  { href: lp("/about"), label: ui("nav.about", locale) },
+  { href: lp("/overview"), label: ui("nav.overview", locale) },
+];
+
+const otherLocales = locales.filter((l) => l !== locale);
+---
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a href={lp("/")} class="brand micro u-sweep">{profile.name}</a>
+    <nav class="topnav" aria-label="primary">
+      {nav.map((item) => <a class="micro u-sweep" href={item.href}>{item.label}</a>)}
+      {
+        otherLocales.map((l) => (
+          <a
+            href={localePath(path, l, defaultLocale)}
+            class="micro lang-switch u-sweep"
+            aria-label={`Switch language to ${languageLabel(l)}`}
+          >
+            {languageLabel(l)}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>
+
+<style>
+  .topbar {
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .topbar-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px 20px;
+    flex-wrap: wrap;
+    padding-block: 18px;
+  }
+  .brand {
+    color: var(--text);
+  }
+  .topnav {
+    display: flex;
+    gap: 18px 24px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .topnav a {
+    color: var(--text-dim);
+  }
+  .topnav a:hover,
+  .topnav a:focus-visible {
+    color: var(--text);
+  }
+  .lang-switch {
+    color: var(--text-dim);
+  }
+</style>

@@ -1,0 +1,95 @@
+---
+/**
+ * Quiet Luxury footer — the colophon spread: clay finis ornament, then
+ * display-face name + tagline on the left, small-caps social links and the
+ * generator note on the right, above a strong closing rule.
+ */
+import { t, ui } from "../../../lib/i18n.js";
+import { getProfile } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const tagline = t(profile.tagline, locale, sl);
+---
+
+<div class="finis container" aria-hidden="true">&middot; &middot; &middot;</div>
+
+<footer class="site-foot">
+  <div class="container foot-inner">
+    <div class="foot-left">
+      <p class="foot-name">
+        {profile.name}<span class="fullstop" aria-hidden="true">.</span>
+      </p>
+      {tagline && <p class="foot-tag">{tagline}</p>}
+    </div>
+    <div class="foot-right">
+      <span class="foot-links">
+        {
+          profile.socials.map((s) => (
+            <a class="caplink ext" href={s.url} rel="me noopener">
+              {s.platform}
+            </a>
+          ))
+        }
+      </span>
+      <p class="foot-colophon">
+        &copy; {new Date().getFullYear()} {profile.name} &middot;{" "}
+        {ui("footer.builtWith", locale)}
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-foot {
+    margin-top: 3rem;
+    border-top: 1px solid var(--line-strong, var(--line));
+  }
+  .foot-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1.5rem 2rem;
+    flex-wrap: wrap;
+    padding-block: 2.2rem 2.8rem;
+  }
+  .foot-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-size: 1.02rem;
+    font-weight: 500;
+  }
+  .foot-tag {
+    margin: 0.45rem 0 0;
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--text-faint);
+  }
+  .foot-right {
+    text-align: right;
+  }
+  .foot-links {
+    display: flex;
+    gap: 1.4rem;
+    justify-content: flex-end;
+  }
+  .foot-colophon {
+    margin: 0.9rem 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono-sm, 0.72rem);
+    color: var(--text-faint);
+  }
+  @media (max-width: 720px) {
+    .foot-right {
+      text-align: left;
+    }
+    .foot-links {
+      justify-content: flex-start;
+    }
+  }
+</style>

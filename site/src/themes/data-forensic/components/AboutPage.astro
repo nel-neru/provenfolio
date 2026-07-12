@@ -1,0 +1,166 @@
+---
+/**
+ * About — identity, bio, computed evidence-linked skills (chip title lists
+ * the backing project ids), socials, and email. No hand-typed skill lists:
+ * everything comes from computeSkills(aggregates, profile). Data logic is
+ * identical to every theme; the look is the forensic mono ledger.
+ */
+import Base from "../../../layouts/Base.astro";
+import { t, ui } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, computeSkills } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const aggregates = await getAggregates();
+
+const skills = computeSkills(aggregates, profile);
+const CAT_ORDER = ["language", "framework", "runtime", "infra", "tool"];
+const catRank = (c: string) => {
+  const i = CAT_ORDER.indexOf(c);
+  return i === -1 ? 99 : i;
+};
+const categories = [...new Set(skills.map((s) => s.category))].sort(
+  (a, b) => catRank(a) - catRank(b) || a.localeCompare(b)
+);
+const skillGroups = categories.map((cat) => ({
+  cat,
+  items: skills.filter((s) => s.category === cat),
+}));
+---
+
+<Base locale={locale} title={ui("about.title", locale)} path="/about">
+  <div class="container page">
+    <header class="who">
+      {
+        profile.avatar && (
+          <img
+            class="avatar"
+            src={"/" + profile.avatar}
+            alt={profile.name}
+            width="96"
+            height="96"
+          />
+        )
+      }
+      <div>
+        <h1 class="name">{profile.name}</h1>
+        <p class="role">{t(profile.role, locale, sl)}</p>
+      </div>
+    </header>
+
+    <p class="bio">{t(profile.bio, locale, sl)}</p>
+
+    {
+      skills.length > 0 && (
+        <section class="block">
+          <h2 class="section-title">{ui("about.skills", locale)}</h2>
+          <div class="skill-groups">
+            {skillGroups.map((g) => (
+              <div class="skill-row">
+                {g.items.map((s) => (
+                  <span class="chip" title={s.projectIds.join(", ") || undefined}>
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <section class="block">
+      <ul class="contact" role="list">
+        {
+          profile.socials.map((s) => (
+            <li>
+              <a href={s.url} rel="me noopener">
+                {s.platform}
+                <span class="ext" aria-hidden="true"> ↗</span>
+              </a>
+              {s.handle && <span class="handle">@{s.handle}</span>}
+            </li>
+          ))
+        }
+        {
+          profile.email && (
+            <li>
+              <a href={`mailto:${profile.email}`}>{profile.email}</a>
+            </li>
+          )
+        }
+      </ul>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: var(--space-7, 48px);
+    max-width: 46rem;
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4, 16px);
+  }
+  /* Forensic: square, hairline-framed avatar (no soft circle). */
+  .avatar {
+    border: 1px solid var(--line);
+    border-radius: var(--radius, 2px);
+    flex: none;
+  }
+  .name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .role {
+    margin: var(--space-1, 4px) 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 14px);
+    color: var(--text-dim);
+  }
+  .bio {
+    margin: var(--space-6, 32px) 0 0;
+    white-space: pre-line;
+    line-height: 1.9;
+  }
+  .block {
+    margin-top: var(--space-6, 32px);
+  }
+  .skill-groups {
+    display: grid;
+    gap: var(--space-3, 12px);
+  }
+  .skill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px);
+  }
+  .contact {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2, 8px);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 14px);
+  }
+  .contact a:hover {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .handle {
+    margin-left: var(--space-2, 8px);
+    color: var(--text-faint);
+    font-size: var(--text-xs, 12px);
+  }
+</style>

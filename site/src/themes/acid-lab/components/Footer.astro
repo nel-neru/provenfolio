@@ -1,0 +1,92 @@
+---
+/**
+ * Acid-lab footer — deep scanlined well: owner id line in the mono cockpit
+ * voice, tagline, social links with the outbound glyph, generator note.
+ */
+import { t, ui } from "../../../lib/i18n.js";
+import { getProfile } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+---
+
+<footer class="site-footer scanlines">
+  <div class="foot-inner">
+    <span class="foot-id">
+      {profile.name} — {t(profile.role, locale, sl)}
+    </span>
+    <span class="foot-tag">{t(profile.tagline, locale, sl)}</span>
+    <span class="foot-links">
+      {
+        profile.socials.map((s) => (
+          <a href={s.url} rel="me noopener">
+            {s.platform}
+            <span aria-hidden="true"> ↗</span>
+          </a>
+        ))
+      }
+    </span>
+    <span class="foot-note">
+      © {new Date().getFullYear()} · {ui("footer.builtWith", locale)}
+    </span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    position: relative;
+    margin-top: clamp(var(--space-8), 10vh, var(--space-10));
+    border-top: 1px solid var(--line);
+    background: var(--bg-deep);
+  }
+  .foot-inner {
+    position: relative;
+    z-index: 1;
+    max-width: var(--max-w);
+    margin-inline: auto;
+    padding: var(--space-6) var(--space-5) var(--space-7);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4) var(--space-7);
+    align-items: baseline;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  .foot-id {
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .foot-tag {
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+  .foot-links {
+    display: flex;
+    gap: var(--space-4);
+  }
+  .foot-links a:hover,
+  .foot-links a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .foot-note {
+    color: var(--text-faint);
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 520px) {
+    .foot-inner {
+      gap: var(--space-3) var(--space-5);
+    }
+  }
+</style>

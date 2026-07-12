@@ -1,0 +1,161 @@
+---
+/**
+ * About — identity, bio, and the computed, evidence-linked skill set (chip
+ * title lists the backing project ids). No hand-typed skills: everything
+ * comes from computeSkills(aggregates, profile), grouped exactly as the
+ * default theme groups them, then set as editorial chip rows.
+ */
+import Base from "../../../layouts/Base.astro";
+import { t, ui } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, computeSkills } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const aggregates = await getAggregates();
+
+const skills = computeSkills(aggregates, profile);
+const CAT_ORDER = ["language", "framework", "runtime", "infra", "tool"];
+const catRank = (c: string) => {
+  const i = CAT_ORDER.indexOf(c);
+  return i === -1 ? 99 : i;
+};
+const categories = [...new Set(skills.map((s) => s.category))].sort(
+  (a, b) => catRank(a) - catRank(b) || a.localeCompare(b)
+);
+const skillGroups = categories.map((cat) => ({
+  cat,
+  items: skills.filter((s) => s.category === cat),
+}));
+---
+
+<Base locale={locale} title={ui("about.title", locale)} path="/about">
+  <div class="container page">
+    <header class="who">
+      {
+        profile.avatar && (
+          <img class="avatar" src={"/" + profile.avatar} alt={profile.name} width="96" height="96" />
+        )
+      }
+      <div>
+        <h1 class="name">{profile.name}</h1>
+        <p class="role">{t(profile.role, locale, sl)}</p>
+      </div>
+    </header>
+
+    <p class="bio measure">{t(profile.bio, locale, sl)}</p>
+
+    {
+      skills.length > 0 && (
+        <section class="section">
+          <h2 class="section-title">{ui("about.skills", locale)}</h2>
+          <div class="skill-groups">
+            {skillGroups.map((g) => (
+              <div class="skill-row">
+                {g.items.map((s) => (
+                  <span class="chip" title={s.projectIds.join(", ") || undefined}>
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <section class="section contact-block">
+      <ul class="contact" role="list">
+        {
+          profile.socials.map((s) => (
+            <li>
+              <a class="u-sweep" href={s.url} rel="me noopener">
+                {s.platform}
+              </a>
+              {s.handle && <span class="handle">@{s.handle}</span>}
+            </li>
+          ))
+        }
+        {
+          profile.email && (
+            <li>
+              <a class="u-sweep" href={`mailto:${profile.email}`}>{profile.email}</a>
+            </li>
+          )
+        }
+      </ul>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .page {
+    max-width: 52rem;
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding-block: clamp(40px, 6vw, 72px) 0;
+  }
+  .avatar {
+    border: 1px solid var(--line);
+    flex: none;
+  }
+  .name {
+    margin: 0;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: var(--fs-cover);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+  }
+  .role {
+    margin: 10px 0 0;
+    color: var(--text-dim);
+    font-size: var(--fs-lead);
+  }
+  .bio {
+    margin: clamp(28px, 4vw, 44px) 0 0;
+    white-space: pre-line;
+  }
+
+  .skill-groups {
+    display: grid;
+    gap: 0;
+  }
+  .skill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: clamp(14px, 2vw, 20px) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .skill-row:first-child {
+    border-top: 1px solid var(--line);
+  }
+
+  .contact {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+    border-top: 1px solid var(--text);
+    padding-top: clamp(20px, 3vw, 28px);
+  }
+  .contact li {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .handle {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--fs-meta);
+  }
+</style>

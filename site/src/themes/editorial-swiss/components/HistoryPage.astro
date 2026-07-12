@@ -1,0 +1,251 @@
+---
+/**
+ * Cross-project history. Density-gated by showHistoryPage(): until the data
+ * has time depth or breadth, an honest empty note plus the project list
+ * (sorted by first commit) renders instead of a bar chart that would lie.
+ * The full view is a pure-CSS horizontal span chart over projectSpans,
+ * yearly activity chips, and a tech-adoption note from techFrequency. The
+ * gates and computations are identical to the default theme; only the ink
+ * (square marks, hairline spine, tabular-mono dates) is restyled.
+ */
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { ui, localePath } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  getAggregates,
+  getProjects,
+  showHistoryPage,
+} from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const aggregates = await getAggregates();
+const visible = showHistoryPage(aggregates);
+
+// Sparse branch: all projects, oldest first (still useful).
+const projects = await getProjects();
+const byFirstCommit = [...projects].sort((a, b) =>
+  (a.metrics?.total.firstCommit ?? "9999").localeCompare(
+    b.metrics?.total.firstCommit ?? "9999"
+  )
+);
+
+// Full branch: span bars across the min..max commit range.
+const DAY = 86_400_000;
+const spans = (aggregates?.projectSpans ?? []).filter(
+  (s) => s.firstCommit && s.lastCommit
+);
+const minT = spans.length
+  ? Math.min(...spans.map((s) => Date.parse(s.firstCommit!)))
+  : 0;
+const maxT = spans.length
+  ? Math.max(...spans.map((s) => Date.parse(s.lastCommit!)))
+  : 0;
+const range = Math.max(maxT - minT, DAY);
+
+const rows = spans.map((s) => ({
+  id: s.id,
+  name: s.name,
+  placement: s.placement,
+  commits: s.commits,
+  first: s.firstCommit!,
+  last: s.lastCommit!,
+  left: ((Date.parse(s.firstCommit!) - minT) / range) * 100,
+  width: Math.max(
+    ((Date.parse(s.lastCommit!) - Date.parse(s.firstCommit!)) / range) * 100,
+    1.5
+  ),
+}));
+
+// Year gridlines: Jan 1 of each year inside the range.
+const years: Array<{ year: number; left: number }> = [];
+if (spans.length) {
+  for (
+    let y = new Date(minT).getUTCFullYear() + 1;
+    y <= new Date(maxT).getUTCFullYear();
+    y++
+  ) {
+    const t = Date.parse(`${y}-01-01T00:00:00Z`);
+    if (t >= minT && t <= maxT) years.push({ year: y, left: ((t - minT) / range) * 100 });
+  }
+}
+
+const yearly = aggregates?.yearlyActivity ?? [];
+// Tech adoption note, ordered by first use.
+const adoption = (aggregates?.techFrequency ?? [])
+  .filter((t) => t.firstUsed)
+  .sort((a, b) => a.firstUsed!.localeCompare(b.firstUsed!));
+---
+
+<Base locale={locale} title={ui("history.title", locale)} path="/history">
+  <div class="container page">
+    <header class="pagehead">
+      <h1>{ui("history.title", locale)}</h1>
+    </header>
+
+    {
+      !visible ? (
+        <>
+          <p class="empty-note">{ui("history.empty", locale)}</p>
+          <div class="grid">
+            {byFirstCommit.map((p) => (
+              <ProjectCard
+                project={p}
+                locale={locale}
+                sourceLang={sl}
+                defaultLocale={defaultLocale}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <section class="section">
+            <div class="span-chart">
+              {years.map((y) => (
+                <span class="year-line" style={`left:${y.left}%`} aria-hidden="true">
+                  <span class="year-label mono">{y.year}</span>
+                </span>
+              ))}
+              {rows.map((r) => (
+                <div class="span-row">
+                  <a
+                    class="span-name u-sweep"
+                    href={localePath(`/projects/${r.id}`, locale, defaultLocale)}
+                  >
+                    {r.name}
+                  </a>
+                  <div class="track">
+                    <span
+                      class:list={["bar", `pl-${r.placement}`]}
+                      style={`left:${r.left}%;width:${r.width}%`}
+                      title={`${r.first} — ${r.last}`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {yearly.length > 0 && (
+            <section class="section">
+              <div class="year-chips">
+                {yearly.map((y) => (
+                  <span class="chip">
+                    <b>{y.year}</b> {y.commits} {ui("metrics.commits", locale)} &middot;{" "}
+                    {y.activeDays} {ui("metrics.activeDays", locale)}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {adoption.length > 0 && (
+            <section class="section">
+              <p class="adoption">
+                {adoption.map((t, i) => (
+                  <span class="adoption-item">
+                    {i > 0 && <span aria-hidden="true"> &middot; </span>}
+                    {t.name}
+                    <span class="since mono"> {t.firstUsed!.slice(0, 4)}~</span>
+                  </span>
+                ))}
+              </p>
+            </section>
+          )}
+        </>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .empty-note {
+    color: var(--text-dim);
+    margin: 0 0 clamp(28px, 4vw, 40px);
+    max-width: 60ch;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .span-chart {
+    position: relative;
+    display: grid;
+    gap: 14px;
+    padding-block: 28px 8px;
+    border-top: 1px solid var(--text);
+    margin-top: 8px;
+  }
+  .year-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 1px solid var(--line);
+  }
+  .year-label {
+    position: absolute;
+    top: 4px;
+    left: 6px;
+    font-size: var(--fs-micro);
+    color: var(--text-faint);
+  }
+  .span-row {
+    display: grid;
+    grid-template-columns: minmax(8rem, 14rem) 1fr;
+    align-items: center;
+    gap: 16px;
+  }
+  .span-name {
+    font-size: var(--fs-note);
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .track {
+    position: relative;
+    height: 10px;
+    background: var(--bg-overlay);
+  }
+  .bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--text-faint);
+  }
+  .pl-products {
+    background: var(--accent);
+  }
+  .pl-lab {
+    background: var(--text);
+  }
+  .pl-archive {
+    background: var(--text-faint);
+  }
+
+  .year-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .adoption {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: var(--fs-note);
+    line-height: 2;
+  }
+  .since {
+    color: var(--text-faint);
+    font-size: 0.85em;
+  }
+</style>

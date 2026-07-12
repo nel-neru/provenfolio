@@ -1,0 +1,141 @@
+---
+/**
+ * Acid-lab header — mono cockpit topbar: brand as a system prompt
+ * (NAME // SYS.PORTFOLIO), uppercase nav with the quantized blink hover,
+ * and the pixel-face language toggle. Theme-owned chrome.
+ */
+import { ui, localePath, languageLabel } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, showHistoryPage } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  /** Path WITHOUT locale prefix, e.g. "/projects/foo" — for the switcher. */
+  path: string;
+}
+
+const { locale, path } = Astro.props;
+const profile = await getProfile();
+const aggregates = await getAggregates();
+const defaultLocale = profile.sourceLang;
+const locales = [profile.sourceLang, ...profile.targetLangs];
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+const historyVisible = showHistoryPage(aggregates);
+
+const nav = [
+  { href: lp("/projects"), label: ui("nav.projects", locale) },
+  ...(historyVisible ? [{ href: lp("/history"), label: ui("nav.history", locale) }] : []),
+  { href: lp("/about"), label: ui("nav.about", locale) },
+  { href: lp("/overview"), label: ui("nav.overview", locale) },
+];
+
+const otherLocales = locales.filter((l) => l !== locale);
+---
+
+<header class="topbar">
+  <a href={lp("/")} class="brand">
+    <span class="brand-name">{profile.name}</span>
+    <span class="brand-sys" aria-hidden="true"><b>//</b> SYS.PORTFOLIO</span>
+  </a>
+  <nav aria-label="primary">
+    {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+    {
+      otherLocales.map((l) => (
+        <a
+          href={localePath(path, l, defaultLocale)}
+          class="lang-toggle"
+          aria-label={`Switch language to ${languageLabel(l)}`}
+        >
+          <b>{locale.toUpperCase()}</b>
+          <span class="tog" aria-hidden="true">{"⇄"}</span>
+          {l.toUpperCase()}
+        </a>
+      ))
+    }
+  </nav>
+</header>
+
+<style>
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    max-width: var(--max-w);
+    margin-inline: auto;
+    padding: var(--space-4) var(--space-5);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.08em;
+  }
+  .brand {
+    color: var(--text);
+    font-weight: 700;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .brand b {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .brand:hover,
+  .brand:focus-visible {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-5);
+  }
+  nav a {
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  nav a:hover {
+    color: var(--accent);
+    text-decoration: none;
+    animation: actionable-blink 0.5s steps(1) infinite;
+  }
+  nav a:focus-visible {
+    color: var(--accent);
+  }
+  .lang-toggle {
+    font-family: var(--font-pixel);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    padding: 4px 12px;
+    color: var(--text-dim);
+    background: var(--bg-overlay);
+    text-transform: none;
+  }
+  .lang-toggle b {
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .lang-toggle:hover,
+  .lang-toggle:focus-visible {
+    border-color: var(--accent);
+    color: var(--text);
+    animation: none;
+    text-decoration: none;
+  }
+
+  @media (max-width: 520px) {
+    .brand-sys {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    nav a:hover {
+      animation: none;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+</style>

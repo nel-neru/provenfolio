@@ -1,0 +1,186 @@
+---
+/**
+ * About — the frontispiece. Identity (avatar, display name with clay full
+ * stop, role), a serif bio in book measure, computed evidence-linked skills
+ * laid out as a colophon register (mono index + middot names, the chip title
+ * still lists the backing project ids), then socials + email as small-caps
+ * caplinks. No hand-typed skill lists: everything comes from
+ * computeSkills(aggregates, profile). Structure/logic mirror the midnight
+ * AboutPage; only the dress changes.
+ */
+import Base from "../../../layouts/Base.astro";
+import { t, ui } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, computeSkills } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const aggregates = await getAggregates();
+
+const skills = computeSkills(aggregates, profile);
+const CAT_ORDER = ["language", "framework", "runtime", "infra", "tool"];
+const catRank = (c: string) => {
+  const i = CAT_ORDER.indexOf(c);
+  return i === -1 ? 99 : i;
+};
+const categories = [...new Set(skills.map((s) => s.category))].sort(
+  (a, b) => catRank(a) - catRank(b) || a.localeCompare(b)
+);
+const skillGroups = categories.map((cat) => ({
+  cat,
+  items: skills.filter((s) => s.category === cat),
+}));
+
+const index = (i: number) => String(i + 1).padStart(2, "0");
+const role = t(profile.role, locale, sl);
+const bio = t(profile.bio, locale, sl);
+---
+
+<Base locale={locale} title={ui("about.title", locale)} path="/about">
+  <div class="container page folio">
+    <header class="who">
+      {
+        profile.avatar && (
+          <img
+            class="avatar"
+            src={"/" + profile.avatar}
+            alt={profile.name}
+            width="96"
+            height="96"
+          />
+        )
+      }
+      <div class="who-text">
+        <h1 class="name">
+          {profile.name}<span class="fullstop" aria-hidden="true">.</span>
+        </h1>
+        {role && <p class="role">{role}</p>}
+      </div>
+    </header>
+
+    {bio && <p class="bio">{bio}</p>}
+
+    {
+      skills.length > 0 && (
+        <section class="block">
+          <h2 class="section-title">{ui("about.skills", locale)}</h2>
+          <div class="colophon">
+            {skillGroups.map((g, i) => (
+              <div class="col-row">
+                <div class="col-label" aria-hidden="true">{index(i)}</div>
+                <p class="col-items">
+                  {g.items.map((s, j) => (
+                    <>
+                      {j > 0 && <span class="dot" aria-hidden="true">&middot;</span>}
+                      <span title={s.projectIds.join(", ") || undefined}>{s.name}</span>
+                    </>
+                  ))}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <section class="block">
+      <ul class="contact" role="list">
+        {
+          profile.socials.map((s) => (
+            <li class="contact-row">
+              <a class="caplink ext" href={s.url} rel="me noopener">
+                {s.platform}
+              </a>
+              {s.handle && <span class="handle">@{s.handle}</span>}
+            </li>
+          ))
+        }
+        {
+          profile.email && (
+            <li class="contact-row">
+              <a class="caplink" href={`mailto:${profile.email}`}>{profile.email}</a>
+            </li>
+          )
+        }
+      </ul>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: clamp(2.5rem, 6vh, 4rem);
+    max-width: 48rem;
+    padding-bottom: 2rem;
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: 1.4rem;
+  }
+  .avatar {
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    flex: none;
+    box-shadow: var(--shadow-sm, none);
+  }
+  .name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-size: var(--fs-title);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .role {
+    margin: 0.35rem 0 0;
+    font-size: var(--fs-caps);
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .role:lang(ja) {
+    letter-spacing: 0.2em;
+    font-weight: 500;
+  }
+  .bio {
+    margin: 2rem 0 0;
+    white-space: pre-line;
+    font-family: var(--font-serif);
+    font-size: var(--fs-prose);
+    line-height: 1.85;
+    max-width: 62ch;
+    color: var(--text);
+  }
+  .bio:lang(ja) {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 2;
+  }
+  .block {
+    margin-top: var(--sec-gap);
+  }
+  .contact {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .contact-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    border-top: 1px solid var(--line);
+    padding: 0.85rem 0;
+  }
+  .handle {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+</style>

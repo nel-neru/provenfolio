@@ -1,0 +1,523 @@
+/*
+ * Acid-lab theme stylesheet — the shared lab chrome on top of the shared
+ * mechanics in src/styles/global.css. Owns typography rhythm, the primitive
+ * classes every leaf component relies on (.card, .chip, .section-title,
+ * .evidence-link), and the theme's decorative DNA (stickers, chrome type,
+ * system readouts, window frames, scanlines, dot-matrix rules). Showcase
+ * drama is scoped under body[data-surface="showcase"]; reduced motion gets
+ * a designed static state, not a slower animation.
+ */
+
+/* ---- theme-internal extensions (not part of the token contract) ---- */
+:root {
+  --bg-deep: #080711;
+  --line-strong: #453a66;
+  --decor-violet: #8800ff;
+  --decor-blue: #2f6bff;
+  --decor-orange: #ff4d00;
+  --font-pixel: "DotGothic16", "JetBrains Mono", ui-monospace, monospace;
+  /* JA companion step of the modular scale */
+  --fs-ja: 15px;
+}
+
+/* ---- body rhythm ---- */
+body {
+  font-size: var(--text-base);
+  line-height: 1.65;
+  counter-reset: acid-section;
+}
+/* CJK pages read at a taller rhythm */
+body:lang(ja) {
+  line-height: 1.9;
+  letter-spacing: 0.02em;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  font-weight: 700;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 0;
+}
+
+/* skip link, restyled as the acid pill (element rendered by Base) */
+.skip-link {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+}
+.skip-link:focus-visible {
+  outline-color: var(--show-accent2, var(--accent));
+  outline-offset: 1px;
+}
+
+/* ---- chrome-gradient display type (>=40px sizes only) ---- */
+.chrome {
+  font-family: var(--font-display);
+  color: #dfe4f2; /* solid fallback where background-clip:text is unsupported */
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .chrome {
+    background: linear-gradient(
+      180deg,
+      #f5f7ff 0%,
+      #c9cfe0 34%,
+      #8a93ad 47%,
+      #f8fbff 51%,
+      #aab3c9 60%,
+      #e9edf8 100%
+    );
+    background-size: 100% 240%;
+    background-position: 0 30%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+}
+/* animated sheen is showcase-only drama */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  body[data-surface="showcase"] .chrome-sheen {
+    animation: sheen 8s steps(16) infinite alternate;
+  }
+}
+@keyframes sheen {
+  from {
+    background-position-y: 0%;
+  }
+  to {
+    background-position-y: 100%;
+  }
+}
+
+/* ---- sticker chips (pill + hard offset shadow, fixed rotation set) ---- */
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 1.1em;
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
+}
+.sticker.mag {
+  box-shadow: 2px 2px 0 var(--show-accent2, var(--accent));
+}
+.sticker.blu {
+  box-shadow: 2px 2px 0 var(--decor-blue);
+}
+.r1 {
+  rotate: -6deg;
+}
+.r2 {
+  rotate: -3deg;
+}
+.r3 {
+  rotate: 3deg;
+}
+.r4 {
+  rotate: 6deg;
+}
+a.sticker:hover,
+a.sticker:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ---- actionable blink (the one blink behavior; <=2 flashes/sec) ---- */
+@keyframes actionable-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.55;
+  }
+}
+
+/* ---- system readout strip (portfolio totals / per-project stats) ---- */
+.readout {
+  border-block: 1px solid var(--line);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.readout-inner {
+  max-width: var(--max-w);
+  margin-inline: auto;
+  padding: var(--space-3) var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  justify-content: center;
+}
+.readout b {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.readout .live {
+  color: var(--ok);
+}
+.led {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: var(--ok);
+  margin-right: 6px;
+  vertical-align: 1px;
+  animation: led-blink 1s steps(1) infinite;
+}
+@keyframes led-blink {
+  0%,
+  59% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0.35;
+  }
+}
+
+/* ---- numbered section headers + dot-matrix rule ---- */
+.section-title {
+  counter-increment: acid-section;
+  display: block;
+  margin: 0 0 var(--space-6);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.section-title::before {
+  content: "0x" counter(acid-section, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-right: var(--space-3);
+}
+.section-title::after {
+  content: "";
+  display: block;
+  height: 7px;
+  margin-top: var(--space-2);
+  background-image: radial-gradient(
+    circle,
+    var(--text-faint) 1px,
+    transparent 1.4px
+  );
+  background-size: 8px 8px;
+  opacity: 0.5;
+}
+
+/* ---- cards (flat frame; interactive cards get the hard-shadow lift) ---- */
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+a.card {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+a.card:hover,
+a.card:focus-visible {
+  border-color: var(--line-strong);
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--show-accent2, var(--accent));
+  text-decoration: none;
+}
+body[data-surface="showcase"] a.card:hover,
+body[data-surface="showcase"] a.card:focus-visible {
+  transform: translate(-3px, -3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ---- chips: the mono readout voice ---- */
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  padding: 3px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.chip b {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+/* tech chips read as labeled hardware */
+.tech-list .chip {
+  background: var(--bg-overlay);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+/* the category badge is a sticker */
+.chip.category-badge {
+  align-items: center;
+  background: var(--bg-overlay);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.5em 1.1em;
+}
+
+/* ---- evidence receipts (the trust affordance) ---- */
+.evidence-link {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--bg-deep);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 3px 12px;
+  color: var(--accent);
+}
+.evidence-link::before {
+  content: "\2317  ";
+  color: var(--text-faint);
+}
+span.evidence-link,
+code.evidence-link {
+  color: var(--text-dim);
+}
+a.evidence-link:hover,
+a.evidence-link:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  text-decoration: none;
+}
+
+/* ---- poolsuite window frame (specimen shots / instrument panels) ---- */
+.window {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-deep);
+  margin: 0;
+}
+.win-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.win-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.win-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+.win-dots i:first-child {
+  background: var(--decor-orange);
+}
+
+/* ---- scanline texture (hero wells + footer only, never behind body copy) ---- */
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    rgba(255, 255, 255, 0.02) 3px 4px
+  );
+}
+
+/* ---- buttons (mono pills; primary is the acid CTA) ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  padding: 10px 22px;
+  border: 1px solid var(--line-strong);
+  color: var(--text-dim);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.btn:hover,
+.btn:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  box-shadow: 3px 3px 0 var(--line-strong);
+}
+.btn.primary:hover,
+.btn.primary:focus-visible {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--show-accent2, var(--line-strong));
+  color: var(--bg);
+}
+
+/* ---- shared viz restyles (bump specificity over component-scoped rules) ---- */
+/* timeline: square accent nodes on a dotted spine */
+body[data-theme="acid-lab"] .timeline::before {
+  width: 0;
+  background: none;
+  border-left: 1px dotted var(--line-strong);
+}
+body[data-theme="acid-lab"] .timeline .event::before {
+  border-radius: 0;
+  background: var(--accent);
+  border: none;
+  width: 9px;
+  height: 9px;
+  left: 1px;
+  top: 0.45em;
+}
+body[data-theme="acid-lab"] .timeline .date {
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+}
+/* language bar: square instrument, not a rounded pill */
+body[data-theme="acid-lab"] .langbars svg {
+  border-radius: 0;
+}
+body[data-theme="acid-lab"] .langbars .legend .pct {
+  color: var(--text);
+}
+/* project cards: display-face names */
+body[data-theme="acid-lab"] .project-card .name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+}
+
+/* ---- cursor trail bits (showcase only; JS skips reduced-motion/touch) ---- */
+body[data-surface="showcase"] .trail-bit {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  z-index: 60;
+  pointer-events: none;
+  image-rendering: pixelated;
+  animation: bit-fade 0.5s steps(5) forwards;
+}
+@keyframes bit-fade {
+  to {
+    opacity: 0;
+    transform: translate(5px, 9px) scale(0.4);
+  }
+}
+
+/* ---- designed static state (a still composition, not a slow one) ---- */
+@media (prefers-reduced-motion: reduce) {
+  .led {
+    animation: none;
+  }
+  .chrome,
+  body[data-surface="showcase"] .chrome-sheen {
+    animation: none;
+    background-position: 0 30%;
+  }
+  a.card,
+  .btn {
+    transition: none;
+  }
+  a.card:hover,
+  a.card:focus-visible,
+  body[data-surface="showcase"] a.card:hover,
+  body[data-surface="showcase"] a.card:focus-visible {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--show-accent2, var(--accent));
+  }
+  .btn.primary:hover,
+  .btn.primary:focus-visible {
+    transform: none;
+    box-shadow: 3px 3px 0 var(--show-accent2, var(--line-strong));
+  }
+  body[data-surface="showcase"] .trail-bit {
+    display: none;
+  }
+}
+
+/* ---- print: keep receipts and chips ink-friendly ---- */
+@media print {
+  .chip,
+  .evidence-link {
+    background: #fff;
+    color: #333;
+    border-color: #ccc;
+    box-shadow: none;
+  }
+  .section-title::before {
+    color: #111;
+  }
+  .section-title::after {
+    display: none;
+  }
+}

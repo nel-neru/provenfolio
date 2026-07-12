@@ -1,0 +1,580 @@
+---
+/**
+ * The case-study page — the calmed room of the same house. Poster header
+ * (kicker breadcrumb, display title, ruled meta strip), the static ghost
+ * keyword strip (the direction's reduced-motion treatment used as the read
+ * surface's resting texture), compact specimen stat cells, then a sticky
+ * mono rail beside the reading column. Energy 2/5: the title entrance is
+ * the page's only animation; everything else is a quiet color move.
+ */
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import MetricChips from "../../../components/MetricChips.astro";
+import EvidenceLink from "../../../components/EvidenceLink.astro";
+import CaseStudy from "../../../components/CaseStudy.astro";
+import Screenshots from "../../../components/Screenshots.astro";
+import Timeline from "../../../components/viz/Timeline.astro";
+import ContributionHeatmap from "../../../components/viz/ContributionHeatmap.astro";
+import VelocitySparkline from "../../../components/viz/VelocitySparkline.astro";
+import LanguageBars from "../../../components/viz/LanguageBars.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  getProjects,
+  showHeatmap,
+  showVelocity,
+  showLanguages,
+} from "../../../lib/data.js";
+import type { ProjectData } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  project: ProjectData;
+}
+
+const { locale, project } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+const fmt = (n: number) => n.toLocaleString("en-US");
+const pad = (n: number) => String(n).padStart(2, "0");
+
+const gh = project.sources.find((s) => s.type === "github");
+const isPrivate = project.sources.some((s) => s.visibility === "private");
+const repoUrl = gh && gh.visibility === "public" ? gh.repoUrl : undefined;
+
+// Primary calls-to-action first: demo / store / video, then everything else.
+const LINK_PRIORITY = ["demo", "store", "video"];
+const linkRank = (k: string) => {
+  const i = LINK_PRIORITY.indexOf(k);
+  return i === -1 ? 99 : i;
+};
+const links = [...project.links].sort((a, b) => linkRank(a.kind) - linkRank(b.kind));
+
+const heat = showHeatmap(project);
+const vel = showVelocity(project);
+const langs = showLanguages(project);
+const anyViz = heat || vel || langs;
+
+const summary = t(project.summary, locale, sl);
+const locales = [sl, ...profile.targetLangs];
+const altLocale = locales.find((l) => l !== locale);
+const altSummary =
+  altLocale && project.summary?.[altLocale]?.trim() && project.summary[altLocale] !== summary
+    ? project.summary[altLocale]
+    : undefined;
+
+/** Category label with the same key-miss fallback CategoryBadge uses. */
+const catKey = `category.${project.category}`;
+const catResolved = ui(catKey, locale);
+const catLabel = catResolved === catKey ? project.category : catResolved;
+
+/* Index ornament: this case study's position among all projects. */
+const all = await getProjects();
+const pos = all.findIndex((p) => p.id === project.id);
+const idxLabel = pos >= 0 ? `${pad(pos + 1)} / ${pad(all.length)}` : "";
+
+/* Title step-down: the 9vw clamp is tuned for ~9 Latin glyphs; wide CJK /
+   fullwidth glyphs count double, so longer names scale down and the title
+   never crops. Width is decided by code point (no literal CJK in source,
+   which the stray-Japanese lint also scans). */
+const isWideGlyph = (cp: number): boolean =>
+  (cp >= 0x1100 && cp <= 0x115f) || // Hangul Jamo
+  (cp >= 0x2e80 && cp <= 0xa4cf) || // CJK radicals, kana, CJK unified, Yi
+  (cp >= 0xac00 && cp <= 0xd7a3) || // Hangul syllables
+  (cp >= 0xf900 && cp <= 0xfaff) || // CJK compatibility ideographs
+  (cp >= 0xff00 && cp <= 0xff60);   // fullwidth forms
+const visualLen = (s: string) =>
+  [...s].reduce((n, ch) => n + (isWideGlyph(ch.codePointAt(0) ?? 0) ? 2 : 1), 0);
+const titleFactor = Math.min(
+  1,
+  Math.round((9 / Math.max(1, visualLen(project.name))) * 100) / 100
+);
+const titleSize =
+  titleFactor < 1
+    ? `font-size: calc(clamp(2.75rem, 9vw, 7rem) * ${titleFactor});`
+    : undefined;
+
+/* Static ghost strip content: the project's real stack keywords. */
+const techNames = project.techStack.map((s) => s.name);
+
+/* Numbered section order (only sections that render get an index). */
+const sections = [
+  ...(project.highlights.length > 0 ? ["highlights"] : []),
+  ...(project.timeline.length > 0 ? ["timeline"] : []),
+  ...(project.metrics ? ["metrics"] : []),
+  ...(project.architectureDiagram ? ["architecture"] : []),
+  ...(project.screenshots.length > 0 ? ["screenshots"] : []),
+];
+const secNo = (k: string) => pad(sections.indexOf(k) + 2); // case study is 01
+const tocKeys: Record<string, string> = {
+  highlights: "project.highlights",
+  timeline: "project.timeline",
+  metrics: "project.metrics",
+  architecture: "project.architecture",
+  screenshots: "project.screenshots",
+};
+---
+
+<Base
+  locale={locale}
+  title={project.name}
+  description={summary}
+  path={`/projects/${project.id}`}
+  ogImage={`/og/${project.id}.png`}
+>
+  <!-- CASE-STUDY POSTER HEADER — home's hero anatomy, calmed -->
+  <header class="p-hero">
+    <p class="kicker mono kt-fade">
+      <a href={lp("/projects")}>← {ui("nav.projects", locale)}</a>
+      {idxLabel && <><span class="sep" aria-hidden="true">—</span>{idxLabel}</>}
+      <span class="sep" aria-hidden="true">—</span>{catLabel}
+    </p>
+    <h1 class="title kt-rise" style={titleSize}>
+      <span class="line"><span class="word">{project.name}</span></span>
+    </h1>
+    <div class="p-hero-meta kt-fade">
+      <div>
+        {summary && <p class="summary">{summary}</p>}
+        {altSummary && <p class="summary-alt" lang={altLocale}>{altSummary}</p>}
+      </div>
+      <div class="badges">
+        <CategoryBadge category={project.category} locale={locale} />
+        {
+          project.role && (
+            <span class="chip" title={t(project.role.scope, locale, sl) || undefined}>
+              {ui(`project.role.${project.role.type}`, locale)}
+            </span>
+          )
+        }
+      </div>
+    </div>
+    {
+      links.length > 0 && (
+        <div class="cta-row">
+          {links.map((l) => (
+            <a
+              class:list={["pill", LINK_PRIORITY.includes(l.kind) ? "solid" : "ghost"]}
+              href={l.url}
+              target="_blank"
+              rel="noopener"
+            >
+              {t(l.label, locale, sl) || l.kind} ↗
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </header>
+
+  <!-- STATIC SPECIMEN STRIP — home's marquee at rest: zero motion -->
+  {
+    techNames.length > 0 && (
+      <>
+        <div class="band ghost-band" aria-hidden="true">
+          <div class="lane lane-ghost">
+            <div class="seg">
+              <span>
+                {[...techNames, ...techNames].map((n) => (
+                  <>{n}<span class="dot"> · </span></>
+                ))}
+              </span>
+            </div>
+          </div>
+        </div>
+        <p class="sr-only">
+          {ui("project.stack", locale)}: {techNames.join(", ")}
+        </p>
+      </>
+    )
+  }
+
+  <!-- PROJECT METRICS — home's stat cells, compact -->
+  {
+    project.metrics && (
+      <section aria-label={ui("project.metrics", locale)}>
+        <div class="stats compact">
+          <div class="stat">
+            <div class="num">{fmt(project.metrics.total.commits)}</div>
+            <div class="rule" aria-hidden="true"></div>
+            <div class="lbl mono"><span class="u">/</span>{ui("metrics.commits", locale)}</div>
+          </div>
+          <div class="stat">
+            <div class="num">{fmt(project.metrics.total.activeDays)}</div>
+            <div class="rule" aria-hidden="true"></div>
+            <div class="lbl mono"><span class="u">/</span>{ui("metrics.activeDays", locale)}</div>
+          </div>
+          <div class="stat">
+            <div class="num">{fmt(project.metrics.total.durationDays)}</div>
+            <div class="rule" aria-hidden="true"></div>
+            <div class="lbl mono"><span class="u">/</span>{ui("metrics.span", locale)}</div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <div class="wrap container">
+    <!-- sticky mono rail: machine-made metadata -->
+    <aside class="rail" aria-label="project metadata">
+      {
+        project.techStack.length > 0 && (
+          <div class="grp">
+            <span class="k">{ui("project.stack", locale)}</span>
+            <TechStackList techStack={project.techStack} />
+          </div>
+        )
+      }
+      {
+        project.metrics && (
+          <div class="grp">
+            <span class="k">{ui("project.metrics", locale)}</span>
+            <MetricChips project={project} locale={locale} />
+          </div>
+        )
+      }
+      {
+        sections.length > 0 && (
+          <div class="grp">
+            <nav aria-label="sections">
+              {sections.map((s) => (
+                <a href={`#${s}`}>{ui(tocKeys[s], locale)}</a>
+              ))}
+            </nav>
+          </div>
+        )
+      }
+    </aside>
+
+    <article>
+      {isPrivate && <p class="card note">{ui("project.proprietary", locale)}</p>}
+
+      <section id="case">
+        <CaseStudy project={project} locale={locale} sourceLang={sl} />
+      </section>
+
+      {
+        project.highlights.length > 0 && (
+          <section id="highlights">
+            <div class="sec-head">
+              <h2>{ui("project.highlights", locale)}</h2>
+              <span class="mono idx">{secNo("highlights")}</span>
+            </div>
+            {project.highlights.map((h) => (
+              <div class="hl">
+                <p class="txt">{t(h.text, locale, sl)}</p>
+                <p class="receipts">
+                  {h.evidence.map((e) => (
+                    <EvidenceLink
+                      evidence={e}
+                      repoUrl={repoUrl}
+                      isPrivate={isPrivate}
+                      locale={locale}
+                    />
+                  ))}
+                </p>
+              </div>
+            ))}
+          </section>
+        )
+      }
+
+      {
+        project.timeline.length > 0 && (
+          <section id="timeline">
+            <div class="sec-head">
+              <h2>{ui("project.timeline", locale)}</h2>
+              <span class="mono idx">{secNo("timeline")}</span>
+            </div>
+            <Timeline
+              timeline={project.timeline}
+              locale={locale}
+              sourceLang={sl}
+              repoUrl={repoUrl}
+              isPrivate={isPrivate}
+            />
+          </section>
+        )
+      }
+
+      {
+        project.metrics && (
+          <section id="metrics">
+            <div class="sec-head">
+              <h2>{ui("project.metrics", locale)}</h2>
+              <span class="mono idx">{secNo("metrics")}</span>
+            </div>
+            <div class="viz-stack">
+              {langs && <LanguageBars languages={project.metrics.languages} />}
+              {vel && (
+                <VelocitySparkline
+                  commitsByDay={project.metrics.total.commitsByDay}
+                  locale={locale}
+                />
+              )}
+              {heat && (
+                <ContributionHeatmap
+                  commitsByDay={project.metrics.total.commitsByDay}
+                  locale={locale}
+                />
+              )}
+              {!anyViz && <MetricChips project={project} locale={locale} />}
+            </div>
+          </section>
+        )
+      }
+
+      {
+        project.architectureDiagram && (
+          <section id="architecture">
+            <div class="sec-head">
+              <h2>{ui("project.architecture", locale)}</h2>
+              <span class="mono idx">{secNo("architecture")}</span>
+            </div>
+            <figure class="card diagram">
+              <img
+                src={"/" + project.architectureDiagram}
+                alt={ui("project.architecture", locale)}
+                loading="lazy"
+              />
+            </figure>
+          </section>
+        )
+      }
+
+      {
+        project.screenshots.length > 0 && (
+          <section id="screenshots">
+            <div class="sec-head">
+              <h2>{ui("project.screenshots", locale)}</h2>
+              <span class="mono idx">{secNo("screenshots")}</span>
+            </div>
+            <Screenshots
+              screenshots={project.screenshots}
+              locale={locale}
+              sourceLang={sl}
+            />
+          </section>
+        )
+      }
+    </article>
+  </div>
+</Base>
+
+<style>
+  /* case-study poster header — hero anatomy at lower amplitude */
+  .p-hero {
+    padding: 7.5rem 0 0;
+  }
+  .p-hero .kicker {
+    padding-inline: var(--gutter);
+    margin: 0 0 1.1rem;
+  }
+  .p-hero .kicker a {
+    color: var(--text-dim);
+    transition: color 0.2s ease;
+  }
+  .p-hero .kicker a:hover,
+  .p-hero .kicker a:focus-visible {
+    color: var(--accent-lift);
+    text-decoration: none;
+  }
+  .title {
+    margin: 0;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: clamp(2.75rem, 9vw, 7rem);
+    font-weight: 900;
+    font-variation-settings: "wght" 900, "wdth" 102;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    padding-inline: var(--gutter);
+    word-break: auto-phrase;
+  }
+  .title .line {
+    display: block;
+    overflow: hidden;
+  }
+  .title .word {
+    display: inline-block;
+  }
+  .p-hero-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.2rem 2rem;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--line);
+    margin-top: clamp(1.5rem, 4vh, 2.5rem);
+    padding: 1.3rem var(--gutter) 0;
+  }
+  .summary {
+    margin: 0;
+    font-size: var(--text-lg, 1.25rem);
+    line-height: 1.55;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    max-width: 34em;
+  }
+  .summary-alt {
+    margin: 0.6rem 0 0;
+    color: var(--text-dim);
+    max-width: 38em;
+  }
+  .badges {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    padding: 1.8rem var(--gutter) 0;
+  }
+
+  .ghost-band {
+    margin-top: var(--sect);
+  }
+
+  /* page grid: sticky mono rail + reading column */
+  .wrap {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 68ch);
+    gap: var(--space-4, 2rem) clamp(2rem, 5vw, 5rem);
+    align-items: start;
+    padding-top: var(--sect);
+  }
+  .rail {
+    position: sticky;
+    top: 5.5rem;
+    display: grid;
+    gap: 1.6rem;
+    border-top: 1px solid var(--line);
+    padding-top: 1rem;
+  }
+  .rail .grp {
+    display: grid;
+    gap: 0.6rem;
+    justify-items: start;
+  }
+  .rail .k {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 0.75rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .rail .k::before {
+    content: "/ ";
+    color: var(--accent);
+  }
+  .rail nav {
+    display: grid;
+    gap: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 0.75rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .rail nav a {
+    color: var(--text-dim);
+    transition: color 0.2s ease;
+  }
+  .rail nav a::before {
+    content: "— ";
+    color: var(--text-faint);
+  }
+  .rail nav a:hover,
+  .rail nav a:focus-visible {
+    color: var(--accent-lift);
+    text-decoration: none;
+  }
+
+  article section {
+    margin-top: var(--space-5, 3.5rem);
+  }
+  article section:first-of-type {
+    margin-top: 0;
+  }
+  article .sec-head {
+    margin-bottom: 1.8rem;
+  }
+
+  .note {
+    margin: 0 0 var(--space-4, 2rem);
+    padding: 0.85rem 1.1rem;
+    color: var(--text-dim);
+    font-size: var(--text-sm, 0.875rem);
+  }
+
+  /* highlights: evidence-linked rows with mono receipts */
+  .hl {
+    border-top: 1px solid var(--line);
+    padding: 1.4rem 0 1.5rem;
+  }
+  .hl:last-of-type {
+    border-bottom: 1px solid var(--line);
+  }
+  .hl .txt {
+    margin: 0;
+    font-weight: 500;
+  }
+  .receipts {
+    margin: 0.8rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.8rem;
+  }
+  .hl:hover :global(.evidence-link) {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  .viz-stack {
+    display: grid;
+    gap: 1.75rem;
+  }
+  .diagram {
+    margin: 0;
+    padding: 1rem;
+  }
+  .diagram img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* The single kinetic moment on the read surface: title entrance —
+     inherited from the theme's .kt-rise/.kt-fade rules, which live inside
+     prefers-reduced-motion: no-preference. */
+
+  @media (max-width: 880px) {
+    .wrap {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .rail {
+      position: static;
+      grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    }
+    .rail nav {
+      display: none;
+    }
+    .badges {
+      flex-direction: row;
+      align-items: center;
+    }
+    .p-hero-meta {
+      flex-direction: column-reverse;
+      align-items: flex-start;
+    }
+  }
+  @media (max-width: 720px) {
+    .p-hero {
+      padding-top: 6rem;
+    }
+  }
+</style>

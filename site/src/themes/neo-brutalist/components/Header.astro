@@ -1,0 +1,160 @@
+---
+/**
+ * Neo-brutalist header — flat paper bar under a 3px ink rule: mono uppercase
+ * wordmark, mono nav links with an accent underline-slide, and a bordered
+ * segmented language toggle (links, pressed state = ink fill).
+ */
+import { ui, localePath, languageLabel } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, showHistoryPage } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  /** Path WITHOUT locale prefix, e.g. "/projects/foo" — for the switcher. */
+  path: string;
+}
+
+const { locale, path } = Astro.props;
+const profile = await getProfile();
+const aggregates = await getAggregates();
+const defaultLocale = profile.sourceLang;
+const locales = [profile.sourceLang, ...profile.targetLangs];
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+const historyVisible = showHistoryPage(aggregates);
+
+const nav = [
+  { href: lp("/projects"), label: ui("nav.projects", locale) },
+  ...(historyVisible ? [{ href: lp("/history"), label: ui("nav.history", locale) }] : []),
+  { href: lp("/about"), label: ui("nav.about", locale) },
+  { href: lp("/overview"), label: ui("nav.overview", locale) },
+];
+---
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a href={lp("/")} class="wordmark">{profile.name}</a>
+    <nav aria-label="primary" class="topnav">
+      {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+      {
+        locales.length > 1 && (
+          <span class="lang-toggle">
+            {locales.map((l) => (
+              <a
+                href={localePath(path, l, defaultLocale)}
+                aria-current={l === locale ? "true" : undefined}
+                aria-label={`Switch language to ${languageLabel(l)}`}
+              >
+                {l}
+              </a>
+            ))}
+          </span>
+        )
+      }
+    </nav>
+  </div>
+</header>
+
+<style>
+  .topbar {
+    border-bottom: 3px solid var(--line);
+    background: var(--bg);
+  }
+  .topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4, 16px);
+    min-height: 56px;
+  }
+  .wordmark {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: var(--text-sm, 13px);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .topnav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5, 24px);
+  }
+  .topnav > a {
+    position: relative;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 13px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    color: var(--text);
+    padding: 4px 0;
+  }
+  .topnav > a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.12s ease-out;
+  }
+  .topnav > a:hover::after,
+  .topnav > a:focus-visible::after {
+    transform: scaleX(1);
+  }
+  .lang-toggle {
+    display: flex;
+  }
+  .lang-toggle a {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 11px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    border: 2px solid var(--line);
+    background: var(--bg-raised);
+    color: var(--text);
+    padding: 4px 10px;
+    transition:
+      background 0.12s ease-out,
+      color 0.12s ease-out;
+  }
+  .lang-toggle a + a {
+    border-left: none;
+  }
+  .lang-toggle a:hover {
+    background: var(--bg-overlay);
+  }
+  .lang-toggle a[aria-current="true"],
+  .lang-toggle a[aria-current="true"]:hover {
+    background: var(--line);
+    color: var(--bg);
+  }
+  @media (max-width: 720px) {
+    .topnav {
+      gap: var(--space-3, 12px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .topnav > a:hover::after,
+    .topnav > a:focus-visible::after {
+      transform: none;
+    }
+    .topnav > a::after {
+      transform: none;
+      background: transparent;
+    }
+    .topnav > a:hover,
+    .topnav > a:focus-visible {
+      text-decoration: underline;
+      text-decoration-thickness: 3px;
+      text-decoration-color: var(--accent);
+      text-underline-offset: 4px;
+    }
+  }
+</style>

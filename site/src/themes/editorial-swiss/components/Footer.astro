@@ -1,0 +1,90 @@
+---
+/**
+ * Editorial Swiss footer — the shared chrome's colophon: an ink top rule,
+ * an identity line with the owner tagline, the social receipts, and a base
+ * row carrying the generator note and copyright. All copy is either owner
+ * data or a dictionary string; nothing is hardcoded.
+ */
+import { ui, t } from "../../../lib/i18n.js";
+import { getProfile } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const tagline = t(profile.tagline, locale, sl);
+---
+
+<footer class="site-footer">
+  <div class="container foot-inner">
+    <div class="foot-id">
+      <span class="micro">{profile.name}</span>
+      {tagline && <span class="foot-tag" lang={locale}>{tagline}</span>}
+    </div>
+    {
+      profile.socials.length > 0 && (
+        <nav class="foot-links" aria-label="social">
+          {profile.socials.map((s) => (
+            <a class="micro u-sweep" href={s.url} rel="me noopener">
+              {s.platform}
+            </a>
+          ))}
+        </nav>
+      )
+    }
+  </div>
+  <div class="container foot-base">
+    <span class="micro">{ui("footer.builtWith", locale)}</span>
+    <span class="micro">&copy;&nbsp;{new Date().getFullYear()} {profile.name}</span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: var(--rhythm-show);
+    border-top: 1px solid var(--text);
+  }
+  .foot-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 24px 32px;
+    flex-wrap: wrap;
+    padding-block: 36px 28px;
+  }
+  .foot-id .micro {
+    color: var(--text-dim);
+  }
+  .foot-tag {
+    display: block;
+    margin-top: 8px;
+    font-size: var(--fs-note);
+    color: var(--text-faint);
+  }
+  .foot-links {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .foot-links a {
+    color: var(--text-dim);
+  }
+  .foot-links a:hover,
+  .foot-links a:focus-visible {
+    color: var(--text);
+  }
+  .foot-base {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px 24px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--line);
+    padding-block: 14px 40px;
+  }
+  .foot-base .micro {
+    color: var(--text-faint);
+  }
+</style>

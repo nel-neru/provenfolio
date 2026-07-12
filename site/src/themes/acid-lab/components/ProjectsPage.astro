@@ -1,0 +1,163 @@
+---
+/**
+ * Acid-lab projects index — read surface. Same placement order as the
+ * structural reference (products → lab → archive); products and lab render
+ * full ProjectCards, archive is the compact mono list. Empty placements
+ * render nothing. Restyled into the lab's system: display-face page title on
+ * an acid rule, auto-numbered section headers, cockpit archive rows. Data
+ * access and gates are unchanged.
+ */
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getProjects, byPlacement } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const placed = byPlacement(await getProjects());
+
+const sections = [
+  { key: "projects.products", items: placed.products },
+  { key: "projects.lab", items: placed.lab },
+] as const;
+---
+
+<Base locale={locale} title={ui("projects.title", locale)} path="/projects">
+  <div class="container page">
+    <header class="page-head">
+      <h1 class="page-title">{ui("projects.title", locale)}</h1>
+    </header>
+
+    {
+      sections.map(
+        (s) =>
+          s.items.length > 0 && (
+            <section class="block">
+              <h2 class="section-title" data-reveal>{ui(s.key, locale)}</h2>
+              <div class="grid" data-reveal-group>
+                {s.items.map((p) => (
+                  <ProjectCard
+                    project={p}
+                    locale={locale}
+                    sourceLang={sl}
+                    defaultLocale={defaultLocale}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+      )
+    }
+
+    {
+      placed.archive.length > 0 && (
+        <section class="block">
+          <h2 class="section-title" data-reveal>{ui("projects.archive", locale)}</h2>
+          <ul class="archive-list" role="list">
+            {placed.archive.map((p) => (
+              <li class="archive-item">
+                <a
+                  class="archive-name"
+                  href={localePath(`/projects/${p.id}`, locale, defaultLocale)}
+                >
+                  <span class="arrow" aria-hidden="true">&gt;</span>
+                  {p.name}
+                </a>
+                {t(p.summary, locale, sl) && (
+                  <span class="archive-summary">
+                    — {t(p.summary, locale, sl)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: var(--space-7);
+  }
+  .page-head {
+    margin-bottom: var(--space-7);
+  }
+  .page-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(30px, 5.5vw, 46px);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text);
+    position: relative;
+    padding-bottom: var(--space-3);
+  }
+  .page-title::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: min(200px, 50%);
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent) 0 44px, var(--line-strong) 44px);
+  }
+
+  .block + .block {
+    margin-top: var(--space-8);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-5);
+  }
+
+  /* archive: a mono cockpit directory listing */
+  .archive-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+    border-top: 1px solid var(--line);
+  }
+  .archive-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--line);
+    line-height: 1.5;
+    font-size: var(--text-sm);
+  }
+  .archive-name {
+    font-family: var(--font-mono);
+    color: var(--text);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .archive-name .arrow {
+    color: var(--accent);
+    margin-right: 0.4em;
+  }
+  .archive-name:hover,
+  .archive-name:focus-visible {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .archive-summary {
+    color: var(--text-faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>

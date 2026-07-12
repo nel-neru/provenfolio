@@ -1,0 +1,335 @@
+---
+/**
+ * The case-study page — the monograph's centre spread. A tl;dr colophon
+ * header (display name with the clay full stop, middot metaline, italic
+ * standfirst, receipt chips, link buttons), then the templated case study,
+ * evidence-linked highlights, the turning-point timeline in the book's rail
+ * voice, density-gated metrics viz (never an empty box: when no viz
+ * qualifies the honest chip row renders instead), architecture plate, and
+ * screenshots. The whole article is a .folio so every .section-title — those
+ * inside CaseStudy included — numbers as one continuous chapter run.
+ * Structure/logic mirror the midnight ProjectPage; only the dress changes.
+ */
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import MetricChips from "../../../components/MetricChips.astro";
+import EvidenceLink from "../../../components/EvidenceLink.astro";
+import CaseStudy from "../../../components/CaseStudy.astro";
+import Screenshots from "../../../components/Screenshots.astro";
+import Timeline from "../../../components/viz/Timeline.astro";
+import ContributionHeatmap from "../../../components/viz/ContributionHeatmap.astro";
+import VelocitySparkline from "../../../components/viz/VelocitySparkline.astro";
+import LanguageBars from "../../../components/viz/LanguageBars.astro";
+import { t, ui } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  showHeatmap,
+  showVelocity,
+  showLanguages,
+} from "../../../lib/data.js";
+import type { ProjectData } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  project: ProjectData;
+}
+
+const { locale, project } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+
+const gh = project.sources.find((s) => s.type === "github");
+const isPrivate = project.sources.some((s) => s.visibility === "private");
+const repoUrl = gh && gh.visibility === "public" ? gh.repoUrl : undefined;
+
+// Primary calls-to-action first: demo / store / video, then everything else.
+const LINK_PRIORITY = ["demo", "store", "video"];
+const linkRank = (k: string) => {
+  const i = LINK_PRIORITY.indexOf(k);
+  return i === -1 ? 99 : i;
+};
+const links = [...project.links].sort((a, b) => linkRank(a.kind) - linkRank(b.kind));
+
+const heat = showHeatmap(project);
+const vel = showVelocity(project);
+const langs = showLanguages(project);
+const anyViz = heat || vel || langs;
+
+const summary = t(project.summary, locale, sl);
+---
+
+<Base
+  locale={locale}
+  title={project.name}
+  description={summary}
+  path={`/projects/${project.id}`}
+  ogImage={`/og/${project.id}.png`}
+>
+  <article class="container page folio">
+    <header class="tldr">
+      <h1 class="name">
+        {project.name}<span class="fullstop" aria-hidden="true">.</span>
+      </h1>
+      <p class="metaline">
+        <CategoryBadge category={project.category} locale={locale} />
+        {
+          project.role && (
+            <>
+              <span class="dot" aria-hidden="true">&middot;</span>
+              <span title={t(project.role.scope, locale, sl) || undefined}>
+                {ui(`project.role.${project.role.type}`, locale)}
+              </span>
+            </>
+          )
+        }
+      </p>
+      {summary && <p class="stand-first">{summary}</p>}
+      {
+        project.techStack.length > 0 && (
+          <p class="metaline stack-line">
+            <TechStackList techStack={project.techStack} max={3} />
+          </p>
+        )
+      }
+      <MetricChips project={project} locale={locale} />
+      {
+        links.length > 0 && (
+          <div class="links-row">
+            {links.map((l) => (
+              <a
+                class:list={["btn", { primary: LINK_PRIORITY.includes(l.kind) }]}
+                href={l.url}
+                target="_blank"
+                rel="noopener"
+              >
+                {t(l.label, locale, sl) || l.kind}
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </header>
+
+    {isPrivate && <p class="card note">{ui("project.proprietary", locale)}</p>}
+
+    <CaseStudy project={project} locale={locale} sourceLang={sl} />
+
+    {
+      project.highlights.length > 0 && (
+        <section>
+          <h2 class="section-title" data-reveal>{ui("project.highlights", locale)}</h2>
+          <div class="hl-grid" data-reveal-group>
+            {project.highlights.map((h) => (
+              <article class="card hl" data-reveal>
+                <p class="hl-text">{t(h.text, locale, sl)}</p>
+                <p class="receipts">
+                  {h.evidence.map((e) => (
+                    <EvidenceLink
+                      evidence={e}
+                      repoUrl={repoUrl}
+                      isPrivate={isPrivate}
+                      locale={locale}
+                    />
+                  ))}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    {
+      project.timeline.length > 0 && (
+        <section>
+          <h2 class="section-title" data-reveal>{ui("project.timeline", locale)}</h2>
+          <div class="tl-frame">
+            <Timeline
+              timeline={project.timeline}
+              locale={locale}
+              sourceLang={sl}
+              repoUrl={repoUrl}
+              isPrivate={isPrivate}
+            />
+          </div>
+        </section>
+      )
+    }
+
+    {
+      project.metrics && (
+        <section>
+          <h2 class="section-title" data-reveal>{ui("project.metrics", locale)}</h2>
+          <div class="viz-stack">
+            {langs && (
+              <div class="langs-detail">
+                <LanguageBars languages={project.metrics.languages} />
+              </div>
+            )}
+            {vel && (
+              <VelocitySparkline
+                commitsByDay={project.metrics.total.commitsByDay}
+                locale={locale}
+              />
+            )}
+            {heat && (
+              <ContributionHeatmap
+                commitsByDay={project.metrics.total.commitsByDay}
+                locale={locale}
+              />
+            )}
+            {!anyViz && <MetricChips project={project} locale={locale} />}
+          </div>
+        </section>
+      )
+    }
+
+    {
+      project.architectureDiagram && (
+        <section>
+          <h2 class="section-title">{ui("project.architecture", locale)}</h2>
+          <figure class="card diagram">
+            <img
+              src={"/" + project.architectureDiagram}
+              alt={ui("project.architecture", locale)}
+              loading="lazy"
+            />
+          </figure>
+        </section>
+      )
+    }
+
+    {
+      project.screenshots.length > 0 && (
+        <section>
+          <h2 class="section-title">{ui("project.screenshots", locale)}</h2>
+          <Screenshots
+            screenshots={project.screenshots}
+            locale={locale}
+            sourceLang={sl}
+          />
+        </section>
+      )
+    }
+  </article>
+</Base>
+
+<style>
+  .page {
+    margin-top: clamp(2.5rem, 6vh, 4rem);
+    display: grid;
+    gap: var(--sec-gap);
+    padding-bottom: 2rem;
+  }
+  .tldr {
+    display: grid;
+    gap: 1.15rem;
+    justify-items: start;
+  }
+  .name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-size: var(--fs-title);
+    font-weight: 400;
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .tldr :global(.stand-first) {
+    margin: 0;
+  }
+  .stack-line {
+    margin: 0;
+  }
+  .links-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+  }
+  /* Link buttons in the small-caps wayfinding voice — manilla receipt tabs. */
+  .btn {
+    display: inline-block;
+    font-family: var(--font-sans);
+    font-size: var(--fs-caps);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--bg-overlay);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 0.42rem 0.95rem;
+    text-decoration: none;
+    transition:
+      border-color 0.2s ease,
+      color 0.2s ease,
+      background-color 0.2s ease;
+  }
+  .btn:hover {
+    text-decoration: none;
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--bg-raised);
+  }
+  .btn.primary {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn.primary:hover {
+    background: var(--accent-soft);
+  }
+
+  .note {
+    margin: 0;
+    padding: 0.85rem 1.1rem;
+    color: var(--text-dim);
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.98rem;
+  }
+
+  /* Highlights: manilla plates, serif claim, receipt row. */
+  .hl-grid {
+    display: grid;
+    gap: 1rem;
+  }
+  .hl {
+    padding: 1.2rem 1.35rem;
+  }
+  .hl-text {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--fs-prose);
+    line-height: 1.7;
+  }
+  .hl-text:lang(ja) {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+  .receipts {
+    margin: 0.9rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.7rem;
+  }
+
+  .viz-stack {
+    display: grid;
+    gap: 2rem;
+  }
+
+  /* Architecture plate. */
+  .diagram {
+    margin: 0;
+    padding: 1rem;
+  }
+  .diagram img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+</style>

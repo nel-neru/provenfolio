@@ -1,0 +1,559 @@
+---
+/**
+ * Home — the poster surface (energy 5/5). Deep hero well with scanlines,
+ * drifting glow blobs and the chrome-gradient name; a mono system readout
+ * strip fed by real aggregates; a decorative skills marquee (duplicated
+ * statically in the Skills section); featured projects as window-framed
+ * "specimen" cards built around the shared ProjectCard; pixel cursor trail.
+ * Everything localizes through {locale}; all numbers are script-produced.
+ */
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  getAggregates,
+  getFeatured,
+  computeSkills,
+} from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const aggregates = await getAggregates();
+const featured = await getFeatured();
+
+const skills = computeSkills(aggregates, profile);
+const skillNames = skills.map((s) => s.name);
+/* The marquee run is duplicated so the loop is seamless; it is aria-hidden
+   and the same skills render statically in the Skills section below. */
+const tickerRun =
+  skillNames.length > 0 ? `${skillNames.join(" · ")} · ${skillNames.join(" · ")} · ` : "";
+
+const fmt = (n: number) => {
+  try {
+    return n.toLocaleString(locale);
+  } catch {
+    return String(n);
+  }
+};
+
+/* Fixed quantized rotation set — never random. */
+const ROT = ["r2", "r3", "r1", "r4"];
+---
+
+<Base locale={locale} path="/" ogImage="/og/profile.png" surface="showcase">
+  <section class="hero scanlines">
+    <span class="glow glow-a" aria-hidden="true"></span>
+    <span class="glow glow-b" aria-hidden="true"></span>
+    <div class="hero-inner container">
+      <div class="hero-stickers">
+        <span class="sticker mag r2">{t(profile.role, locale, sl)}</span>
+      </div>
+      <h1 class="hero-name chrome chrome-sheen">{profile.name}</h1>
+      <p class="hero-line">
+        {t(profile.role, locale, sl)}
+        <span class="sep" aria-hidden="true">•</span>
+        {t(profile.tagline, locale, sl)}
+      </p>
+      <div class="hero-socials">
+        {
+          profile.socials.map((s, i) => (
+            <a
+              class:list={["sticker", { mag: i % 2 === 1 }, ROT[(i + 1) % ROT.length]]}
+              href={s.url}
+              rel="me noopener"
+            >
+              {s.platform}
+              <span aria-hidden="true">↗</span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  {
+    aggregates && (
+      <div class="readout">
+        <div class="readout-inner">
+          <span aria-hidden="true">
+            <i class="led" />
+            STATUS: <b class="live">LIVE</b>
+          </span>
+          <span>
+            {ui("projects.title", locale)}: <b>{fmt(aggregates.totals.projects)}</b>
+          </span>
+          <span>
+            {ui("metrics.commits", locale)}: <b>{fmt(aggregates.totals.commits)}</b>
+          </span>
+          <span>
+            {ui("metrics.activeDays", locale)}: <b>{fmt(aggregates.totals.activeDays)}</b>
+          </span>
+          <span>
+            {ui("home.skills", locale)}: <b>{fmt(aggregates.techFrequency.length)}</b>
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  {
+    tickerRun && (
+      <div class="ticker" aria-hidden="true">
+        <div class="ticker-track">
+          <span class="ticker-run">{tickerRun}</span>
+          <span class="ticker-run dup">{tickerRun}</span>
+        </div>
+      </div>
+    )
+  }
+
+  {
+    featured.length > 0 && (
+      <section class="container block" id="work">
+        <h2 class="section-title" data-reveal>{ui("home.featured", locale)}</h2>
+        <div class="grid" data-reveal-group>
+          {featured.map((p, i) => (
+            <article class="specimen">
+              <div class="spec-head">
+                <span class="spec-no" aria-hidden="true">
+                  #{String(i + 1).padStart(2, "0")}
+                </span>
+              </div>
+              <figure class="window">
+                <figcaption class="win-bar">
+                  <span class="win-dots" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span class="win-label">{p.id}</span>
+                </figcaption>
+                <div class:list={["shot", i % 2 === 0 ? "art-a" : "art-b"]}>
+                  <span class="art-glyph" aria-hidden="true">
+                    {p.name.charAt(0)}
+                  </span>
+                </div>
+              </figure>
+              <ProjectCard
+                project={p}
+                locale={locale}
+                sourceLang={sl}
+                defaultLocale={defaultLocale}
+              />
+            </article>
+          ))}
+        </div>
+        <p class="view-all">
+          <a href={localePath("/projects", locale, defaultLocale)}>
+            {ui("home.viewAll", locale)} →
+          </a>
+        </p>
+      </section>
+    )
+  }
+
+  {
+    skills.length > 0 && (
+      <section class="container block" id="skills">
+        <h2 class="section-title" data-reveal>{ui("home.skills", locale)}</h2>
+        <div class="skill-chips" data-reveal-group>
+          {skills.map((s, i) => (
+            <span
+              class:list={["sticker", "skill", ROT[i % ROT.length]]}
+              title={s.projectIds.join(", ") || undefined}
+              data-reveal
+            >
+              {s.name}
+            </span>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <script is:inline>
+    /* Pixel cursor trail — decorative only; skipped for reduced-motion and
+       touch, and only ever spawns on the showcase surface. */
+    (function () {
+      if (window.__acidTrail) return;
+      window.__acidTrail = true;
+      var rm = window.matchMedia("(prefers-reduced-motion: reduce)");
+      var coarse = window.matchMedia("(pointer: coarse)");
+      var colors = ["#c8ff00", "#ff4fd8", "#8800ff"];
+      var last = 0;
+      document.addEventListener("pointermove", function (e) {
+        if (rm.matches || coarse.matches) return;
+        if (document.body.dataset.surface !== "showcase") return;
+        var now = performance.now();
+        if (now - last < 45) return;
+        last = now;
+        var bit = document.createElement("span");
+        bit.className = "trail-bit";
+        bit.setAttribute("aria-hidden", "true");
+        bit.style.left = e.clientX + "px";
+        bit.style.top = e.clientY + "px";
+        bit.style.background = colors[(Math.random() * colors.length) | 0];
+        document.body.appendChild(bit);
+        setTimeout(function () {
+          bit.remove();
+        }, 520);
+      });
+    })();
+  </script>
+</Base>
+
+<style>
+  /* ---- hero well ---- */
+  .hero {
+    position: relative;
+    padding: clamp(var(--space-8), 10vh, var(--space-10)) 0 var(--space-8);
+    text-align: center;
+    overflow: hidden;
+    background: var(--bg-deep);
+  }
+  .glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .glow-a {
+    width: 60vw;
+    height: 60vw;
+    left: -18vw;
+    top: -22vw;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--decor-violet) 14%, transparent),
+      transparent 70%
+    );
+    animation: drift 14s ease-in-out infinite alternate;
+  }
+  .glow-b {
+    width: 52vw;
+    height: 52vw;
+    right: -16vw;
+    bottom: -20vw;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--show-accent2, var(--accent)) 11%, transparent),
+      transparent 70%
+    );
+    animation: drift 18s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes drift {
+    to {
+      transform: translate(4vw, 3vw);
+    }
+  }
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+  }
+  .hero-stickers {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-bottom: clamp(var(--space-6), 5vh, var(--space-7));
+  }
+  .hero-name {
+    margin: 0;
+    font-size: var(--show-hero-scale, var(--text-display));
+    font-weight: 900;
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    overflow-wrap: break-word;
+  }
+  .hero-line {
+    margin: var(--space-6) 0 0;
+    font-size: var(--text-lg);
+    color: var(--text-dim);
+  }
+  .sep {
+    color: var(--text-faint);
+    margin-inline: 0.55em;
+  }
+  .hero-socials {
+    margin-top: var(--space-6);
+    display: flex;
+    justify-content: center;
+    gap: var(--space-4) var(--space-5);
+    flex-wrap: wrap;
+  }
+
+  /* ---- marquee ticker ---- */
+  .ticker {
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-deep);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .ticker-track {
+    display: flex;
+    width: max-content;
+    animation: tick 26s linear infinite;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.22em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    padding-block: 10px;
+  }
+  .ticker:hover .ticker-track,
+  .ticker:focus-within .ticker-track {
+    animation-play-state: paused;
+  }
+  .ticker-run {
+    white-space: nowrap;
+    padding-right: 0.5em;
+  }
+  @keyframes tick {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .block {
+    padding-top: clamp(var(--space-8), 9vh, var(--space-9));
+  }
+
+  /* ---- specimen cards (window-framed shells around ProjectCard) ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-6);
+  }
+  .specimen {
+    position: relative;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--space-5);
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .specimen:hover,
+  .specimen:focus-within {
+    border-color: var(--line-strong);
+    transform: translate(-3px, -3px);
+    box-shadow: var(--shadow-md);
+  }
+  .specimen:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .spec-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+  }
+  .spec-no {
+    font-family: var(--font-mono);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--text-faint);
+    letter-spacing: 0.02em;
+    transition: color 0.15s ease;
+  }
+  .specimen:hover .spec-no,
+  .specimen:focus-within .spec-no {
+    color: var(--show-accent2, var(--accent));
+  }
+  .specimen .window {
+    margin-bottom: var(--space-4);
+  }
+  .shot {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  .art-glyph {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(72px, 9vw, 120px);
+    color: transparent;
+    -webkit-text-stroke: 2px color-mix(in srgb, var(--accent) 55%, transparent);
+    user-select: none;
+  }
+  .art-a {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        transparent 0 30px,
+        color-mix(in srgb, var(--decor-violet) 22%, transparent) 30px 34px
+      ),
+      linear-gradient(135deg, var(--bg-overlay), #2a1a4d 45%, #0f2a66 100%);
+  }
+  .art-b {
+    background:
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--decor-blue) 34%, transparent) 0 7px,
+        transparent 7px 14px
+      ),
+      linear-gradient(0deg, color-mix(in srgb, var(--decor-blue) 30%, transparent), transparent 65%),
+      linear-gradient(160deg, var(--bg-overlay), #0d1f45 100%);
+  }
+  .art-b .art-glyph {
+    -webkit-text-stroke-color: color-mix(in srgb, var(--show-accent2, var(--accent)) 55%, transparent);
+  }
+  /* dither veil: dissolves in printer-steps on hover/focus */
+  .shot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--bg-deep) 1.15px, transparent 1.35px);
+    background-size: 5px 5px;
+    opacity: 0.82;
+  }
+  .specimen:hover .shot::after,
+  .specimen:focus-within .shot::after {
+    animation: dither-out 0.45s steps(6) forwards;
+  }
+  @keyframes dither-out {
+    to {
+      opacity: 0.12;
+    }
+  }
+
+  /* the shared ProjectCard becomes the specimen's text block; its own
+     frame comes off and its link stretches over the whole specimen */
+  .specimen :global(a.project-card),
+  .specimen :global(a.project-card:hover),
+  .specimen :global(a.project-card:focus-visible) {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    transform: none;
+    box-shadow: none;
+    transition: none;
+    position: static;
+  }
+  .specimen :global(a.project-card)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+  }
+  .specimen :global(a.project-card:focus-visible) {
+    outline: none;
+  }
+  .specimen :global(.project-card .name) {
+    font-size: var(--text-xl);
+  }
+  /* keep the category sticker above the stretched link, quantized tilt */
+  .specimen :global(.category-badge) {
+    position: relative;
+    z-index: 1;
+  }
+  .specimen:nth-child(odd) :global(.category-badge) {
+    rotate: 3deg;
+  }
+  .specimen:nth-child(even) :global(.category-badge) {
+    rotate: -3deg;
+    box-shadow: 2px 2px 0 var(--show-accent2, var(--accent));
+  }
+
+  .view-all {
+    margin: var(--space-6) 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .view-all a:hover {
+    animation: actionable-blink 0.5s steps(1) infinite;
+    text-decoration: none;
+  }
+  .view-all a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* ---- skills: sticker cloud with zone-accent shadows ---- */
+  .skill-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .skill-chips .skill {
+    box-shadow: 2px 2px 0 var(--decor-blue);
+  }
+  .skill-chips .skill:nth-child(even) {
+    box-shadow: 2px 2px 0 var(--viz-2);
+  }
+
+  /* ---- responsive ---- */
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 520px) {
+    .hero-stickers {
+      gap: var(--space-3);
+    }
+    .readout-inner {
+      justify-content: flex-start;
+    }
+  }
+
+  /* ---- designed static state ---- */
+  @media (prefers-reduced-motion: reduce) {
+    .glow-a,
+    .glow-b {
+      animation: none;
+    }
+    .ticker {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    .ticker-track {
+      animation: none;
+      flex-wrap: wrap;
+      white-space: normal;
+      width: auto;
+      padding-inline: var(--space-5);
+    }
+    .ticker-run {
+      white-space: normal;
+    }
+    .ticker-run.dup {
+      display: none;
+    }
+    .specimen {
+      transition: none;
+    }
+    .specimen:hover,
+    .specimen:focus-within {
+      transform: none;
+      box-shadow: none;
+      border-color: var(--show-accent2, var(--accent));
+    }
+    .specimen:hover .shot::after,
+    .specimen:focus-within .shot::after {
+      animation: none;
+      opacity: 0.3;
+    }
+    .view-all a:hover {
+      animation: none;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+</style>

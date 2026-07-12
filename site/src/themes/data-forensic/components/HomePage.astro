@@ -1,0 +1,309 @@
+---
+/**
+ * Home — the dossier cover (showcase surface). A forensic masthead (mono
+ * display name with the one blinking caret, locale-code meta line, an
+ * oscilloscope trace that draws once), a full-bleed stats ledger built
+ * from real aggregate totals, the featured-project index, and the
+ * evidence-linked skills ledger. No fabricated numbers: the language-share
+ * "signals" only exist per-project (LanguageBars), so home shows totals.
+ * Everything localizes through {locale}; nothing is hardcoded.
+ */
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, getFeatured, computeSkills } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const aggregates = await getAggregates();
+const featured = await getFeatured();
+const totals = aggregates?.totals;
+const locales = [sl, ...profile.targetLangs];
+
+const skills = computeSkills(aggregates, profile);
+// Group chips by category, language/framework first.
+const CAT_ORDER = ["language", "framework", "runtime", "infra", "tool"];
+const catRank = (c: string) => {
+  const i = CAT_ORDER.indexOf(c);
+  return i === -1 ? 99 : i;
+};
+const categories = [...new Set(skills.map((s) => s.category))].sort(
+  (a, b) => catRank(a) - catRank(b) || a.localeCompare(b)
+);
+const skillGroups = categories.map((cat) => ({
+  cat,
+  items: skills.filter((s) => s.category === cat),
+}));
+
+// Stats ledger cells — only script-produced totals (commits, activeDays,
+// projects are always present; span is optional).
+const num = (n: number) => n.toLocaleString(locale);
+const hasSpan = totals?.spanDays !== undefined;
+
+// Decorative oscilloscope geometry (not owner data).
+const TRACE =
+  "0,52 90,52 120,50 160,54 220,52 260,20 300,66 340,36 380,52 470,52 520,48 560,55 640,52 700,14 740,68 790,42 830,52 940,52 990,49 1030,54 1090,52 1140,30 1170,58 1200,52";
+---
+
+<Base locale={locale} path="/" ogImage="/og/profile.png" surface="showcase">
+  <header class="hero">
+    <pre class="ascii-bg" aria-hidden="true">┌───────────┐
+│ ·   ·   · │
+│   ·   ·   │
+└─────┬─────┘
+      │
+   ·──┴──·</pre>
+
+    <div class="container">
+      <p class="boot" role="presentation">
+        <span class="prompt" aria-hidden="true">$</span>
+        <span class="blk" aria-hidden="true">▉</span>
+      </p>
+
+      <div class="hero-main">
+        <h1 class="hero-name">{profile.name}<span class="caret" aria-hidden="true">▉</span></h1>
+
+        <p class="meta-line">
+          {
+            locales.map((l, i) => (
+              <span class="loc">
+                {i > 0 && <span class="sep" aria-hidden="true">·</span>}
+                {l.toUpperCase()}
+              </span>
+            ))
+          }
+        </p>
+
+        <p class="hero-line">
+          {t(profile.role, locale, sl)}
+          <span class="sep" aria-hidden="true">•</span>
+          {t(profile.tagline, locale, sl)}
+        </p>
+
+        {
+          profile.socials.length > 0 && (
+            <div class="hero-socials">
+              {profile.socials.map((s) => (
+                <a class="btn" href={s.url} rel="me noopener">
+                  {s.platform}
+                  <span class="ext" aria-hidden="true"> ↗</span>
+                </a>
+              ))}
+            </div>
+          )
+        }
+      </div>
+    </div>
+
+    <svg class="trace" viewBox="0 0 1200 72" preserveAspectRatio="none" aria-hidden="true">
+      <polyline pathLength="1" points={TRACE}></polyline>
+    </svg>
+  </header>
+
+  {
+    totals && (
+      <section class="stats">
+        <div class="container">
+          <div class:list={["stats-grid", { "cols-3": !hasSpan }]}>
+            <div class="stat">
+              <div class="v">{num(totals.commits)}</div>
+              <div class="k label">{ui("metrics.commits", locale)}</div>
+            </div>
+            <div class="stat">
+              <div class="v">
+                {num(totals.activeDays)} <small>{ui("metrics.days", locale)}</small>
+              </div>
+              <div class="k label">{ui("metrics.activeDays", locale)}</div>
+            </div>
+            <div class="stat">
+              <div class="v">{num(totals.projects)}</div>
+              <div class="k label">{ui("nav.projects", locale)}</div>
+            </div>
+            {hasSpan && (
+              <div class="stat">
+                <div class="v">
+                  {num(totals.spanDays!)} <small>{ui("metrics.days", locale)}</small>
+                </div>
+                <div class="k label">{ui("metrics.span", locale)}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <main class="container" id="home-main">
+    {
+      featured.length > 0 && (
+        <section class="block">
+          <h2 class="section-title">{ui("home.featured", locale)}</h2>
+          <div class="grid">
+            {featured.map((p) => (
+              <ProjectCard
+                project={p}
+                locale={locale}
+                sourceLang={sl}
+                defaultLocale={defaultLocale}
+              />
+            ))}
+          </div>
+          <p class="view-all">
+            <a href={localePath("/projects", locale, defaultLocale)}>
+              {ui("home.viewAll", locale)} <span class="arr" aria-hidden="true">→</span>
+            </a>
+          </p>
+        </section>
+      )
+    }
+
+    {
+      skills.length > 0 && (
+        <section class="block">
+          <h2 class="section-title">{ui("home.skills", locale)}</h2>
+          <div class="skill-groups">
+            {skillGroups.map((g) => (
+              <div class="skill-row">
+                {g.items.map((s) => (
+                  <span class="chip" title={s.projectIds.join(", ")}>
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </main>
+</Base>
+
+<style>
+  .hero {
+    position: relative;
+    padding: var(--space-8, 72px) 0 calc(var(--space-8, 72px) + var(--space-5, 24px));
+    overflow: hidden;
+  }
+  /* Single hairline ASCII zone, decorative only. */
+  .ascii-bg {
+    position: absolute;
+    top: var(--space-5, 24px);
+    right: 0;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 12px);
+    line-height: 1.5;
+    color: var(--line);
+    user-select: none;
+    pointer-events: none;
+  }
+  .boot {
+    margin: 0 0 var(--space-6, 32px);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 14px);
+    line-height: 1.75;
+    color: var(--text-dim);
+  }
+  .boot .prompt {
+    color: var(--accent);
+  }
+  .boot .blk {
+    color: var(--text-faint);
+  }
+  .hero-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .hero .meta-line {
+    margin: var(--space-4, 16px) 0 0;
+  }
+  .hero .meta-line .loc {
+    letter-spacing: 0.08em;
+  }
+  .hero .meta-line .sep {
+    color: var(--text-faint);
+    padding-inline: var(--space-3, 12px);
+  }
+  .hero-line {
+    margin: var(--space-5, 24px) 0 0;
+    font-size: var(--text-lg, 22px);
+    line-height: 1.55;
+    color: var(--text);
+    max-width: 52ch;
+  }
+  .hero-line .sep {
+    color: var(--text-faint);
+    margin-inline: 0.55em;
+  }
+  .hero-socials {
+    margin-top: var(--space-6, 32px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3, 12px);
+  }
+
+  /* Home shows a 3-up ledger when the optional span total is absent. */
+  .cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  #home-main {
+    display: block;
+  }
+  .block {
+    margin-top: var(--space-7, 48px);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-4, 16px);
+  }
+  .view-all {
+    margin: var(--space-4, 16px) 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 14px);
+    letter-spacing: 0.06em;
+  }
+  .view-all .arr {
+    display: inline-block;
+    transition: transform 0.15s;
+  }
+  .view-all a:hover .arr {
+    transform: translateX(4px);
+  }
+  .skill-groups {
+    display: grid;
+    gap: var(--space-3, 12px);
+  }
+  .skill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px);
+  }
+
+  @media (max-width: 640px) {
+    .cols-3 {
+      grid-template-columns: 1fr 1fr;
+    }
+    .ascii-bg {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .view-all a:hover .arr {
+      transform: none;
+    }
+  }
+</style>

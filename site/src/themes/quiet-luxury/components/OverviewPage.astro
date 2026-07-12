@@ -1,0 +1,256 @@
+---
+/**
+ * Overview — the recruiter one-pager, i.e. the tear-out sheet. Compact
+ * colophon header, then one tight hairline entry per non-archive project:
+ * name, category, summary, honest metric chips, top-3 stack, demo link. No
+ * hero, no viz; print-friendly on purpose (ink-safe rules below). Structure/
+ * logic mirror the midnight OverviewPage; only the dress changes.
+ */
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import MetricChips from "../../../components/MetricChips.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getProjects } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const projects = (await getProjects()).filter((p) => p.placement !== "archive");
+
+const DEMO_KINDS = ["demo", "store", "video"];
+const demoLink = (p: (typeof projects)[number]) =>
+  p.links.find((l) => DEMO_KINDS.includes(l.kind));
+
+const role = t(profile.role, locale, sl);
+const tagline = t(profile.tagline, locale, sl);
+---
+
+<Base locale={locale} title={ui("overview.title", locale)} path="/overview">
+  <div class="container page">
+    <p class="note">{ui("overview.note", locale)}</p>
+
+    <header class="head">
+      <h1 class="name">
+        {profile.name}<span class="fullstop" aria-hidden="true">.</span>
+      </h1>
+      <p class="line">
+        {role}
+        {role && tagline && <span class="sep" aria-hidden="true">&middot;</span>}
+        {tagline}
+      </p>
+      <p class="socials">
+        {
+          profile.socials.map((s) => (
+            <a class="caplink ext" href={s.url} rel="me noopener">
+              {s.platform}
+            </a>
+          ))
+        }
+        {profile.email && <a class="caplink" href={`mailto:${profile.email}`}>{profile.email}</a>}
+      </p>
+    </header>
+
+    <div class="stack">
+      {
+        projects.map((p) => {
+          const demo = demoLink(p);
+          return (
+            <article class="ov-card">
+              <div class="row">
+                <h2 class="p-name">
+                  <a href={localePath(`/projects/${p.id}`, locale, defaultLocale)}>
+                    {p.name}
+                  </a>
+                </h2>
+                <CategoryBadge category={p.category} locale={locale} />
+                {demo && (
+                  <a class="demo" href={demo.url} target="_blank" rel="noopener">
+                    {t(demo.label, locale, sl) || demo.kind}
+                  </a>
+                )}
+              </div>
+              {t(p.summary, locale, sl) && (
+                <p class="p-summary">{t(p.summary, locale, sl)}</p>
+              )}
+              <div class="row meta">
+                <MetricChips project={p} locale={locale} />
+                <TechStackList techStack={p.techStack} max={3} />
+              </div>
+            </article>
+          );
+        })
+      }
+    </div>
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: clamp(2rem, 5vh, 3rem);
+    padding-bottom: 2rem;
+  }
+  .note {
+    margin: 0 0 1.5rem;
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono-sm);
+    color: var(--text-faint);
+  }
+  .head {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-size: clamp(1.6rem, 3.2vw, 2rem);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .line {
+    margin: 0.4rem 0 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: var(--fs-lede);
+    color: var(--text-dim);
+  }
+  .line:lang(ja) {
+    font-family: var(--font-sans);
+    font-style: normal;
+  }
+  .sep {
+    margin-inline: 0.5em;
+    color: var(--line-strong);
+    font-style: normal;
+  }
+  .socials {
+    margin: 0.9rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.4rem;
+  }
+
+  /* Entries: hairline-ruled register rows, not heavy boxes — dense and
+     ink-thrifty for the printed sheet. */
+  .stack {
+    display: grid;
+    border-bottom: 1px solid var(--line);
+  }
+  .ov-card {
+    display: grid;
+    gap: 0.55rem;
+    padding: 1.1rem 0;
+    border-top: 1px solid var(--line);
+  }
+  .row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+  }
+  .p-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-size: 1.2rem;
+    font-weight: 450;
+    letter-spacing: -0.005em;
+  }
+  .p-name a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .p-name a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.22em;
+    text-decoration-color: currentColor;
+  }
+  .demo {
+    margin-left: auto;
+    font-family: var(--font-sans);
+    font-size: var(--fs-caps);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 0.24rem 0.7rem;
+    text-decoration: none;
+  }
+  .demo:hover {
+    text-decoration: none;
+    background: var(--accent-soft);
+  }
+  .p-summary {
+    margin: 0;
+    font-family: var(--font-serif);
+    color: var(--text-dim);
+    font-size: 1rem;
+    line-height: 1.65;
+    max-width: 70ch;
+  }
+  .p-summary:lang(ja) {
+    font-family: var(--font-sans);
+  }
+  .meta {
+    row-gap: 0.4rem;
+  }
+
+  /* Print: dense, ink-friendly. The page is already a book chapter; here it
+     becomes a clean sheet — near-black ink on white, hairline rules, no
+     paper grain (global print rules drop the body texture and hide chrome). */
+  @media print {
+    .page {
+      margin-top: 0;
+    }
+    .note {
+      display: none;
+    }
+    .name,
+    .p-name a {
+      color: #111;
+    }
+    .line,
+    .p-summary {
+      color: #333;
+    }
+    .head {
+      border-color: #999;
+    }
+    .stack {
+      border-color: #ccc;
+    }
+    .ov-card {
+      break-inside: avoid;
+      border-color: #ccc;
+    }
+    .socials a {
+      color: #111;
+    }
+    .demo {
+      color: #111;
+      border-color: #999;
+    }
+    a {
+      text-decoration: none;
+    }
+    .ov-card :global(.chip) {
+      background: #fff;
+      color: #333;
+      border-color: #ccc;
+    }
+    .ov-card :global(.chip b) {
+      color: #111;
+    }
+  }
+</style>

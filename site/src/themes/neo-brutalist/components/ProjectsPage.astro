@@ -1,0 +1,199 @@
+---
+/**
+ * Projects index — placement sections in fixed order (products → lab →
+ * archive), restyled into the neo-brutalist system: a printed masthead with a
+ * mono index count, each placement opening on a 3px ink rule with a mono NN
+ * counter (.section-head), products and lab rendering the full shared
+ * ProjectCard grid (framed with the theme's card + hard-shadow jump), and the
+ * archive as a bordered ledger of name + one summary line. Empty placements
+ * render nothing. Structure and data access mirror midnight/ProjectsPage;
+ * only the presentation changes.
+ */
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getProjects, byPlacement } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const placed = byPlacement(await getProjects());
+const total =
+  placed.products.length + placed.lab.length + placed.archive.length;
+
+const pad3 = (n: number) => String(n).padStart(3, "0");
+
+const sections = [
+  { key: "projects.products", items: placed.products },
+  { key: "projects.lab", items: placed.lab },
+] as const;
+---
+
+<Base locale={locale} title={ui("projects.title", locale)} path="/projects">
+  <div class="container page">
+    <header class="page-head">
+      <h1 class="page-title">{ui("projects.title", locale)}</h1>
+      <span class="stamp" aria-hidden="true">{pad3(total)}</span>
+    </header>
+
+    {
+      sections.map(
+        (s) =>
+          s.items.length > 0 && (
+            <section class="block">
+              <div class="section-head quiet">
+                <h2 class="section-title">{ui(s.key, locale)}</h2>
+                <span class="section-count">{pad3(s.items.length)}</span>
+              </div>
+              <div class="grid">
+                {s.items.map((p) => (
+                  <ProjectCard
+                    project={p}
+                    locale={locale}
+                    sourceLang={sl}
+                    defaultLocale={defaultLocale}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+      )
+    }
+
+    {
+      placed.archive.length > 0 && (
+        <section class="block">
+          <div class="section-head quiet">
+            <h2 class="section-title">{ui("projects.archive", locale)}</h2>
+            <span class="section-count">{pad3(placed.archive.length)}</span>
+          </div>
+          <ul class="archive-list" role="list">
+            {placed.archive.map((p) => {
+              const summary = t(p.summary, locale, sl);
+              return (
+                <li class="archive-item">
+                  <a
+                    class="archive-name"
+                    href={localePath(
+                      `/projects/${p.id}`,
+                      locale,
+                      defaultLocale
+                    )}
+                  >
+                    {p.name}
+                  </a>
+                  {summary && <span class="archive-summary">{summary}</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: var(--space-8, 64px);
+    margin-bottom: var(--space-8, 64px);
+  }
+  .page-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3, 12px) var(--space-5, 24px);
+    border-bottom: 3px solid var(--line);
+    padding-bottom: var(--space-4, 16px);
+    margin-bottom: var(--space-8, 64px);
+  }
+  .page-title {
+    margin: 0;
+    font-size: var(--nb-fs-d3);
+    line-height: 1;
+  }
+  .block + .block {
+    margin-top: var(--space-8, 64px);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+    gap: var(--space-5, 24px);
+  }
+
+  /* Frame the shared ProjectCard in the theme's hard-shadow card voice and
+     let it jump onto its shadow on hover/focus. Only box-shadow is touched;
+     the shared component keeps its own transform + border behaviour. */
+  .grid :global(a.project-card) {
+    box-shadow: var(--shadow-md, none);
+    transition:
+      transform 0.12s ease-out,
+      box-shadow 0.12s ease-out;
+  }
+  .grid :global(a.project-card:hover),
+  .grid :global(a.project-card:focus-within) {
+    box-shadow: 6px 6px 0 var(--line);
+  }
+
+  /* Archive: a bordered ledger, one project per ruled row. */
+  .archive-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 3px solid var(--line);
+    background: var(--bg-raised);
+  }
+  .archive-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2, 8px) var(--space-4, 16px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    border-bottom: 1px solid var(--line);
+  }
+  .archive-item:last-child {
+    border-bottom: none;
+  }
+  .archive-name {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 13px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    color: var(--text);
+    flex: none;
+  }
+  .archive-summary {
+    color: var(--text-dim);
+    font-size: var(--text-sm, 13px);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @media (max-width: 720px) {
+    .page {
+      margin-top: var(--space-7, 48px);
+    }
+    .grid :global(a.project-card:hover),
+    .grid :global(a.project-card:focus-within) {
+      box-shadow: 5px 5px 0 var(--line);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .grid :global(a.project-card:hover),
+    .grid :global(a.project-card:focus-within) {
+      box-shadow: var(--shadow-md, none), inset 0 0 0 1px var(--line);
+    }
+  }
+</style>

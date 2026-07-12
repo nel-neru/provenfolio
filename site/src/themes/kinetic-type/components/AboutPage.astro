@@ -1,0 +1,189 @@
+---
+/**
+ * About — midnight's identity/bio/skills/contact structure in the poster
+ * voice: display-scale name with accent full stop, square avatar, mono
+ * kicker role line, pill skill chips, ruled mono contact list.
+ */
+import Base from "../../../layouts/Base.astro";
+import { t, ui } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, computeSkills } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const aggregates = await getAggregates();
+
+const skills = computeSkills(aggregates, profile);
+const CAT_ORDER = ["language", "framework", "runtime", "infra", "tool"];
+const catRank = (c: string) => {
+  const i = CAT_ORDER.indexOf(c);
+  return i === -1 ? 99 : i;
+};
+const categories = [...new Set(skills.map((s) => s.category))].sort(
+  (a, b) => catRank(a) - catRank(b) || a.localeCompare(b)
+);
+const skillGroups = categories.map((cat) => ({
+  cat,
+  items: skills.filter((s) => s.category === cat),
+}));
+---
+
+<Base locale={locale} title={ui("about.title", locale)} path="/about">
+  <div class="container page">
+    <header class="who">
+      {
+        profile.avatar && (
+          <img
+            class="avatar"
+            src={"/" + profile.avatar}
+            alt={profile.name}
+            width="96"
+            height="96"
+          />
+        )
+      }
+      <div>
+        <h1 class="name">{profile.name}</h1>
+        <p class="role kicker mono">{t(profile.role, locale, sl)}</p>
+      </div>
+    </header>
+
+    <p class="bio">{t(profile.bio, locale, sl)}</p>
+
+    {
+      skills.length > 0 && (
+        <section class="block">
+          <div class="sec-head">
+            <h2>{ui("about.skills", locale)}</h2>
+            <span class="mono idx">{String(skills.length).padStart(2, "0")}</span>
+          </div>
+          <div class="skill-groups">
+            {skillGroups.map((g) => (
+              <div class="skill-row">
+                {g.items.map((s) => (
+                  <span class="chip" title={s.projectIds.join(", ") || undefined}>
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <section class="block">
+      <ul class="contact" role="list">
+        {
+          profile.socials.map((s) => (
+            <li>
+              <a href={s.url} rel="me noopener">
+                {s.platform}<span class="arrow" aria-hidden="true"> ↗</span>
+              </a>
+              {s.handle && <span class="handle mono">@{s.handle}</span>}
+            </li>
+          ))
+        }
+        {
+          profile.email && (
+            <li>
+              <a href={`mailto:${profile.email}`}>{profile.email}</a>
+            </li>
+          )
+        }
+      </ul>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .page {
+    padding-top: 7rem;
+    max-width: min(var(--max-w), 52rem);
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .avatar {
+    border: 1px solid var(--line);
+    border-radius: 0;
+    flex: none;
+  }
+  .name {
+    margin: 0;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: clamp(2.4rem, 7vw, 5rem);
+    font-weight: 900;
+    font-variation-settings: "wght" 900, "wdth" 102;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+  }
+  .name::after {
+    content: ".";
+    color: var(--accent);
+  }
+  .role {
+    margin: 0.6rem 0 0;
+  }
+  .bio {
+    margin: var(--space-4, 2rem) 0 0;
+    white-space: pre-line;
+    line-height: 1.9;
+  }
+  .block {
+    margin-top: var(--sect);
+  }
+  .sec-head {
+    margin-bottom: 1.4rem;
+  }
+  .skill-groups {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .skill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .contact {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+  .contact li {
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .contact li:first-child {
+    border-top: 1px solid var(--line);
+  }
+  .contact a {
+    font-weight: 700;
+    color: var(--text);
+  }
+  .contact a:hover,
+  .contact a:focus-visible {
+    color: var(--accent-lift);
+    text-decoration: none;
+  }
+  .contact .arrow {
+    color: var(--accent);
+  }
+  .handle {
+    margin-left: 0.7rem;
+    color: var(--text-faint);
+  }
+  @media (max-width: 720px) {
+    .page {
+      padding-top: 6rem;
+    }
+  }
+</style>

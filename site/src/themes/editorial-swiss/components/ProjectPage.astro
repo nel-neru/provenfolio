@@ -1,0 +1,395 @@
+---
+/**
+ * The case-study page — set as a report cover sheet + numbered sections.
+ * A breadcrumb ribbon, then the cover (Swiss-red rule, display title, a
+ * definition table of stack + metrics built from the shared primitives,
+ * and the call-to-action buttons), the templated case study, footnote-style
+ * evidence-linked highlights, the turning-point timeline, density-gated
+ * metric figures (never an empty box: the honest chip row renders when no
+ * viz qualifies), architecture, and screenshots. Data logic and every
+ * conditional match the default theme exactly.
+ */
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import MetricChips from "../../../components/MetricChips.astro";
+import EvidenceLink from "../../../components/EvidenceLink.astro";
+import CaseStudy from "../../../components/CaseStudy.astro";
+import Screenshots from "../../../components/Screenshots.astro";
+import Timeline from "../../../components/viz/Timeline.astro";
+import ContributionHeatmap from "../../../components/viz/ContributionHeatmap.astro";
+import VelocitySparkline from "../../../components/viz/VelocitySparkline.astro";
+import LanguageBars from "../../../components/viz/LanguageBars.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  showHeatmap,
+  showVelocity,
+  showLanguages,
+} from "../../../lib/data.js";
+import type { ProjectData } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  project: ProjectData;
+}
+
+const { locale, project } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+
+const gh = project.sources.find((s) => s.type === "github");
+const isPrivate = project.sources.some((s) => s.visibility === "private");
+const repoUrl = gh && gh.visibility === "public" ? gh.repoUrl : undefined;
+
+// Primary calls-to-action first: demo / store / video, then everything else.
+const LINK_PRIORITY = ["demo", "store", "video"];
+const linkRank = (k: string) => {
+  const i = LINK_PRIORITY.indexOf(k);
+  return i === -1 ? 99 : i;
+};
+const links = [...project.links].sort((a, b) => linkRank(a.kind) - linkRank(b.kind));
+
+const heat = showHeatmap(project);
+const vel = showVelocity(project);
+const langs = showLanguages(project);
+const anyViz = heat || vel || langs;
+
+const summary = t(project.summary, locale, sl);
+---
+
+<Base
+  locale={locale}
+  title={project.name}
+  description={summary}
+  path={`/projects/${project.id}`}
+  ogImage={`/og/${project.id}.png`}
+>
+  <article class="container page">
+    <nav class="crumb micro" aria-label="breadcrumb">
+      <a class="u-sweep" href={localePath("/projects", locale, defaultLocale)}>
+        {ui("projects.title", locale)}
+      </a>
+      <span class="sep" aria-hidden="true">/</span>
+      <span class="here" aria-current="page">{project.name}</span>
+    </nav>
+
+    <header class="cover">
+      <div class="cover-rule" aria-hidden="true"></div>
+      <div class="kicker">
+        <CategoryBadge category={project.category} locale={locale} />
+        {
+          project.role && (
+            <span class="chip" title={t(project.role.scope, locale, sl) || undefined}>
+              {ui(`project.role.${project.role.type}`, locale)}
+            </span>
+          )
+        }
+      </div>
+      <h1 class="cover-name">{project.name}</h1>
+      {summary && <p class="summary measure">{summary}</p>}
+
+      {
+        (project.techStack.length > 0 || project.metrics) && (
+          <dl class="meta-dl">
+            {project.techStack.length > 0 && (
+              <div class="meta-row">
+                <dt class="micro">{ui("project.stack", locale)}</dt>
+                <dd>
+                  <TechStackList techStack={project.techStack} />
+                </dd>
+              </div>
+            )}
+            {project.metrics && (
+              <div class="meta-row">
+                <dt class="micro">{ui("project.metrics", locale)}</dt>
+                <dd>
+                  <MetricChips project={project} locale={locale} />
+                </dd>
+              </div>
+            )}
+          </dl>
+        )
+      }
+
+      {
+        links.length > 0 && (
+          <div class="cta-row">
+            {links.map((l) => (
+              <a
+                class:list={["btn", { primary: LINK_PRIORITY.includes(l.kind) }]}
+                href={l.url}
+                target="_blank"
+                rel="noopener"
+              >
+                {t(l.label, locale, sl) || l.kind}
+                <span aria-hidden="true">&#8202;&#8599;</span>
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </header>
+
+    {isPrivate && <p class="card note">{ui("project.proprietary", locale)}</p>}
+
+    <CaseStudy project={project} locale={locale} sourceLang={sl} />
+
+    {
+      project.highlights.length > 0 && (
+        <section class="section">
+          <h2 class="section-title">{ui("project.highlights", locale)}</h2>
+          <div class="fns">
+            {project.highlights.map((h, i) => (
+              <div class="fn">
+                <span class="mark">[{i + 1}]</span>
+                <div>
+                  <p class="txt">{t(h.text, locale, sl)}</p>
+                  {h.evidence.length > 0 && (
+                    <p class="receipt">
+                      <span class="lab micro">{ui("project.evidence", locale)}</span>
+                      {h.evidence.map((e) => (
+                        <EvidenceLink
+                          evidence={e}
+                          repoUrl={repoUrl}
+                          isPrivate={isPrivate}
+                          locale={locale}
+                        />
+                      ))}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    {
+      project.timeline.length > 0 && (
+        <section class="section">
+          <h2 class="section-title">{ui("project.timeline", locale)}</h2>
+          <Timeline
+            timeline={project.timeline}
+            locale={locale}
+            sourceLang={sl}
+            repoUrl={repoUrl}
+            isPrivate={isPrivate}
+          />
+        </section>
+      )
+    }
+
+    {
+      project.metrics && (
+        <section class="section">
+          <h2 class="section-title">{ui("project.metrics", locale)}</h2>
+          <div class="viz-stack">
+            {langs && (
+              <figure class="fig">
+                <LanguageBars languages={project.metrics.languages} />
+                <figcaption class="figcap micro">{ui("metrics.languages", locale)}</figcaption>
+              </figure>
+            )}
+            {vel && (
+              <figure class="fig">
+                <VelocitySparkline
+                  commitsByDay={project.metrics.total.commitsByDay}
+                  locale={locale}
+                />
+                <figcaption class="figcap micro">{ui("metrics.velocity", locale)}</figcaption>
+              </figure>
+            )}
+            {heat && (
+              <figure class="fig">
+                <ContributionHeatmap
+                  commitsByDay={project.metrics.total.commitsByDay}
+                  locale={locale}
+                />
+                <figcaption class="figcap micro">{ui("metrics.activity", locale)}</figcaption>
+              </figure>
+            )}
+            {!anyViz && <MetricChips project={project} locale={locale} />}
+          </div>
+        </section>
+      )
+    }
+
+    {
+      project.architectureDiagram && (
+        <section class="section">
+          <h2 class="section-title">{ui("project.architecture", locale)}</h2>
+          <figure class="card diagram">
+            <img
+              src={"/" + project.architectureDiagram}
+              alt={ui("project.architecture", locale)}
+              loading="lazy"
+            />
+          </figure>
+        </section>
+      )
+    }
+
+    {
+      project.screenshots.length > 0 && (
+        <section class="section">
+          <h2 class="section-title">{ui("project.screenshots", locale)}</h2>
+          <Screenshots screenshots={project.screenshots} locale={locale} sourceLang={sl} />
+        </section>
+      )
+    }
+  </article>
+</Base>
+
+<style>
+  .page {
+    padding-bottom: 24px;
+  }
+
+  /* breadcrumb ribbon under the shared chrome */
+  .crumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-block: 14px;
+    border-bottom: 1px solid var(--line);
+    color: var(--text-dim);
+  }
+  .crumb a {
+    color: var(--text-dim);
+  }
+  .crumb a:hover,
+  .crumb a:focus-visible {
+    color: var(--text);
+  }
+  .crumb .sep {
+    color: var(--text-faint);
+  }
+  .crumb .here {
+    color: var(--text);
+  }
+
+  /* cover sheet */
+  .cover {
+    padding-block: clamp(40px, 6vw, 72px) 0;
+  }
+  .cover-rule {
+    width: 56px;
+    height: 4px;
+    background: var(--show-accent2, var(--accent));
+    margin-bottom: clamp(20px, 3vw, 32px);
+  }
+  .kicker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    margin-bottom: 22px;
+  }
+  .cover-name {
+    margin: 0 0 20px;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: var(--fs-cover);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+  }
+  .summary {
+    margin: 0;
+    font-size: var(--fs-lead);
+    line-height: 1.5;
+  }
+
+  /* metadata definition table — the report's cover sheet */
+  .meta-dl {
+    margin: clamp(32px, 5vw, 52px) 0 0;
+    border-top: 1px solid var(--text);
+  }
+  .meta-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 16px 28px;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .meta-row dt {
+    color: var(--text-dim);
+  }
+  .meta-row dd {
+    margin: 0;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: clamp(28px, 4vw, 40px);
+  }
+
+  .note {
+    margin: 0;
+    padding: 14px 18px;
+    color: var(--text-dim);
+    font-size: var(--fs-note);
+  }
+
+  /* highlights as footnote entries with mono receipts */
+  .fns {
+    margin-top: 4px;
+  }
+  .fn {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 6px 18px;
+    padding: clamp(20px, 3vw, 28px) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .fn:first-child {
+    border-top: 1px solid var(--line);
+  }
+  .fn .mark {
+    font: 700 var(--fs-meta) / 1.8 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+  }
+  .fn .txt {
+    margin: 0;
+    max-width: 62ch;
+  }
+  .fn .receipt {
+    margin: 12px 0 0;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+  }
+  .fn .receipt .lab {
+    color: var(--text-faint);
+  }
+
+  .viz-stack {
+    display: grid;
+    gap: clamp(28px, 4vw, 44px);
+  }
+  .diagram {
+    margin: 0;
+    padding: 16px;
+  }
+  .diagram img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  @media (max-width: 760px) {
+    .meta-row {
+      grid-template-columns: 110px 1fr;
+    }
+    .fn {
+      grid-template-columns: 36px minmax(0, 1fr);
+    }
+  }
+</style>
