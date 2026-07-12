@@ -10,7 +10,9 @@
 // ---------------------------------------------------------------------------
 const state = {
   data: null, // { profile, manifest, projects, intakes }
+  theme: null, // { activeTheme, visitorThemes, installed }
   selectedId: null,
+  view: null, // null (project view) | "design"
   tab: "overview",
 };
 
@@ -98,6 +100,9 @@ async function refreshState() {
   state.data = await api("/api/state");
   setStudioLang(state.data.profile.sourceLang);
   hydrateStaticText();
+  // Site-design config is best-effort: a failure here must not break the
+  // rest of the cockpit, it just hides the design panel's data.
+  try { state.theme = await api("/api/theme"); } catch { state.theme = null; }
   render();
 }
 
@@ -123,7 +128,14 @@ function selectProject(id) {
 }
 
 function applyHash() {
+  if (location.hash === "#/design") {
+    state.view = "design";
+    state.selectedId = null;
+    render();
+    return;
+  }
   const m = location.hash.match(/^#\/project\/([^/]+)$/);
+  state.view = null;
   state.selectedId = m ? decodeURIComponent(m[1]) : null;
   state.tab = "overview";
   render();
@@ -190,6 +202,16 @@ function render() {
 
   const empty = document.getElementById("main-empty");
   const content = document.getElementById("main-content");
+
+  if (state.view === "design") {
+    empty.hidden = true;
+    content.hidden = false;
+    document.getElementById("main-title").textContent = t("designTitle");
+    document.getElementById("tabs").replaceChildren();
+    document.getElementById("tab-body").replaceChildren(designPanel());
+    return;
+  }
+
   const project = state.selectedId ? currentProject() : null;
   const intake = state.selectedId ? currentIntake() : null;
 
@@ -684,6 +706,82 @@ function mediaTab(project) {
   return frag;
 }
 
+// ---------------- Site design ----------------
+function designPanel() {
+  const frag = document.createDocumentFragment();
+  const cfg = state.theme;
+  if (!cfg || !cfg.installed) {
+    frag.append(el("div", { class: "card" }, [
+      el("p", { style: "color:var(--text-dim)" }, t("stateFetchFailed", { message: "/api/theme" })),
+    ]));
+    return frag;
+  }
+  const installed = cfg.installed;
+  const visitorSet = new Set(cfg.visitorThemes === "all" ? installed : (cfg.visitorThemes || []));
+
+  // Default design (activeTheme) — served at the root URLs.
+  const select = el(
+    "select",
+    {},
+    installed.map((name) =>
+      el("option", { value: name, selected: name === cfg.activeTheme }, name)
+    )
+  );
+  const defaultCard = el("div", { class: "card" }, [
+    el("h3", {}, t("designDefault")),
+    el("p", { style: "color:var(--text-dim);font-size:12px;margin-top:0" }, t("designDefaultHint")),
+    el("div", { class: "field" }, [select]),
+  ]);
+
+  // Visitor switcher (visitorThemes) — which themes visitors can flip between.
+  const checkboxes = installed.map((name) =>
+    el("input", { type: "checkbox", checked: visitorSet.has(name), value: name })
+  );
+  const visitorCard = el("div", { class: "card" }, [
+    el("h3", {}, t("designVisitor")),
+    el("p", { style: "color:var(--text-dim);font-size:12px;margin-top:0" }, t("designVisitorHint")),
+    el(
+      "div",
+      { class: "design-checks" },
+      checkboxes.map((cb, i) =>
+        el("label", { class: "design-check" }, [cb, el("span", {}, installed[i])])
+      )
+    ),
+  ]);
+
+  const saveBtn = el(
+    "button",
+    {
+      class: "accent",
+      onclick: async () => {
+        const checked = checkboxes.filter((cb) => cb.checked).map((cb) => cb.value);
+        const visitorThemes = installed.every((n) => checked.includes(n)) ? "all" : checked;
+        try {
+          state.theme = await api("/api/theme", {
+            method: "PUT",
+            json: { activeTheme: select.value, visitorThemes },
+          });
+          toast(t("designSaved"));
+          render();
+        } catch (e) {
+          toast(t("designSaveFailed", { message: e.message }), true);
+        }
+      },
+    },
+    t("designSave")
+  );
+
+  frag.append(
+    defaultCard,
+    visitorCard,
+    el("div", { class: "card" }, [
+      el("p", { style: "color:var(--text-dim);font-size:12px;margin:0" }, t("designRebuildNote")),
+    ]),
+    el("div", { style: "margin-top:12px" }, [saveBtn])
+  );
+  return frag;
+}
+
 // ---------------------------------------------------------------------------
 // Analyze drawer (SSE)
 // ---------------------------------------------------------------------------
@@ -750,6 +848,10 @@ document.getElementById("btn-add-manual").addEventListener("click", async () => 
     await refreshState();
     selectProject(created.id);
   } catch (e) { toast(t("createFailed", { message: e.message }), true); }
+});
+
+document.getElementById("btn-design").addEventListener("click", () => {
+  location.hash = "#/design";
 });
 
 document.getElementById("btn-analyze").addEventListener("click", runAnalyze);

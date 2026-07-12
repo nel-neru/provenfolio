@@ -10,7 +10,7 @@ import http from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawn, type ChildProcess } from "node:child_process";
 import { z } from "zod";
 
@@ -45,6 +45,8 @@ const PORT = 4600;
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const SCREENSHOTS_DIR = path.join(DATA_DIR, "assets", "screenshots");
 const SITE_FONTS_DIR = path.join(ROOT, "site", "public", "fonts");
+const THEME_CONFIG_FILE = path.join(ROOT, "site", "theme.config.mjs");
+const THEMES_DIR = path.join(ROOT, "site", "src", "themes");
 
 const JSON_BODY_LIMIT = 1 * 1024 * 1024; // 1MB
 const IMAGE_BODY_LIMIT = 10 * 1024 * 1024; // 10MB
@@ -286,6 +288,80 @@ function apiState(): unknown {
     projects,
     intakes,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Site design (theme.config.mjs) — the buyer picks the live theme and the
+// visitor-switcher set from the GUI instead of hand-editing the config.
+// ---------------------------------------------------------------------------
+
+/** Installed themes = directories under site/src/themes/ that ship a manifest.ts. */
+function listInstalledThemes(): string[] {
+  if (!fs.existsSync(THEMES_DIR)) return [];
+  return fs
+    .readdirSync(THEMES_DIR, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && fs.existsSync(path.join(THEMES_DIR, d.name, "manifest.ts")))
+    .map((d) => d.name)
+    .sort();
+}
+
+/** Re-import theme.config.mjs fresh (cache-busted) so edits are reflected live. */
+async function readThemeConfig(): Promise<{ activeTheme: string; visitorThemes: "all" | string[] }> {
+  const url = `${pathToFileURL(THEME_CONFIG_FILE).href}?v=${Date.now()}`;
+  const mod = (await import(url)) as { activeTheme: string; visitorThemes: "all" | string[] };
+  return { activeTheme: mod.activeTheme, visitorThemes: mod.visitorThemes };
+}
+
+/** Rewrite only the two export lines, preserving the file's comment header. */
+function writeThemeConfig(activeTheme: string, visitorThemes: "all" | string[]): void {
+  const src = fs.readFileSync(THEME_CONFIG_FILE, "utf8");
+  const vt = visitorThemes === "all" ? '"all"' : JSON.stringify(visitorThemes);
+  let out = src;
+  if (/export const activeTheme = "[^"]*";/.test(out)) {
+    out = out.replace(/export const activeTheme = "[^"]*";/, `export const activeTheme = "${activeTheme}";`);
+  } else {
+    throw new HttpError(500, "theme.config.mjs: could not find the activeTheme export to update");
+  }
+  if (/export const visitorThemes = [^;]*;/.test(out)) {
+    out = out.replace(/export const visitorThemes = [^;]*;/, `export const visitorThemes = ${vt};`);
+  } else {
+    throw new HttpError(500, "theme.config.mjs: could not find the visitorThemes export to update");
+  }
+  fs.writeFileSync(THEME_CONFIG_FILE, out);
+}
+
+async function apiGetTheme(): Promise<unknown> {
+  const cfg = await readThemeConfig();
+  return { ...cfg, installed: listInstalledThemes() };
+}
+
+const themePatchSchema = z.object({
+  activeTheme: z.string().regex(SLUG_RE).optional(),
+  visitorThemes: z.union([z.literal("all"), z.array(z.string().regex(SLUG_RE))]).optional(),
+});
+
+async function apiPutTheme(body: unknown): Promise<unknown> {
+  const patch = validate(themePatchSchema, body, "theme patch");
+  const installed = listInstalledThemes();
+  const current = await readThemeConfig();
+
+  const activeTheme = patch.activeTheme ?? current.activeTheme;
+  if (!installed.includes(activeTheme)) {
+    throw new HttpError(400, `Unknown theme "${activeTheme}" — installed: ${installed.join(", ")}`);
+  }
+
+  let visitorThemes = patch.visitorThemes ?? current.visitorThemes;
+  if (Array.isArray(visitorThemes)) {
+    const unknown = visitorThemes.filter((t) => !installed.includes(t));
+    if (unknown.length > 0) {
+      throw new HttpError(400, `Unknown theme(s): ${unknown.join(", ")}`);
+    }
+    // Normalize "every installed theme" to "all" so the config stays tidy.
+    if (installed.every((t) => visitorThemes.includes(t))) visitorThemes = "all";
+  }
+
+  writeThemeConfig(activeTheme, visitorThemes);
+  return { activeTheme, visitorThemes, installed };
 }
 
 function apiCreateIntake(body: unknown): unknown {
@@ -584,6 +660,11 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
   if ((m = p.match(/^\/api\/screenshot\/([^/]+)\/alt$/)) && method === "PUT") {
     return sendJson(res, 200, apiPutScreenshotAlt(m[1], await readJsonBody(req)));
+  }
+
+  if (p === "/api/theme") {
+    if (method === "GET") return sendJson(res, 200, await apiGetTheme());
+    if (method === "PUT") return sendJson(res, 200, await apiPutTheme(await readJsonBody(req)));
   }
 
   if (p === "/api/analyze" && method === "POST") {
