@@ -4,12 +4,12 @@
  * per non-archive project: name, category, summary, honest metric chips,
  * top-3 stack, demo link. No hero, no viz; print-friendly on purpose.
  */
-import Base from "../../layouts/Base.astro";
-import CategoryBadge from "../CategoryBadge.astro";
-import TechStackList from "../TechStackList.astro";
-import MetricChips from "../MetricChips.astro";
-import { t, ui, localePath } from "../../lib/i18n.js";
-import { getProfile, getProjects } from "../../lib/data.js";
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import MetricChips from "../../../components/MetricChips.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getProjects } from "../../../lib/data.js";
 
 interface Props {
   locale: string;

@@ -4,12 +4,12 @@
  * takes over), featured project grid, and evidence-linked skills chips.
  * Shared by / and /<lang>/ routes; everything localizes through {locale}.
  */
-import Base from "../../layouts/Base.astro";
-import ProjectCard from "../ProjectCard.astro";
-import HeroCanvas from "../three/HeroCanvas.astro";
-import { t, ui, localePath } from "../../lib/i18n.js";
-import { getProfile, getAggregates, getFeatured, computeSkills } from "../../lib/data.js";
-import type { HeroSeed } from "../../scripts/hero-scene.js";
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import HeroCanvas from "../../../components/three/HeroCanvas.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, getFeatured, computeSkills } from "../../../lib/data.js";
+import type { HeroSeed } from "../../../scripts/hero-scene.js";
 
 interface Props {
   locale: string;
@@ -47,7 +47,7 @@ const heroSeed: HeroSeed = {
 };
 ---
 
-<Base locale={locale} path="/" ogImage="/og/profile.png">
+<Base locale={locale} path="/" ogImage="/og/profile.png" surface="showcase">
   <section id="hero" class="hero">
     <div id="hero-canvas" aria-hidden="true">
       <HeroCanvas seed={heroSeed} />

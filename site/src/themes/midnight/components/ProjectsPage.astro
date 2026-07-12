@@ -4,10 +4,10 @@
  * archive). Products and lab get full cards; archive is a compact list of
  * name + one summary line. Empty placements render nothing.
  */
-import Base from "../../layouts/Base.astro";
-import ProjectCard from "../ProjectCard.astro";
-import { t, ui, localePath } from "../../lib/i18n.js";
-import { getProfile, getProjects, byPlacement } from "../../lib/data.js";
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getProjects, byPlacement } from "../../../lib/data.js";
 
 interface Props {
   locale: string;

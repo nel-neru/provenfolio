@@ -1,6 +1,6 @@
 ---
 /** Default-locale home ("/"). The locale is profile.sourceLang — never hardcoded. */
-import HomePage from "../components/pages/HomePage.astro";
+import HomePage from "@theme/components/HomePage.astro";
 import { getProfile } from "../lib/data.js";
 
 const profile = await getProfile();

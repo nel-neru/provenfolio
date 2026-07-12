@@ -1,65 +1,31 @@
 /**
- * Design tokens — THE buyer customization surface (with src/overrides/).
- * Engine updates never touch this file. Every color/font/radius the site,
- * the 3D hero, and the OG images use comes from here.
+ * Active-theme access for non-Vite consumers (OG exporter, Studio) — both
+ * run under tsx, so this module resolves the theme at import time from
+ * site/theme.config.mjs. Site code must NOT import this file: inside Astro
+ * use the `@theme` alias (e.g. `import { theme } from "@theme/tokens"`),
+ * which the Vite config points at the same active theme directory.
+ *
+ * To change the look, edit your theme under src/themes/ and select it in
+ * theme.config.mjs — never this shim.
  */
-export const theme = {
-  /** Single chromatic accent (links, receipts, data viz emphasis) */
-  accent: "#7c9aff",
-  accentSoft: "#7c9aff33",
+import { activeTheme } from "../theme.config.mjs";
+import { cssVarsFor, fontFacesFor } from "./lib/theme-css.js";
+import type { ThemeTokens } from "./lib/theme-types.js";
 
-  /** Dark cinematic base */
-  bg: "#0b0d12",
-  bgRaised: "#12151d",
-  bgOverlay: "#1a1e28",
-  line: "#262b38",
+const mod = (await import(`./themes/${activeTheme}/tokens.ts`)) as {
+  theme: ThemeTokens;
+};
 
-  text: "#e8eaf0",
-  textDim: "#9aa1b5",
-  textFaint: "#5c6375",
+export const theme: ThemeTokens = mod.theme;
+export type Theme = ThemeTokens;
+export type { ThemeTokens, ThemeWebfont } from "./lib/theme-types.js";
 
-  /** Semantic */
-  ok: "#5dd39e",
-  warn: "#e8c268",
-
-  /** Data-viz ramp (heatmap intensities, language bars) */
-  viz: ["#1d2432", "#2b3a5c", "#3d5590", "#5b78c7", "#7c9aff"],
-
-  fontSans:
-    "'Inter Variable', 'Noto Sans JP', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  fontMono:
-    "'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace",
-
-  radius: "10px",
-  radiusSmall: "6px",
-  maxWidth: "72rem",
-} as const;
-
-export type Theme = typeof theme;
-
-/** Inject tokens as CSS custom properties (used by Base layout). */
+/** Inject tokens as CSS custom properties (Studio /theme.css route). */
 export function themeCssVars(): string {
-  return `
-    --accent: ${theme.accent};
-    --accent-soft: ${theme.accentSoft};
-    --bg: ${theme.bg};
-    --bg-raised: ${theme.bgRaised};
-    --bg-overlay: ${theme.bgOverlay};
-    --line: ${theme.line};
-    --text: ${theme.text};
-    --text-dim: ${theme.textDim};
-    --text-faint: ${theme.textFaint};
-    --ok: ${theme.ok};
-    --warn: ${theme.warn};
-    --viz-0: ${theme.viz[0]};
-    --viz-1: ${theme.viz[1]};
-    --viz-2: ${theme.viz[2]};
-    --viz-3: ${theme.viz[3]};
-    --viz-4: ${theme.viz[4]};
-    --font-sans: ${theme.fontSans};
-    --font-mono: ${theme.fontMono};
-    --radius: ${theme.radius};
-    --radius-sm: ${theme.radiusSmall};
-    --max-w: ${theme.maxWidth};
-  `;
+  return cssVarsFor(theme);
+}
+
+/** Render the active theme's @font-face blocks. */
+export function themeFontFaces(baseUrl = "/fonts"): string {
+  return fontFacesFor(theme, baseUrl);
 }

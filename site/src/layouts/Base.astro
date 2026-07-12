@@ -1,8 +1,22 @@
 ---
+/**
+ * Shared page shell — SEO/hreflang plumbing, a11y skeleton, theme token
+ * injection, and motion boot. The look lives in the active theme package
+ * ("@theme" alias, selected in site/theme.config.mjs): the theme owns the
+ * Header/Footer components, its stylesheet, and every token value.
+ *
+ * `surface` marks the page as the expressive "showcase" surface (home) or
+ * the calm "read" surface (everything else); themes scope wilder rules
+ * under body[data-surface="showcase"].
+ */
 import { ClientRouter } from "astro:transitions";
-import { themeCssVars } from "../theme.js";
-import { t, ui, localePath, languageLabel } from "../lib/i18n.js";
-import { getProfile, getAggregates, showHistoryPage } from "../lib/data.js";
+import { theme } from "@theme/tokens";
+import Header from "@theme/components/Header.astro";
+import Footer from "@theme/components/Footer.astro";
+import "@theme/styles.css";
+import { cssVarsFor, fontFacesFor } from "../lib/theme-css.js";
+import { t, localePath } from "../lib/i18n.js";
+import { getProfile } from "../lib/data.js";
 import "../styles/global.css";
 
 interface Props {
@@ -12,11 +26,11 @@ interface Props {
   /** Path WITHOUT locale prefix, e.g. "/projects/foo" — used for hreflang + switcher */
   path: string;
   ogImage?: string;
+  surface?: "showcase" | "read";
 }
 
-const { locale, title, description, path, ogImage } = Astro.props;
+const { locale, title, description, path, ogImage, surface = "read" } = Astro.props;
 const profile = await getProfile();
-const aggregates = await getAggregates();
 const sl = profile.sourceLang;
 const defaultLocale = sl;
 const locales = [sl, ...profile.targetLangs];
@@ -24,17 +38,10 @@ const locales = [sl, ...profile.targetLangs];
 const pageTitle = title ? `${title} — ${profile.name}` : profile.seo.title;
 const pageDesc = description ?? t(profile.seo.description, locale, sl);
 const lp = (p: string) => localePath(p, locale, defaultLocale);
-const historyVisible = showHistoryPage(aggregates);
-
-const nav = [
-  { href: lp("/projects"), label: ui("nav.projects", locale) },
-  ...(historyVisible ? [{ href: lp("/history"), label: ui("nav.history", locale) }] : []),
-  { href: lp("/about"), label: ui("nav.about", locale) },
-  { href: lp("/overview"), label: ui("nav.overview", locale) },
-];
 
 const site = Astro.site?.href?.replace(/\/$/, "") ?? "";
-const otherLocales = locales.filter((l) => l !== locale);
+const fontFaces = fontFacesFor(theme);
+const fontPreloads = (theme.webfonts ?? []).filter((f) => f.preload);
 ---
 
 <!doctype html>
@@ -61,7 +68,19 @@ const otherLocales = locales.filter((l) => l !== locale);
     <meta property="og:url" content={`${site}${lp(path)}`} />
     {ogImage && <meta property="og:image" content={`${site}${ogImage}`} />}
     {ogImage && <meta name="twitter:card" content="summary_large_image" />}
-    <style set:html={`:root{${themeCssVars()}}`}></style>
+    {
+      fontPreloads.map((f) => (
+        <link
+          rel="preload"
+          href={`/fonts/${f.file}`}
+          as="font"
+          type="font/woff2"
+          crossorigin
+        />
+      ))
+    }
+    <style set:html={`:root{${cssVarsFor(theme)}}`}></style>
+    {fontFaces && <style set:html={fontFaces}></style>}
     <ClientRouter />
     <script>
       // Site-wide scroll polish (Lenis + GSAP reveals). No-ops itself under
@@ -81,103 +100,12 @@ const otherLocales = locales.filter((l) => l !== locale);
       )
     }
   </head>
-  <body>
+  <body data-surface={surface}>
     <a href="#main" class="skip-link">Skip to content</a>
-    <header class="site-header">
-      <div class="container header-inner">
-        <a href={lp("/")} class="brand">{profile.name}</a>
-        <nav aria-label="primary">
-          {nav.map((item) => <a href={item.href}>{item.label}</a>)}
-          {
-            otherLocales.map((l) => (
-              <a
-                href={localePath(path, l, defaultLocale)}
-                class="lang-switch"
-                aria-label={`Switch language to ${languageLabel(l)}`}
-              >
-                {languageLabel(l)}
-              </a>
-            ))
-          }
-        </nav>
-      </div>
-    </header>
+    <Header locale={locale} path={path} />
     <main id="main">
       <slot />
     </main>
-    <footer class="site-footer">
-      <div class="container footer-inner">
-        <span>© {new Date().getFullYear()} {profile.name}</span>
-        <span class="footer-socials">
-          {profile.socials.map((s) => <a href={s.url} rel="me noopener">{s.platform}</a>)}
-        </span>
-        <span class="footer-note">{ui("footer.builtWith", locale)}</span>
-      </div>
-    </footer>
+    <Footer locale={locale} />
   </body>
 </html>
-
-<style>
-  .site-header {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: color-mix(in srgb, var(--bg) 82%, transparent);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--line);
-  }
-  .header-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 3.5rem;
-  }
-  .brand {
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.02em;
-  }
-  .brand:hover {
-    text-decoration: none;
-    color: var(--accent);
-  }
-  nav {
-    display: flex;
-    gap: 1.25rem;
-    align-items: center;
-  }
-  nav a {
-    color: var(--text-dim);
-    font-size: 0.92rem;
-  }
-  nav a:hover {
-    color: var(--text);
-    text-decoration: none;
-  }
-  .lang-switch {
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 0.1rem 0.7rem;
-    font-size: 0.8rem;
-  }
-  .site-footer {
-    border-top: 1px solid var(--line);
-    margin-top: 6rem;
-    padding: 2rem 0;
-    color: var(--text-faint);
-    font-size: 0.85rem;
-  }
-  .footer-inner {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    justify-content: space-between;
-  }
-  .footer-socials {
-    display: flex;
-    gap: 1rem;
-  }
-  .footer-note {
-    opacity: 0.7;
-  }
-</style>

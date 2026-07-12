@@ -1,0 +1,47 @@
+---
+/**
+ * Midnight footer — copyright, social links, and the generator note.
+ */
+import { ui } from "../../../lib/i18n.js";
+import { getProfile } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+---
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <span>© {new Date().getFullYear()} {profile.name}</span>
+    <span class="footer-socials">
+      {profile.socials.map((s) => <a href={s.url} rel="me noopener">{s.platform}</a>)}
+    </span>
+    <span class="footer-note">{ui("footer.builtWith", locale)}</span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--line);
+    margin-top: 6rem;
+    padding: 2rem 0;
+    color: var(--text-faint);
+    font-size: 0.85rem;
+  }
+  .footer-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+  }
+  .footer-socials {
+    display: flex;
+    gap: 1rem;
+  }
+  .footer-note {
+    opacity: 0.7;
+  }
+</style>

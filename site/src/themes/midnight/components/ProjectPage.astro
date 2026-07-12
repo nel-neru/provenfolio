@@ -5,25 +5,25 @@
  * density-gated metrics viz (never an empty box: when no viz qualifies the
  * honest chip row renders instead), architecture diagram, and screenshots.
  */
-import Base from "../../layouts/Base.astro";
-import CategoryBadge from "../CategoryBadge.astro";
-import TechStackList from "../TechStackList.astro";
-import MetricChips from "../MetricChips.astro";
-import EvidenceLink from "../EvidenceLink.astro";
-import CaseStudy from "../CaseStudy.astro";
-import Screenshots from "../Screenshots.astro";
-import Timeline from "../viz/Timeline.astro";
-import ContributionHeatmap from "../viz/ContributionHeatmap.astro";
-import VelocitySparkline from "../viz/VelocitySparkline.astro";
-import LanguageBars from "../viz/LanguageBars.astro";
-import { t, ui } from "../../lib/i18n.js";
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import MetricChips from "../../../components/MetricChips.astro";
+import EvidenceLink from "../../../components/EvidenceLink.astro";
+import CaseStudy from "../../../components/CaseStudy.astro";
+import Screenshots from "../../../components/Screenshots.astro";
+import Timeline from "../../../components/viz/Timeline.astro";
+import ContributionHeatmap from "../../../components/viz/ContributionHeatmap.astro";
+import VelocitySparkline from "../../../components/viz/VelocitySparkline.astro";
+import LanguageBars from "../../../components/viz/LanguageBars.astro";
+import { t, ui } from "../../../lib/i18n.js";
 import {
   getProfile,
   showHeatmap,
   showVelocity,
   showLanguages,
-} from "../../lib/data.js";
-import type { ProjectData } from "../../lib/data.js";
+} from "../../../lib/data.js";
+import type { ProjectData } from "../../../lib/data.js";
 
 interface Props {
   locale: string;

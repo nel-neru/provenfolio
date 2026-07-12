@@ -6,15 +6,15 @@
  * The full view is a pure-CSS horizontal span chart over projectSpans,
  * yearly activity chips, and a tech-adoption note from techFrequency.
  */
-import Base from "../../layouts/Base.astro";
-import ProjectCard from "../ProjectCard.astro";
-import { ui, localePath } from "../../lib/i18n.js";
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { ui, localePath } from "../../../lib/i18n.js";
 import {
   getProfile,
   getAggregates,
   getProjects,
   showHistoryPage,
-} from "../../lib/data.js";
+} from "../../../lib/data.js";
 
 interface Props {
   locale: string;
