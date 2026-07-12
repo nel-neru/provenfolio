@@ -38,11 +38,13 @@ import {
 import { readJson, writeJson, listJsonFiles } from "../engine/scripts/lib/io.js";
 import { computeCompleteness } from "../engine/scripts/lib/completeness.js";
 import { parseRepoUrl, slugify } from "../engine/sources/github/lib.js";
+import { themeCssVars, themeFontFaces } from "../site/src/theme.js";
 
 const HOST = "127.0.0.1";
 const PORT = 4600;
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const SCREENSHOTS_DIR = path.join(DATA_DIR, "assets", "screenshots");
+const SITE_FONTS_DIR = path.join(ROOT, "site", "public", "fonts");
 
 const JSON_BODY_LIMIT = 1 * 1024 * 1024; // 1MB
 const IMAGE_BODY_LIMIT = 10 * 1024 * 1024; // 10MB
@@ -62,6 +64,7 @@ const MIME: Record<string, string> = {
   ".gif": "image/gif",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
+  ".woff2": "font/woff2",
 };
 
 // ---------------------------------------------------------------------------
@@ -601,6 +604,18 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   } catch {
     throw new HttpError(400, "Bad path encoding");
   }
+  // Design tokens + font faces from the active site theme (single source of truth).
+  if (decoded === "/theme.css" && method === "GET") {
+    const body = Buffer.from(`:root{\n${themeCssVars()}\n}\n${themeFontFaces("/fonts")}\n`);
+    res.writeHead(200, { "content-type": "text/css; charset=utf-8", "content-length": body.length });
+    res.end(body);
+    return;
+  }
+
+  if (decoded.startsWith("/fonts/") && method === "GET") {
+    return serveFileWithin(SITE_FONTS_DIR, decoded.slice("/fonts/".length), res);
+  }
+
   if (decoded.startsWith("/assets/") && method === "GET") {
     return serveFileWithin(path.join(DATA_DIR, "assets"), decoded.slice("/assets/".length), res);
   }
