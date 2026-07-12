@@ -78,7 +78,7 @@
 - JavaScript なしでも名前・ナビゲーション・コンテンツは表示されます。WebGL やキネティック演出はサーバーレンダリング済み HTML の上の強化にすぎません。
 - `/overview` は印刷セーフを維持します(「この PDF を採用担当者に渡す」ページです)。
 
-**Studio はデザインサーフェスではありません。** コックピットは `/theme.css` ルートを通じてアクティブテーマのパレットとフォントを継承しますが、そこまでです: レイアウトは固定・実用本位で、編集速度に最適化されています。`/design` の提案が Studio をモックすることはなく、`apply` が `studio/public/**` を再スタイルすることもありません — オーナー自身の道具では、使いやすさがアートディレクションに勝ちます。
+**Studio はデザインサーフェスではありません。** コックピットは `/theme.css` ルートを通じてアクティブテーマのパレットとフォントを継承しますが、そこまでです: レイアウトは固定・実用本位で、編集速度に最適化されています。`/design` の提案が Studio をモックすることはなく、`apply` が `studio/public/**` を再スタイルすることもありません — オーナー自身の道具では、使いやすさがアートディレクションに勝ちます。ただし Studio では、オーナーがデザインを**選ぶ**ことはできます: 「Site design」パネルが `theme.config.mjs` を読み書きし(`GET`/`PUT /api/theme`)、設定ファイルを手編集せずに `activeTheme` と `visitorThemes` を設定できます。変更は次回のビルド/公開で反映されます。
 
 ## デザイン変更のガードレール
 
@@ -122,4 +122,4 @@ npm run build
 - Webフォントは `site/public/fonts/` の**セルフホスト** woff2 ファイルで、テーマごとに `tokens.webfonts`(family、file、weight、style、任意で preload/unicodeRange)で宣言します。`fontFacesFor()` がデフォルト `font-display: swap` で `@font-face` ブロックを描画します。
 - **数 MB 級の CJK フォントを同梱しないこと。** CJK テキストはシステムスタックに任せます(`fontSans` に JP フォールバックを列挙)。デザインが本当にカスタム CJK 書体を必要とする場合は、先にサブセット化してください — レシピへのポインタは [CUSTOMIZING.md](CUSTOMIZING.md) にあります。
 
-<!-- i18n:source=engine/docs/DESIGN.md sha256=e3837bca28f9f280c77e17f941fd423d559850e82c8ecfc3fffd59910301c863 -->
+<!-- i18n:source=engine/docs/DESIGN.md sha256=cd91545b1b020d779d2f599929e6f7e8e15968e7001113159d99a1ee72458f97 -->

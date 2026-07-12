@@ -110,6 +110,10 @@ input:focus, select:focus, textarea:focus {
 textarea { resize: vertical; min-height: 96px; line-height: 1.6; }
 input[type="checkbox"] { width: auto; }
 
+/* Site-design panel */
+.design-checks { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.design-check { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
 /* ---------- Main panel ---------- */
 #main { flex: 1; overflow-y: auto; }
 #main-empty { padding: 48px; color: var(--text-dim); }

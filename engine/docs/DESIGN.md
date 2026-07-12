@@ -78,7 +78,7 @@ Hard degrade rules, regardless of surface:
 - No JavaScript still shows name, navigation, and content. WebGL and kinetic effects are enhancements over server-rendered HTML.
 - `/overview` stays print-safe (it is the "hand this PDF to a recruiter" page).
 
-**Studio is not a design surface.** The cockpit inherits the active theme's palette and fonts through its `/theme.css` route, and stops there: its layout is fixed, utilitarian, and optimized for editing speed. `/design` proposals never mock it and `apply` never restyles `studio/public/**` — usability beats art direction in the owner's own tooling.
+**Studio is not a design surface.** The cockpit inherits the active theme's palette and fonts through its `/theme.css` route, and stops there: its layout is fixed, utilitarian, and optimized for editing speed. `/design` proposals never mock it and `apply` never restyles `studio/public/**` — usability beats art direction in the owner's own tooling. Studio *does* let the owner **pick** the design, though: its "Site design" panel reads/writes `theme.config.mjs` (`GET`/`PUT /api/theme`) to set `activeTheme` and the `visitorThemes` set without hand-editing the config; changes take effect on the next build/publish.
 
 ## Design-change guardrails
 

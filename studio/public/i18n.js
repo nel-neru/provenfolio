@@ -136,6 +136,21 @@ const STUDIO_I18N = {
     promptDisplayName: "Project display name:",
     manualIntakeCreated: "Manual intake created: {id}",
     stateFetchFailed: "Failed to fetch state: {message}",
+
+    // site design (theme.config.mjs control)
+    btnDesign: "Site design",
+    designTitle: "Site design",
+    designDefault: "Default design",
+    designDefaultHint:
+      "The theme served at your site's main URLs — the first thing visitors and search engines see.",
+    designVisitor: "Visitor switcher",
+    designVisitorHint:
+      "Which themes visitors can flip between on the live site. The default design is always available.",
+    designSave: "Save design",
+    designSaved: "Design saved. Rebuild or /publish to update the live site.",
+    designRebuildNote:
+      "Changes take effect after the next build/publish. Restart Studio to update its own colors.",
+    designSaveFailed: "Save failed: {message}",
   },
 
   ja: {
@@ -268,6 +283,21 @@ const STUDIO_I18N = {
     promptDisplayName: "プロジェクトの表示名:",
     manualIntakeCreated: "手動インテークを作成しました: {id}",
     stateFetchFailed: "状態の取得に失敗: {message}",
+
+    // site design (theme.config.mjs control)
+    btnDesign: "サイトのデザイン",
+    designTitle: "サイトのデザイン",
+    designDefault: "既定のデザイン",
+    designDefaultHint:
+      "サイトのメインURLで提供されるテーマ — 訪問者と検索エンジンが最初に目にするデザインです。",
+    designVisitor: "訪問者スイッチャー",
+    designVisitorHint:
+      "公開サイト上で訪問者が切り替えられるテーマ。既定のデザインは常に選べます。",
+    designSave: "デザインを保存",
+    designSaved: "デザインを保存しました。反映にはリビルドまたは /publish が必要です。",
+    designRebuildNote:
+      "変更は次回のビルド/公開で反映されます。Studio 自身の配色は再起動で更新されます。",
+    designSaveFailed: "保存に失敗: {message}",
   },
 };
 
