@@ -1,0 +1,97 @@
+---
+/**
+ * Midnight header — sticky translucent bar with brand, primary nav, and
+ * the language switcher. Theme-owned: other themes may restructure the
+ * navigation entirely.
+ */
+import { ui, localePath, languageLabel } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, showHistoryPage } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  /** Path WITHOUT locale prefix, e.g. "/projects/foo" — for the switcher. */
+  path: string;
+}
+
+const { locale, path } = Astro.props;
+const profile = await getProfile();
+const aggregates = await getAggregates();
+const defaultLocale = profile.sourceLang;
+const locales = [profile.sourceLang, ...profile.targetLangs];
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+const historyVisible = showHistoryPage(aggregates);
+
+const nav = [
+  { href: lp("/projects"), label: ui("nav.projects", locale) },
+  ...(historyVisible ? [{ href: lp("/history"), label: ui("nav.history", locale) }] : []),
+  { href: lp("/about"), label: ui("nav.about", locale) },
+  { href: lp("/overview"), label: ui("nav.overview", locale) },
+];
+
+const otherLocales = locales.filter((l) => l !== locale);
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href={lp("/")} class="brand">{profile.name}</a>
+    <nav aria-label="primary">
+      {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+      {
+        otherLocales.map((l) => (
+          <a
+            href={localePath(path, l, defaultLocale)}
+            class="lang-switch"
+            aria-label={`Switch language to ${languageLabel(l)}`}
+          >
+            {languageLabel(l)}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 3.5rem;
+  }
+  .brand {
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .brand:hover {
+    text-decoration: none;
+    color: var(--accent);
+  }
+  nav {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+  }
+  nav a {
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+  nav a:hover {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .lang-switch {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.1rem 0.7rem;
+    font-size: 0.8rem;
+  }
+</style>

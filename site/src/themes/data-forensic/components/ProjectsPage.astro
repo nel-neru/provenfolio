@@ -1,0 +1,125 @@
+---
+/**
+ * Projects index — placement sections in fixed order (products → lab →
+ * archive). Products and lab get full cards; archive is a compact ledger of
+ * name + one summary line. Empty placements render nothing. Data logic is
+ * identical to every theme; only the look (mono ledger rows) differs.
+ */
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getProjects, byPlacement } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const placed = byPlacement(await getProjects());
+
+const sections = [
+  { key: "projects.products", items: placed.products },
+  { key: "projects.lab", items: placed.lab },
+] as const;
+---
+
+<Base locale={locale} title={ui("projects.title", locale)} path="/projects">
+  <div class="container page">
+    <h1 class="page-title">{ui("projects.title", locale)}</h1>
+
+    {
+      sections.map(
+        (s) =>
+          s.items.length > 0 && (
+            <section class="block">
+              <h2 class="section-title">{ui(s.key, locale)}</h2>
+              <div class="grid">
+                {s.items.map((p) => (
+                  <ProjectCard
+                    project={p}
+                    locale={locale}
+                    sourceLang={sl}
+                    defaultLocale={defaultLocale}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+      )
+    }
+
+    {
+      placed.archive.length > 0 && (
+        <section class="block">
+          <h2 class="section-title">{ui("projects.archive", locale)}</h2>
+          <ul class="archive-list" role="list">
+            {placed.archive.map((p) => (
+              <li class="archive-item">
+                <a href={localePath(`/projects/${p.id}`, locale, defaultLocale)}>
+                  {p.name}
+                </a>
+                {t(p.summary, locale, sl) && (
+                  <span class="archive-summary">— {t(p.summary, locale, sl)}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: var(--space-7, 48px);
+  }
+  .page-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 var(--space-6, 32px);
+  }
+  .block + .block {
+    margin-top: var(--space-7, 48px);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-4, 16px);
+  }
+  /* Archive: a hairline-ruled ledger — mono handle, prose summary. */
+  .archive-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+  }
+  .archive-item {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--space-3, 12px);
+    padding: var(--space-3, 12px) var(--space-2, 8px);
+    border-bottom: 1px solid var(--line);
+    line-height: 1.6;
+  }
+  .archive-item a {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .archive-item a:hover {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .archive-summary {
+    color: var(--text-dim);
+    font-size: var(--text-sm, 14px);
+  }
+</style>

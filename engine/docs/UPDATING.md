@@ -27,8 +27,12 @@ npm run validate && npm run build           # green = done
 
 | You edited | Merge result |
 |---|---|
-| only `data/`, `site/src/theme.ts`, `site/src/overrides/` | clean merge, always — structurally guaranteed for `data/` (upstream contains zero `data/` paths) |
-| engine files (`site/src/**` beyond the contract, `engine/**`, `.claude/**`) | possible conflicts — you own them; resolve normally |
+| only `data/`, `site/theme.config.mjs`, `site/src/themes/<yours>/` | clean merge, always — structurally guaranteed for `data/` and your own theme directory (upstream contains neither) |
+| engine files (`site/src/**` beyond the contract, engine-shipped themes like `site/src/themes/midnight/`, `engine/**`, `.claude/**`) | possible conflicts — you own them; resolve normally |
+
+### If you customized before the theme system (0.x `site/src/theme.ts`)
+
+Owners who edited the old `site/src/theme.ts` directly: copy your token values into `site/src/themes/<name>/tokens.ts` (start by copying the `midnight` theme directory), set `activeTheme` in `site/theme.config.mjs`, done. The old `theme.ts` is now an engine shim over the active theme and will conflict on future merges if you keep edits in it.
 
 ### If you cloned before data/ was removed from the distribution repo (2026-07)
 

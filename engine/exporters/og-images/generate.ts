@@ -3,8 +3,9 @@
  *   profile.png            (owner card: name, role, tagline)
  *   <projectId>.png        (per project: name, summary, owner + top-3 tech chips)
  *
- * Composition uses the buyer theme tokens (site/src/theme.ts) so cards match
- * the site. Text is rendered in the profile's sourceLang. Pipeline:
+ * Composition uses the active theme's tokens (via the site/src/theme.ts
+ * engine shim; a buyer's tokens live in site/src/themes/<name>/) so cards
+ * match the site. Text is rendered in the profile's sourceLang. Pipeline:
  * satori (element objects -> SVG, glyphs outlined) -> @resvg/resvg-js -> PNG.
  *
  * Fonts: Noto Sans JP static TTFs (Regular + Bold, OFL — see fonts/OFL.txt).

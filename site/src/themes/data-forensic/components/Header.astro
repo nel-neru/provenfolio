@@ -1,0 +1,112 @@
+---
+/**
+ * Data-forensic header — the dossier masthead: a hairline-ruled mono nav
+ * bar. Brand + primary nav + language switch, all typeset in Plex Mono
+ * with CSS-driven caps (never typed caps). Same nav data as every theme;
+ * the look is what changes. Owner-agnostic: name comes from profile.
+ */
+import { ui, localePath, languageLabel } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, showHistoryPage } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  /** Path WITHOUT locale prefix, e.g. "/projects/foo" — for the switcher. */
+  path: string;
+}
+
+const { locale, path } = Astro.props;
+const profile = await getProfile();
+const aggregates = await getAggregates();
+const defaultLocale = profile.sourceLang;
+const locales = [profile.sourceLang, ...profile.targetLangs];
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+const historyVisible = showHistoryPage(aggregates);
+
+const nav = [
+  { href: lp("/projects"), label: ui("nav.projects", locale) },
+  ...(historyVisible ? [{ href: lp("/history"), label: ui("nav.history", locale) }] : []),
+  { href: lp("/about"), label: ui("nav.about", locale) },
+  { href: lp("/overview"), label: ui("nav.overview", locale) },
+];
+
+const otherLocales = locales.filter((l) => l !== locale);
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href={lp("/")} class="brand">{profile.name}</a>
+    <nav class="nav-links" aria-label="primary">
+      {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+      {
+        otherLocales.map((l) => (
+          <a
+            href={localePath(path, l, defaultLocale)}
+            class="lang-switch"
+            aria-label={`Switch language to ${languageLabel(l)}`}
+          >
+            {l.toUpperCase()}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+  }
+  .brand {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 14px);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .brand:hover {
+    text-decoration: none;
+    color: var(--accent);
+  }
+  .nav-links {
+    display: flex;
+    gap: var(--space-5, 24px);
+    align-items: center;
+  }
+  .nav-links a {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 12px);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding-block: var(--space-1, 4px);
+  }
+  .nav-links a:hover {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .lang-switch {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm, 0);
+    padding: 2px var(--space-2, 8px);
+    color: var(--text);
+  }
+  .lang-switch:hover {
+    border-color: var(--accent);
+  }
+  @media (max-width: 640px) {
+    .nav-links {
+      gap: var(--space-4, 16px);
+    }
+  }
+</style>

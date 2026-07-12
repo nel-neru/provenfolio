@@ -1,0 +1,613 @@
+/*
+ * Editorial Swiss theme stylesheet — Swiss typographic order on warm paper.
+ * Hierarchy comes from scale jumps, ink rules, and numbered sections, never
+ * from color or ornament; the single red accent stays small. Owns the shared
+ * primitive classes every leaf component relies on (.card, .chip,
+ * .section-title, .evidence-link) plus this direction's editorial furniture
+ * (.shead, .fig/.figcap, .stat, .row, .u-sweep, .btn) and the ink restyles
+ * of the shared viz components. Section and figure numbering is generated
+ * with CSS counters so engine components stay string-free.
+ */
+
+:root {
+  /* Modular type scale — one system for both surfaces. */
+  --fs-micro: 0.6875rem;
+  --fs-meta: 0.8125rem;
+  --fs-note: 0.9375rem;
+  --fs-lead: clamp(1.15rem, 1.02rem + 0.65vw, 1.35rem);
+  --fs-h3: clamp(1.35rem, 1.15rem + 1.1vw, 1.7rem);
+  --fs-h2: clamp(1.45rem, 1.12rem + 1.6vw, 1.95rem);
+  --fs-cover: clamp(2.75rem, 1.45rem + 6.5vw, 4.75rem);
+
+  /* Spacing rhythm — the same clamp curve at two energy levels. */
+  --rhythm-show: clamp(96px, 13vw, 160px);
+  --rhythm-read: clamp(72px, 10vw, 124px);
+}
+
+/* ------------------------------------------------------------ rhythm */
+
+body {
+  font-size: var(--text-base, 1.0625rem);
+  line-height: 1.62;
+}
+body:lang(ja) {
+  line-height: 1.9;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* Ink-first links: the accent is reserved for receipts and small marks. */
+body a {
+  color: inherit;
+}
+body a:hover {
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+/* Focus carries the same design language: a square ink outline. */
+body :focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+  border-radius: 0;
+}
+
+body .container {
+  padding-inline: clamp(20px, 4vw, 48px);
+}
+
+/* Section rhythm: read energy by default, showcase opts into more air. */
+.section {
+  margin-top: var(--rhythm-read);
+  scroll-margin-top: 24px;
+}
+body[data-surface="showcase"] .section {
+  margin-top: var(--rhythm-show);
+}
+
+/* Numbering: sections and figures count per page (home figures start 00). */
+main {
+  counter-reset: sec fig;
+}
+body[data-surface="showcase"] main {
+  counter-reset: sec fig -1;
+}
+
+/* ------------------------------------------------------------ utilities */
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.micro {
+  font: 500 var(--fs-micro) / 1.5 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+/* CJK keeps Latin-only tracking conventions: no synthetic letterspacing. */
+.micro:lang(ja) {
+  letter-spacing: 0.02em;
+}
+
+.measure {
+  max-width: 70ch;
+}
+
+/* Underline sweep — the direction's link affordance (pointer AND keyboard). */
+.u-sweep {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.35s cubic-bezier(0.25, 0.6, 0.2, 1);
+}
+.u-sweep:hover,
+.u-sweep:focus-visible {
+  background-size: 100% 1px;
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------------ primitives */
+
+/* Card: white paper with a hairline frame and the ink top rule signature. */
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-top: 1px solid var(--text);
+  border-radius: var(--radius);
+}
+
+/* Chip: a square, bordered, mono-uppercase archive label — never a pill. */
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5em;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: 500 var(--fs-micro) / 1.5 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.chip:lang(ja) {
+  letter-spacing: 0.02em;
+}
+.chip b {
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Section head: ink rule + red counter — the numbered annual-report head. */
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0 0 1.5rem;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--text);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text);
+  text-transform: none;
+}
+.section-title::before {
+  counter-increment: sec;
+  content: counter(sec, decimal-leading-zero);
+  color: var(--accent);
+  font: 600 var(--fs-meta) / 1 var(--font-mono);
+  letter-spacing: 0.08em;
+  flex: none;
+}
+
+/* Head row variant: counted label on the right, one shared ink rule. */
+.shead {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  border-bottom: 1px solid var(--text);
+  padding-bottom: 12px;
+}
+.shead .section-title {
+  flex: 1 1 auto;
+  margin: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.shead .count {
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* Evidence receipt: small mono, accent ink, footnote underline. */
+.evidence-link {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  border-bottom: 1px solid var(--accent-soft);
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.evidence-link:hover,
+.evidence-link:focus-visible {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom-color: var(--accent);
+}
+.evidence-link code {
+  font-size: 1em;
+}
+
+/* ------------------------------------------------------------ figures */
+
+.fig {
+  margin: 28px 0 0;
+  border-top: 1px solid var(--text);
+  padding-top: 18px;
+}
+.fig.bare {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* Ruled caption, print-style, auto-numbered: "Fig. NN — <label>". */
+.figcap {
+  display: block;
+  margin: 16px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--text-faint);
+}
+.figcap::before {
+  counter-increment: fig;
+  content: "Fig. " counter(fig, decimal-leading-zero) " \2014  ";
+}
+
+/* Stat figures: ink rule + huge tabular-mono number + micro caption. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(20px, 3vw, 40px);
+}
+.stats.compact {
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 2.5vw, 28px);
+  --stat-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.125rem);
+}
+.stat {
+  border-top: 1px solid var(--text);
+  padding-top: 14px;
+}
+.stat b {
+  display: block;
+  font: 700 var(--stat-size, clamp(2.1rem, 4.6vw, 3.5rem)) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.stat .micro {
+  display: block;
+  margin-top: 10px;
+  color: var(--text-dim);
+}
+
+/* ------------------------------------------------------------ index rows */
+
+.row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 250px;
+  gap: 12px 28px;
+  padding: clamp(24px, 3.5vw, 40px) 24px;
+  margin-inline: -24px;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  transition: background-color 0.25s ease;
+}
+.row:hover,
+.row:focus-visible {
+  background: var(--bg-raised);
+  text-decoration: none;
+}
+.row:focus-visible {
+  outline-offset: -2px;
+}
+.row .no {
+  font: 700 var(--fs-meta) / 1.9 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  padding-top: 6px;
+}
+.row .row-title {
+  margin: 0 0 8px;
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  display: inline-block;
+  color: var(--text);
+}
+.row .row-title .t {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 2px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.35s cubic-bezier(0.25, 0.6, 0.2, 1);
+}
+.row:hover .row-title .t,
+.row:focus-visible .row-title .t {
+  background-size: 100% 2px;
+}
+.row .row-title .arrow {
+  display: inline-block;
+  margin-left: 10px;
+  font-weight: 400;
+  color: var(--text-faint);
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    color 0.3s ease;
+}
+.row:hover .row-title .arrow,
+.row:focus-visible .row-title .arrow {
+  transform: translateX(7px);
+  color: var(--accent);
+}
+.row .sum {
+  margin: 0;
+  color: var(--text-dim);
+  max-width: 58ch;
+}
+.row .row-meta {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: 6px;
+  text-align: right;
+}
+
+/* Meta column: flatten badge and metric chips into ruled mono meta lines. */
+.row .row-meta .chip,
+.row .row-meta .category-badge {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: 500 var(--fs-micro) / 1.9 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.row .row-meta .chip b {
+  font-weight: 700;
+}
+.row .row-meta .metric-chips {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+
+@media (max-width: 900px) {
+  .row {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+  .row .row-meta {
+    grid-column: 2;
+    justify-items: start;
+    text-align: left;
+    margin-top: 4px;
+  }
+  .row .row-meta .metric-chips {
+    align-items: flex-start;
+  }
+}
+@media (max-width: 640px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .stats.compact {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .row {
+    padding-inline: 20px;
+    margin-inline: -20px;
+  }
+  .shead {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+}
+
+/* ------------------------------------------------------------ buttons */
+
+.btn {
+  display: inline-block;
+  border: 1px solid var(--text);
+  border-radius: 0;
+  padding: 12px 24px;
+  font: 600 var(--fs-meta) / 1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: transparent;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.btn:hover,
+.btn:focus-visible {
+  background: var(--text);
+  color: var(--bg-raised);
+  text-decoration: none;
+}
+.btn.primary {
+  background: var(--text);
+  color: #ffffff;
+}
+.btn.primary:hover,
+.btn.primary:focus-visible {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------------ page heads */
+
+.pagehead {
+  padding-block: clamp(48px, 7vw, 88px) 0;
+}
+.pagehead h1 {
+  margin: 0;
+  font-family: var(--font-display, var(--font-sans));
+  font-size: var(--fs-cover);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+.pagehead .sub {
+  margin: 12px 0 0;
+  color: var(--text-dim);
+  font-size: var(--fs-lead);
+}
+
+/* ------------------------------------------------------ shared components */
+
+/* ProjectCard: flat paper — hover lifts to white behind an ink frame. */
+body .project-card {
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+body .project-card:hover {
+  transform: none;
+  border-color: var(--text);
+  background: var(--bg-raised);
+}
+
+/* LanguageBars: square the bar, square the legend marks, mono the legend. */
+body .langbars svg {
+  border-radius: 0;
+  height: 12px;
+}
+body .langbars .dot {
+  border-radius: 0;
+  width: 8px;
+  height: 8px;
+}
+body .langbars .legend {
+  gap: 0.35rem 1.4rem;
+  margin-top: 0.8rem;
+}
+body .langbars .legend li {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+}
+body .langbars .pct {
+  font-variant-numeric: tabular-nums;
+}
+
+/* VelocitySparkline: a 1px ink line over a sunken area, one accent point. */
+body .spark polyline {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+body .spark polygon {
+  fill: var(--bg-overlay);
+}
+body .spark text {
+  font-family: var(--font-mono);
+}
+
+/* ContributionHeatmap: square cells — the ink ramp comes from --viz-0..4. */
+body .heatmap rect {
+  rx: 0;
+  ry: 0;
+}
+body .heatmap .swatch {
+  border-radius: 0;
+}
+body .heatmap text {
+  font-family: var(--font-mono);
+}
+
+/* Timeline: tabular-mono dates beside a hairline spine with square marks. */
+body .timeline {
+  margin-top: 10px;
+}
+body .timeline::before {
+  display: none;
+}
+body .timeline .event {
+  position: relative;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  column-gap: 42px;
+  padding: 20px 0;
+}
+body .timeline .event + .event {
+  margin-top: 0;
+}
+body .timeline .event > :not(time) {
+  grid-column: 2;
+}
+body .timeline .event time {
+  grid-column: 1;
+  font: 500 var(--fs-meta) / 1.7 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+/* Repurpose the dot pseudo-element pair: ::before spine, ::after mark. */
+body .timeline .event::before {
+  content: "";
+  position: absolute;
+  left: 108px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: var(--line);
+}
+body .timeline .event:first-child::before {
+  top: 27px;
+}
+body .timeline .event:last-child::before {
+  bottom: auto;
+  height: 27px;
+}
+body .timeline .event:first-child:last-child::before {
+  display: none;
+}
+body .timeline .event::after {
+  content: "";
+  position: absolute;
+  left: 105px;
+  top: 24px;
+  width: 7px;
+  height: 7px;
+  background: var(--text);
+}
+body .timeline .event-title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+@media (max-width: 760px) {
+  body .timeline .event {
+    grid-template-columns: 76px minmax(0, 1fr);
+    column-gap: 30px;
+  }
+  body .timeline .event::before {
+    left: 86px;
+  }
+  body .timeline .event::after {
+    left: 83px;
+  }
+}
+
+/* ------------------------------------------------------------ theme dock */
+
+body .theme-dock summary,
+body .theme-dock ul {
+  border-radius: 0;
+}
+
+/* ------------------------------------------------- reduced motion: static
+   The composed page IS the design — designed still states, not slow
+   animation. JS-driven drama (mask rise, count-ups, pointer shear) is
+   never attached; these rules pin the CSS-side affordances. */
+@media (prefers-reduced-motion: reduce) {
+  .u-sweep,
+  .row,
+  .row .row-title .t,
+  .row .row-title .arrow,
+  .btn,
+  .evidence-link,
+  body .project-card {
+    transition: none;
+  }
+  .u-sweep:hover,
+  .u-sweep:focus-visible {
+    background-size: 100% 1px;
+  }
+  .row:hover .row-title .arrow,
+  .row:focus-visible .row-title .arrow {
+    transform: none;
+  }
+}

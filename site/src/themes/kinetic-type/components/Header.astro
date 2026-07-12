@@ -1,0 +1,113 @@
+---
+/**
+ * Kinetic Type header — fixed mono top bar in mix-blend difference so it
+ * stays legible over accent flood-fills and the hero name. Brand left,
+ * primary nav + language switcher right; links draw an accent underline
+ * on hover AND :focus-visible.
+ */
+import { ui, localePath, languageLabel } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, showHistoryPage } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  /** Path WITHOUT locale prefix, e.g. "/projects/foo" — for the switcher. */
+  path: string;
+}
+
+const { locale, path } = Astro.props;
+const profile = await getProfile();
+const aggregates = await getAggregates();
+const defaultLocale = profile.sourceLang;
+const locales = [profile.sourceLang, ...profile.targetLangs];
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+const historyVisible = showHistoryPage(aggregates);
+
+const nav = [
+  { href: lp("/projects"), label: ui("nav.projects", locale) },
+  ...(historyVisible ? [{ href: lp("/history"), label: ui("nav.history", locale) }] : []),
+  { href: lp("/about"), label: ui("nav.about", locale) },
+  { href: lp("/overview"), label: ui("nav.overview", locale) },
+];
+
+const otherLocales = locales.filter((l) => l !== locale);
+---
+
+<header class="top mono">
+  <a class="brand" href={lp("/")}>{profile.name}</a>
+  <nav aria-label="primary">
+    {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+    {
+      otherLocales.map((l) => (
+        <a
+          href={localePath(path, l, defaultLocale)}
+          class="lang-switch"
+          aria-label={`Switch language to ${languageLabel(l)}`}
+        >
+          {languageLabel(l)}
+        </a>
+      ))
+    }
+  </nav>
+</header>
+
+<style>
+  .top {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.1rem var(--gutter);
+    /* Stays legible over accent flood-fills and the display name. */
+    mix-blend-mode: difference;
+  }
+  .brand {
+    font-weight: 700;
+    color: var(--text);
+  }
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  nav a {
+    position: relative;
+    color: var(--text);
+  }
+  nav a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 100%;
+    bottom: -4px;
+    height: 1px;
+    background: var(--accent-lift);
+    transition: right 0.25s ease;
+  }
+  nav a:hover,
+  nav a:focus-visible,
+  .brand:hover,
+  .brand:focus-visible {
+    color: var(--accent-lift);
+    text-decoration: none;
+  }
+  nav a:hover::after,
+  nav a:focus-visible::after {
+    right: 0;
+  }
+  .lang-switch {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.15rem 0.75rem;
+  }
+  .lang-switch::after {
+    content: none;
+  }
+  @media (max-width: 720px) {
+    nav {
+      gap: 0.9rem;
+    }
+  }
+</style>

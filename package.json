@@ -18,6 +18,7 @@
     "aggregate": "tsx engine/scripts/aggregate.ts",
     "refresh": "tsx engine/scripts/refresh.ts",
     "migrate": "tsx engine/scripts/migrate-data.ts",
+    "design:preview": "tsx engine/scripts/design-preview.ts",
     "dev": "npm run dev -w site",
     "build": "npm run validate && npm run build -w site",
     "preview": "npm run preview -w site",

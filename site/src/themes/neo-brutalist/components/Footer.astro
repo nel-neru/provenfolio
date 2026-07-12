@@ -1,0 +1,134 @@
+---
+/**
+ * Neo-brutalist footer — the full ink band: display-scale tagline, the
+ * other locale's tagline underneath, then a 2px paper rule row carrying
+ * copyright + generator meta and bordered social chips.
+ */
+import { t, ui } from "../../../lib/i18n.js";
+import { getProfile } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+
+const tagline = t(profile.tagline, locale, sl);
+
+/** The first other locale whose tagline text differs from the primary. */
+let alt: { locale: string; text: string } | undefined;
+for (const l of [sl, ...profile.targetLangs]) {
+  if (l === locale) continue;
+  const text = t(profile.tagline, l, sl);
+  if (text && text !== tagline) {
+    alt = { locale: l, text };
+    break;
+  }
+}
+
+const year = new Date().getFullYear();
+---
+
+<footer class="footer nb-on-ink">
+  <div class="container">
+    {tagline && <p class="footer-title">{tagline}</p>}
+    {
+      alt && (
+        <p class="footer-alt" lang={alt.locale}>
+          {alt.text}
+        </p>
+      )
+    }
+    <div class="footer-row">
+      <span class="footer-meta">
+        &copy; {year} {profile.name} / {ui("footer.builtWith", locale)}
+      </span>
+      {
+        profile.socials.length > 0 && (
+          <span class="footer-socials">
+            {profile.socials.map((s) => (
+              <a href={s.url} rel="me noopener">
+                {s.platform} &#8599;
+              </a>
+            ))}
+          </span>
+        )
+      }
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 3px solid var(--line);
+    margin-top: var(--nb-section-pad, 96px);
+    padding: var(--space-8, 64px) 0 var(--space-7, 48px);
+  }
+  .footer-title {
+    margin: 0;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: var(--nb-fs-d2);
+    line-height: 1.02;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+  }
+  .footer-alt {
+    margin: var(--space-4, 16px) 0 0;
+    font-family: var(--nb-font-display-alt, var(--font-sans));
+    font-feature-settings: "palt" 1;
+    font-size: var(--text-lg, 22px);
+  }
+  .footer-row {
+    margin-top: var(--space-7, 48px);
+    border-top: 2px solid var(--nb-paper-on-ink);
+    padding-top: var(--space-4, 16px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-3, 12px) var(--space-5, 24px);
+    align-items: center;
+  }
+  .footer-meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 11px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--nb-dim-on-ink);
+  }
+  .footer-socials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3, 12px);
+  }
+  .footer-socials a {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 13px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    border: 2px solid var(--nb-paper-on-ink);
+    padding: 6px 14px;
+    color: var(--nb-paper-on-ink);
+    transition:
+      background 0.12s ease-out,
+      color 0.12s ease-out;
+  }
+  .footer-socials a:hover,
+  .footer-socials a:focus-visible {
+    background: var(--nb-paper-on-ink);
+    color: var(--line);
+    text-decoration: none;
+  }
+  @media (max-width: 720px) {
+    .footer {
+      padding: var(--space-7, 48px) 0 var(--space-6, 32px);
+    }
+    .footer-row {
+      margin-top: var(--space-6, 32px);
+    }
+  }
+</style>

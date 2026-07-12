@@ -1,0 +1,94 @@
+---
+/**
+ * Quiet Luxury header — a book's running head: display-face wordmark with
+ * the clay full stop, small-caps nav, hairline bottom rule. Static (not
+ * sticky) so the paper reads as one continuous sheet.
+ */
+import { ui, localePath, languageLabel } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, showHistoryPage } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  /** Path WITHOUT locale prefix, e.g. "/projects/foo" — for the switcher. */
+  path: string;
+}
+
+const { locale, path } = Astro.props;
+const profile = await getProfile();
+const aggregates = await getAggregates();
+const defaultLocale = profile.sourceLang;
+const locales = [profile.sourceLang, ...profile.targetLangs];
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+const historyVisible = showHistoryPage(aggregates);
+
+const nav = [
+  { href: lp("/projects"), label: ui("nav.projects", locale) },
+  ...(historyVisible ? [{ href: lp("/history"), label: ui("nav.history", locale) }] : []),
+  { href: lp("/about"), label: ui("nav.about", locale) },
+  { href: lp("/overview"), label: ui("nav.overview", locale) },
+];
+
+const otherLocales = locales.filter((l) => l !== locale);
+---
+
+<header class="top">
+  <div class="container top-inner">
+    <a href={lp("/")} class="wordmark">
+      {profile.name}<span class="fullstop" aria-hidden="true">.</span>
+    </a>
+    <nav aria-label="primary" class="top-nav">
+      {nav.map((item) => <a class="caplink" href={item.href}>{item.label}</a>)}
+      {
+        otherLocales.map((l) => (
+          <a
+            href={localePath(path, l, defaultLocale)}
+            class="caplink lang-switch"
+            aria-label={`Switch language to ${languageLabel(l)}`}
+          >
+            {languageLabel(l)}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>
+
+<style>
+  .top {
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+  }
+  .top-inner {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding-block: 1.05rem;
+    flex-wrap: wrap;
+  }
+  .wordmark {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-size: 1.02rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .wordmark:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+    text-decoration-color: var(--show-accent2, var(--accent));
+  }
+  .top-nav {
+    display: flex;
+    gap: 1.4rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+  .lang-switch {
+    border-left: 1px solid var(--line);
+    padding-left: 1.4rem;
+  }
+</style>

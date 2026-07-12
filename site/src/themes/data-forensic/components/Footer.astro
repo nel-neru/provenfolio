@@ -1,0 +1,72 @@
+---
+/**
+ * Data-forensic footer — the closing ledger line: copyright, socials, and
+ * the generator note, all in mono at the dossier's foot. The "// " prefix
+ * is a decorative comment marker (symbol, not copy); every word comes from
+ * profile data or the shared UI dictionary.
+ */
+import { ui } from "../../../lib/i18n.js";
+import { getProfile } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <span class="eol"><span class="mark" aria-hidden="true">// </span>© {year} {profile.name}</span>
+    <span class="footer-socials">
+      {
+        profile.socials.map((s) => (
+          <a href={s.url} rel="me noopener">
+            {s.platform}
+            <span class="ext" aria-hidden="true"> ↗</span>
+          </a>
+        ))
+      }
+    </span>
+    <span class="footer-note">{ui("footer.builtWith", locale)}</span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: var(--space-8, 72px);
+    border-top: 1px solid var(--line);
+    padding: var(--space-5, 24px) 0 60px;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 12px);
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+  }
+  .footer-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px) var(--space-4, 16px);
+    justify-content: space-between;
+    align-items: center;
+  }
+  .mark {
+    color: var(--text-faint);
+  }
+  .footer-socials {
+    display: flex;
+    gap: var(--space-5, 24px);
+  }
+  .site-footer a {
+    color: var(--text-dim);
+    padding-block: var(--space-1, 4px);
+  }
+  .site-footer a:hover {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .footer-note {
+    color: var(--text-faint);
+  }
+</style>

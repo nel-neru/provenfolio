@@ -1,0 +1,157 @@
+---
+/**
+ * Projects index — midnight's placement logic (products → lab → archive)
+ * recomposed in the poster voice: display-scale page title, numbered
+ * sec-heads with tabular counts, card grid, and a ruled mono archive list.
+ */
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import { getProfile, getProjects, byPlacement } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const placed = byPlacement(await getProjects());
+const pad = (n: number) => String(n).padStart(2, "0");
+
+const sections = [
+  { key: "projects.products", items: placed.products },
+  { key: "projects.lab", items: placed.lab },
+] as const;
+
+let secIndex = 0;
+const numbered = sections
+  .filter((s) => s.items.length > 0)
+  .map((s) => ({ ...s, no: pad(++secIndex) }));
+const archiveNo = pad(secIndex + 1);
+---
+
+<Base locale={locale} title={ui("projects.title", locale)} path="/projects">
+  <div class="container page">
+    <h1 class="page-title">{ui("projects.title", locale)}</h1>
+
+    {
+      numbered.map((s) => (
+        <section class="block">
+          <div class="sec-head">
+            <h2>{ui(s.key, locale)}</h2>
+            <span class="mono idx">{s.no} · {pad(s.items.length)}</span>
+          </div>
+          <div class="grid">
+            {s.items.map((p) => (
+              <ProjectCard
+                project={p}
+                locale={locale}
+                sourceLang={sl}
+                defaultLocale={defaultLocale}
+              />
+            ))}
+          </div>
+        </section>
+      ))
+    }
+
+    {
+      placed.archive.length > 0 && (
+        <section class="block">
+          <div class="sec-head">
+            <h2>{ui("projects.archive", locale)}</h2>
+            <span class="mono idx">{archiveNo} · {pad(placed.archive.length)}</span>
+          </div>
+          <ul class="archive-list" role="list">
+            {placed.archive.map((p) => (
+              <li class="archive-item">
+                <a href={localePath(`/projects/${p.id}`, locale, defaultLocale)}>
+                  {p.name}
+                </a>
+                {t(p.summary, locale, sl) && (
+                  <span class="archive-summary">— {t(p.summary, locale, sl)}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .page {
+    padding-top: 7rem;
+  }
+  .page-title {
+    margin: 0 0 var(--space-4, 2rem);
+    font-family: var(--font-display, var(--font-sans));
+    font-size: clamp(2.75rem, 8vw, 6rem);
+    font-weight: 900;
+    font-variation-settings: "wght" 900, "wdth" 102;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+  }
+  .page-title::after {
+    content: ".";
+    color: var(--accent);
+  }
+  .block {
+    margin-top: var(--sect);
+  }
+  .block:first-of-type {
+    margin-top: 0;
+  }
+  .sec-head {
+    margin-bottom: 1.8rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .grid :global(.project-card:hover),
+  .grid :global(.project-card:focus-visible) {
+    border-color: var(--accent);
+  }
+  .archive-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+  .archive-item {
+    line-height: 1.5;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--line);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .archive-item a {
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+  }
+  .archive-item a:hover,
+  .archive-item a:focus-visible {
+    color: var(--accent-lift);
+    text-decoration: none;
+  }
+  .archive-summary {
+    color: var(--text-faint);
+    font-size: var(--text-sm, 0.875rem);
+    margin-left: 0.5em;
+  }
+  @media (max-width: 720px) {
+    .page {
+      padding-top: 6rem;
+    }
+  }
+</style>

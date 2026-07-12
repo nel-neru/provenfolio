@@ -1,0 +1,621 @@
+---
+/**
+ * Home — the kinetic poster. The owner's name IS the hero image, set at
+ * viewport scale in variable Archivo; scroll scrubs its wght/wdth axes,
+ * dual marquee lanes carry real skill keywords, featured work renders as
+ * numbered index rows with accent flood-fill hovers, and every moving
+ * number is a script-produced metric. All kinetics are additive: with JS
+ * off or reduced motion on, this page is the finished static poster.
+ */
+import Base from "../../../layouts/Base.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  getAggregates,
+  getFeatured,
+  computeSkills,
+} from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const aggregates = await getAggregates();
+const featured = await getFeatured();
+const skills = computeSkills(aggregates, profile);
+
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+const fmt = (n: number) => n.toLocaleString("en-US");
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Category label with the same key-miss fallback CategoryBadge uses. */
+const catLabel = (category: string) => {
+  const key = `category.${category}`;
+  const resolved = ui(key, locale);
+  return resolved === key ? category : resolved;
+};
+
+/* Owner-agnostic hero sizing: the 21vw clamp is tuned for ~7 Latin glyphs
+   per line; longer words (or CJK, counted double-width) step the scale
+   down proportionally so the name never overflows its crop. */
+const visualLen = (s: string) =>
+  [...s].reduce(
+    (n, ch) =>
+      n + (/[ᄀ-ᇿ⺀-꓏가-힣豈-﫿＀-｠]/.test(ch) ? 2 : 1),
+    0
+  );
+const words = profile.name.trim().split(/\s+/).filter(Boolean);
+const maxLen = Math.max(1, ...words.map(visualLen));
+const heroFactor = Math.min(1, Math.round((7 / maxLen) * 100) / 100);
+const heroSize =
+  heroFactor < 1
+    ? `font-size: calc(var(--show-hero-scale, clamp(4rem, 21vw, 19rem)) * ${heroFactor});`
+    : undefined;
+
+/* Secondary-language passages (the bilingual texture of the poster). */
+const locales = [sl, ...profile.targetLangs];
+const altLocale = locales.find((l) => l !== locale);
+const altText = (text: Record<string, string> | undefined) =>
+  altLocale && text?.[altLocale]?.trim() && text[altLocale] !== text[locale]
+    ? text[altLocale]
+    : undefined;
+
+const role = t(profile.role, locale, sl);
+const altRole = altText(profile.role);
+const tagline = t(profile.tagline, locale, sl);
+const altTagline = altText(profile.tagline);
+
+/* Marquee lanes: real skill keywords (solid) + the tagline (ghost). */
+const keywords = skills.slice(0, 8).map((s) => s.name);
+const showBand = keywords.length > 0 || !!tagline;
+
+/* Closing type block: accent the final word when the tagline splits. */
+const tagWords = tagline.split(/\s+/).filter(Boolean);
+const tagHead = tagWords.slice(0, -1).join(" ");
+const tagLast = tagWords.length > 1 ? tagWords[tagWords.length - 1] : "";
+
+const totals = aggregates?.totals;
+const techCount = aggregates?.techFrequency.length ?? 0;
+---
+
+<Base locale={locale} path="/" ogImage="/og/profile.png" surface="showcase">
+  <!-- HERO — the name is the interface -->
+  <section class="hero" aria-label="introduction">
+    <p class="kicker mono kt-fade">
+      {role}
+      {altRole && <><span class="sep" aria-hidden="true">—</span><span lang={altLocale}>{altRole}</span></>}
+    </p>
+    <h1 class="hero-name kt-rise" style={heroSize}>
+      {
+        words.map((w) => (
+          <span class="line">
+            <span class="word" data-kinetic-word>{w}</span>
+          </span>
+        ))
+      }
+    </h1>
+    <div class="hero-meta kt-fade">
+      <p class="tagline">
+        <span class="en">{tagline}</span>
+        {altTagline && <span class="alt" lang={altLocale}>{altTagline}</span>}
+      </p>
+      <p class="hero-socials mono">
+        {
+          profile.socials.map((s) => (
+            <a href={s.url} rel="me noopener">
+              {s.platform}<span class="arrow" aria-hidden="true"> ↗</span>
+            </a>
+          ))
+        }
+      </p>
+    </div>
+  </section>
+
+  <!-- KEYWORD BAND — kinetic marquee; static cropped poster at rest -->
+  {
+    showBand && (
+      <>
+        <div class="band band--kinetic home-band" data-kinetic-band aria-hidden="true">
+          {keywords.length > 0 && (
+            <div class="lane lane-solid">
+              {[0, 1].map(() => (
+                <div class="seg">
+                  <span>
+                    {keywords.map((k) => (
+                      <>{k}<span class="dot"> · </span></>
+                    ))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {tagline && (
+            <div class="lane lane-ghost">
+              {[0, 1].map(() => (
+                <div class="seg">
+                  <span>
+                    {tagline}<span class="dot"> — </span>
+                    {altTagline && <><span lang={altLocale}>{altTagline}</span><span class="dot"> — </span></>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <p class="sr-only">
+          {ui("home.skills", locale)}: {keywords.join(", ")}. {tagline}
+        </p>
+      </>
+    )
+  }
+
+  <!-- FEATURED WORK — numbered index rows, hover flood-fills accent -->
+  {
+    featured.length > 0 && (
+      <section class="block" id="work" aria-label={ui("home.featured", locale)}>
+        <div class="sec-head container">
+          <h2>{ui("home.featured", locale)}</h2>
+          <span class="mono idx">01 — {pad(featured.length)}</span>
+        </div>
+        {featured.map((p, i) => (
+          <a class="row" href={lp(`/projects/${p.id}`)}>
+            <span class="no mono">{pad(i + 1)}</span>
+            <span class="ttl">{p.name}<span class="arrow" aria-hidden="true">↗</span></span>
+            <span class="desc">
+              {t(p.summary, locale, sl) && <span class="en">{t(p.summary, locale, sl)}</span>}
+              {altText(p.summary) && <span class="alt" lang={altLocale}>{altText(p.summary)}</span>}
+            </span>
+            <span class="meta mono">
+              {catLabel(p.category)}
+              {p.metrics && <> · {fmt(p.metrics.total.commits)} {ui("metrics.commits", locale)}</>}
+            </span>
+          </a>
+        ))}
+        <p class="view-all">
+          <a class="pill ghost" href={lp("/projects")}>{ui("home.viewAll", locale)}</a>
+        </p>
+      </section>
+    )
+  }
+
+  <!-- METRICS BAND — script-produced numbers as specimen ornament -->
+  {
+    totals && (
+      <section class="block" aria-label={ui("metrics.activity", locale)}>
+        <div class="sec-head container">
+          <h2>{ui("metrics.activity", locale)}</h2>
+          <span class="mono idx">02</span>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <div class="num" data-count={totals.commits}>{fmt(totals.commits)}</div>
+            <div class="rule" aria-hidden="true"></div>
+            <div class="lbl mono"><span class="u">/</span>{ui("metrics.commits", locale)}</div>
+          </div>
+          <div class="stat">
+            <div class="num" data-count={totals.activeDays}>{fmt(totals.activeDays)}</div>
+            <div class="rule" aria-hidden="true"></div>
+            <div class="lbl mono"><span class="u">/</span>{ui("metrics.activeDays", locale)}</div>
+          </div>
+          <div class="stat">
+            <div class="num" data-count={totals.projects}>{fmt(totals.projects)}</div>
+            <div class="rule" aria-hidden="true"></div>
+            <div class="lbl mono"><span class="u">/</span>{ui("nav.projects", locale)}</div>
+          </div>
+          <div class="stat">
+            <div class="num" data-count={techCount}>{fmt(techCount)}</div>
+            <div class="rule" aria-hidden="true"></div>
+            <div class="lbl mono"><span class="u">/</span>{ui("home.skills", locale)}</div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- SKILLS — pill chips: the single soft shape against poster edges -->
+  {
+    skills.length > 0 && (
+      <section class="block" id="skills" aria-label={ui("home.skills", locale)}>
+        <div class="sec-head container">
+          <h2>{ui("home.skills", locale)}</h2>
+          <span class="mono idx">03 · {pad(skills.length)}</span>
+        </div>
+        <div class="chips">
+          {skills.map((s) => (
+            <span class="chip" title={s.projectIds.join(", ") || undefined}>{s.name}</span>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <!-- CONTACT — closing viewport-type block -->
+  {
+    (tagline || profile.socials.length > 0) && (
+      <section class="contact block" id="contact" aria-label="contact">
+        {tagline && (
+          <p class="big">
+            {tagLast ? <>{tagHead} <em>{tagLast}</em></> : tagline}
+          </p>
+        )}
+        {altTagline && <p class="big-alt" lang={altLocale}>{altTagline}</p>}
+        <div class="cta-row">
+          {profile.socials.map((s, i) => (
+            <a class:list={["pill", i === 0 ? "solid" : "ghost"]} href={s.url} rel="me noopener">
+              {s.platform} ↗
+            </a>
+          ))}
+          {profile.email && (
+            <a class="pill ghost" href={`mailto:${profile.email}`}>{profile.email}</a>
+          )}
+        </div>
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  .hero {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 7rem 0 2rem;
+  }
+  .hero .kicker {
+    padding-inline: var(--gutter);
+    margin: 0 0 1.25rem;
+  }
+  .hero-name {
+    margin: 0;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: var(--show-hero-scale, clamp(4rem, 21vw, 19rem));
+    font-weight: 900;
+    font-variation-settings: "wght" 900, "wdth" 100;
+    line-height: 0.86;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    user-select: none;
+    word-break: auto-phrase;
+  }
+  .hero-name .line {
+    display: block;
+    overflow: hidden;
+  }
+  .hero-name .word {
+    display: inline-block;
+    will-change: transform;
+  }
+  .hero-name .line:nth-child(odd) {
+    margin-left: -0.04em;
+    padding-left: var(--gutter);
+  }
+  /* Even lines pushed right so glyphs crop at the viewport edge — the
+     crop is the poster's implied motion, present even fully static. */
+  .hero-name .line:nth-child(even) {
+    margin-left: 22vw;
+    white-space: nowrap;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem 1.5rem;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--line);
+    margin-top: clamp(1.5rem, 4vh, 3rem);
+    padding: 1.1rem var(--gutter) 0;
+  }
+  .tagline {
+    margin: 0;
+    display: grid;
+    gap: 0.15rem;
+  }
+  .tagline .en {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .tagline .alt {
+    color: var(--text-dim);
+    font-size: var(--text-sm, 0.875rem);
+  }
+  .hero-socials {
+    margin: 0;
+    display: flex;
+    gap: 1.4rem;
+  }
+  .hero-socials a {
+    color: var(--text-dim);
+    transition: color 0.2s ease;
+  }
+  .hero-socials a:hover,
+  .hero-socials a:focus-visible {
+    color: var(--accent-lift);
+    text-decoration: none;
+  }
+  .hero-socials .arrow {
+    color: var(--accent);
+  }
+
+  .home-band {
+    margin-top: var(--sect);
+    will-change: transform;
+  }
+
+  section.block {
+    padding-top: var(--sect);
+  }
+
+  /* featured work — numbered index rows, not cards */
+  .row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+    grid-template-areas:
+      "no ttl meta"
+      "no desc meta";
+    align-items: baseline;
+    gap: 0.35rem 1.5rem;
+    padding: 2.2rem var(--gutter);
+    border-bottom: 1px solid var(--line);
+    color: var(--text);
+    transition:
+      background 0.25s ease,
+      color 0.25s ease;
+  }
+  .row:hover {
+    text-decoration: none;
+  }
+  .row .no {
+    grid-area: no;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .row .ttl {
+    grid-area: ttl;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: clamp(2.2rem, 6vw, 5rem);
+    font-weight: 900;
+    font-variation-settings: "wght" 900, "wdth" 104;
+    letter-spacing: -0.025em;
+    line-height: 0.95;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+  .row .ttl .arrow {
+    display: inline-block;
+    margin-left: 0.25em;
+    font-size: 0.5em;
+    vertical-align: 0.5em;
+    color: var(--accent);
+    transform: translate(-0.3em, 0.3em);
+    opacity: 0;
+    transition:
+      transform 0.25s ease,
+      opacity 0.25s ease;
+  }
+  .row .desc {
+    grid-area: desc;
+    max-width: 56ch;
+    display: grid;
+    gap: 0.1rem;
+    padding-top: 0.5rem;
+  }
+  .row .desc .en,
+  .row .desc .alt {
+    color: var(--text-dim);
+    font-size: var(--text-sm, 0.875rem);
+  }
+  .row .desc .alt {
+    opacity: 0.75;
+  }
+  .row .meta {
+    grid-area: meta;
+    color: var(--text-dim);
+    text-align: right;
+    align-self: start;
+    padding-top: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .row:hover,
+  .row:focus-visible {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .row:hover :is(.no, .desc .en, .desc .alt, .meta),
+  .row:focus-visible :is(.no, .desc .en, .desc .alt, .meta) {
+    color: var(--bg);
+  }
+  .row:hover .ttl .arrow,
+  .row:focus-visible .ttl .arrow {
+    color: var(--bg);
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  .view-all {
+    margin: 0;
+    padding: 2rem var(--gutter) 0;
+  }
+
+  /* skills chips */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 2.2rem var(--gutter) 0;
+  }
+  .chips :global(.chip) {
+    padding: 0.55rem 1.15rem;
+  }
+  .chips :global(.chip:hover) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  /* contact — closing type block */
+  .contact {
+    padding-top: clamp(5rem, 16vh, 10rem);
+  }
+  .big {
+    margin: 0;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: var(--text-display, clamp(3.5rem, 14vw, 12rem));
+    font-weight: 900;
+    font-variation-settings: "wght" 900, "wdth" 96;
+    letter-spacing: -0.03em;
+    line-height: 0.92;
+    text-transform: uppercase;
+    padding-inline: var(--gutter);
+    overflow-wrap: anywhere;
+  }
+  .big em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .big-alt {
+    padding-inline: var(--gutter);
+    margin: 1.4rem 0 0;
+    font-size: clamp(var(--text-base, 1rem), 2.4vw, var(--text-lg, 1.25rem));
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+  .cta-row {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    padding: 2.4rem var(--gutter) 0;
+  }
+
+  @media (max-width: 720px) {
+    .hero {
+      padding-top: 5.5rem;
+    }
+    .hero-name .line:nth-child(even) {
+      margin-left: 12vw;
+    }
+    .row {
+      grid-template-columns: 2.6rem minmax(0, 1fr);
+      grid-template-areas:
+        "no ttl"
+        "no desc"
+        "no meta";
+      padding-block: 1.8rem;
+    }
+    .row .meta {
+      text-align: left;
+      padding-top: 0.7rem;
+    }
+  }
+</style>
+
+<script>
+  // Kinetic layer — additive only. With JS off or prefers-reduced-motion
+  // on, the server-rendered page above is the finished poster.
+  let rafId = 0;
+  let teardownFns: Array<() => void> = [];
+
+  function initKinetic() {
+    teardown();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    // 1) Scroll-scrubbed variable axes on the hero name (wght 900→480,
+    //    wdth 100→74), snapped to coarse steps to keep relayout cheap.
+    //    Frame-budget fallback: if scrubbing is too slow twice, degrade
+    //    to a discrete heavy/light swap.
+    const words = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-kinetic-word]")
+    );
+    if (words.length === 0) return; // not on the home page
+
+    let discrete = false;
+    let slowFrames = 0;
+    let ticking = false;
+    function scrub() {
+      ticking = false;
+      const t0 = performance.now();
+      const p = Math.min(window.scrollY / (window.innerHeight * 0.85), 1);
+      words.forEach((el, i) => {
+        if (discrete) {
+          const wght = p > 0.5 ? 480 : 900;
+          el.style.fontVariationSettings = `'wght' ${wght}, 'wdth' 100`;
+          return;
+        }
+        const denom = 1 - i * 0.06;
+        const lag = Math.min(Math.max(p - i * 0.06, 0) / (denom || 1), 1);
+        const wght = Math.round((900 - lag * 420) / 10) * 10;
+        const wdth = Math.round((100 - lag * 26) / 2) * 2;
+        el.style.fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}`;
+      });
+      if (!discrete && performance.now() - t0 > 32) {
+        slowFrames += 1;
+        if (slowFrames >= 2) discrete = true;
+      }
+    }
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(scrub);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    teardownFns.push(() => window.removeEventListener("scroll", onScroll));
+
+    // 2) Keyword band skews with scroll velocity (clamped, self-recovering).
+    const band = document.querySelector<HTMLElement>("[data-kinetic-band]");
+    if (band) {
+      let last = window.scrollY;
+      let vel = 0;
+      const tick = () => {
+        vel += (window.scrollY - last - vel) * 0.12;
+        last = window.scrollY;
+        const deg = Math.max(-2.5, Math.min(2.5, vel * 0.05));
+        band.style.transform = `skewY(${deg.toFixed(2)}deg)`;
+        rafId = requestAnimationFrame(tick);
+      };
+      rafId = requestAnimationFrame(tick);
+      teardownFns.push(() => cancelAnimationFrame(rafId));
+    }
+
+    // 3) Metric count-ups. Markup already holds the final values, so this
+    //    only ever runs as an enhancement.
+    const fmt = (n: number) => n.toLocaleString("en-US");
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          io.unobserve(e.target);
+          const el = e.target as HTMLElement;
+          const end = parseInt(el.getAttribute("data-count") ?? "0", 10);
+          if (!Number.isFinite(end)) continue;
+          const t0 = performance.now();
+          const dur = 1400;
+          const step = (now: number) => {
+            const k = Math.min((now - t0) / dur, 1);
+            const ease = 1 - Math.pow(1 - k, 4);
+            el.textContent = fmt(Math.round(end * ease));
+            if (k < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        }
+      },
+      { threshold: 0.4 }
+    );
+    document
+      .querySelectorAll("[data-count]")
+      .forEach((el) => io.observe(el));
+    teardownFns.push(() => io.disconnect());
+  }
+
+  function teardown() {
+    teardownFns.forEach((fn) => fn());
+    teardownFns = [];
+  }
+
+  initKinetic();
+  document.addEventListener("astro:page-load", initKinetic);
+  document.addEventListener("astro:before-swap", teardown);
+</script>

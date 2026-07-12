@@ -28,6 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run aggregate` — recompute `data/derived/aggregates.json`
 - `npm run refresh` — deterministic re-extract of all sources (no AI cost)
 - `npm run studio` — local GUI at http://localhost:4600 (never deployed)
+- `npm run design:preview` — design-proposal gallery at http://localhost:4700 (serves `workspace/design/proposals/`, never deployed)
 - `npm run migrate` — apply schema migrations to `data/`
 - `npm run check:i18n` — bilingual-docs guard + stray-Japanese lint (`-- --stamp` refreshes markers after translating)
 - Engine scripts run via `tsx engine/scripts/<name>.ts` / `tsx engine/sources/github/<name>.ts`
@@ -37,6 +38,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `/analyze <repo-url> | --pending | --attach <id> <url> | --refresh <id> | --manual` — full analysis pipeline
 - `/refresh` — deterministic metrics refresh + staleness report
 - `/edit <id>` — conversational case-study prose editing
+- `/design brief | propose [n] | apply <id> | switch <theme> | status` — design-brief-driven look management (themes)
 - `/update-site` — validate + preview + visual check
 - `/publish` — completeness gate → build → confirm → `wrangler pages deploy`
 - `/setup` — new-owner onboarding (interview → reset `data/` → profile.json)
@@ -53,7 +55,7 @@ Idempotency: `generated.contentHashes` detects human-edited prose (hash mismatch
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, ...).
 - Never push or deploy without explicit user confirmation (`/publish` handles this).
 - Zod is pinned at the root to the major that Astro vendors — do not add another zod version to any workspace.
-- Buyer-safe customization surface: `site/src/theme.ts` + `site/src/overrides/` — engine updates must never touch these paths.
+- Buyer-safe customization surface: `site/theme.config.mjs` + `site/src/themes/<your-theme>/` (+ `data/**`) — engine updates never touch these; `site/src/theme.ts` is now an engine shim over the active theme; edits to engine-shipped themes (e.g. `midnight`) are fork-owned merges.
 - Screenshots live in `data/assets/screenshots/<projectId>/` and are referenced relatively from project JSON.
 - Dev working copies of the distribution repo (origin = nel-neru/provenfolio): add `data/` to `.git/info/exclude` (machine-local) right after cloning, and never stage `data/` there — ensure-data creates an untracked `data/` tree in every working copy, and CI `data-guard` is a tripwire, not prevention.
 - **Language policy (CI-enforced by `check:i18n`)**: every user-facing doc ships as an EN+JA pair — canonical side is `README.ja.md` (marketing, Japanese) and `engine/docs/*.md` (technical, English); the translation file carries an `<!-- i18n:source=... sha256=... -->` marker. Editing a canonical doc REQUIRES updating its pair in the same commit, then `npm run check:i18n -- --stamp`. Japanese text is allowed only in `*.ja.md` and the i18n dictionaries (`site/src/lib/i18n.ts`, `studio/public/i18n.js`, `engine/scripts/lib/lints.ts`, translator agent example); everything else — code, comments, CLI output, CHANGELOG, commit messages — is English-only. Studio UI strings go through `studio/public/i18n.js` keyed on `profile.sourceLang`.

@@ -1,0 +1,337 @@
+---
+/**
+ * The case-study page — the product's centerpiece, restyled into the
+ * neo-brutalist system. A tl;dr masthead (display name, category badge, role
+ * stamp, tech chips, an exposed-metadata receipts strip, ink CTA buttons),
+ * then the templated case study wrapped in .nb-study so every section title —
+ * including the ones the shared CaseStudy renders — gets a ruled, stroked
+ * NN counter. Evidence-linked highlights, a turning-point timeline, the
+ * density-gated metrics viz (never an empty box: when no viz qualifies the
+ * honest chip row renders instead), architecture diagram, and screenshots
+ * all flow through the shared primitives. Data access, link ordering, and the
+ * density gates are identical to midnight/ProjectPage; only styling changes.
+ */
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import MetricChips from "../../../components/MetricChips.astro";
+import EvidenceLink from "../../../components/EvidenceLink.astro";
+import CaseStudy from "../../../components/CaseStudy.astro";
+import Screenshots from "../../../components/Screenshots.astro";
+import Timeline from "../../../components/viz/Timeline.astro";
+import ContributionHeatmap from "../../../components/viz/ContributionHeatmap.astro";
+import VelocitySparkline from "../../../components/viz/VelocitySparkline.astro";
+import LanguageBars from "../../../components/viz/LanguageBars.astro";
+import { t, ui } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  showHeatmap,
+  showVelocity,
+  showLanguages,
+} from "../../../lib/data.js";
+import type { ProjectData } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+  project: ProjectData;
+}
+
+const { locale, project } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+
+const gh = project.sources.find((s) => s.type === "github");
+const isPrivate = project.sources.some((s) => s.visibility === "private");
+const repoUrl = gh && gh.visibility === "public" ? gh.repoUrl : undefined;
+
+// Primary calls-to-action first: demo / store / video, then everything else.
+const LINK_PRIORITY = ["demo", "store", "video"];
+const linkRank = (k: string) => {
+  const i = LINK_PRIORITY.indexOf(k);
+  return i === -1 ? 99 : i;
+};
+const links = [...project.links].sort(
+  (a, b) => linkRank(a.kind) - linkRank(b.kind)
+);
+
+const heat = showHeatmap(project);
+const vel = showVelocity(project);
+const langs = showLanguages(project);
+const anyViz = heat || vel || langs;
+
+const summary = t(project.summary, locale, sl);
+---
+
+<Base
+  locale={locale}
+  title={project.name}
+  description={summary}
+  path={`/projects/${project.id}`}
+  ogImage={`/og/${project.id}.png`}
+>
+  <article class="container page">
+    <header class="tldr">
+      <div class="title-row">
+        <h1 class="name">{project.name}</h1>
+        <CategoryBadge category={project.category} locale={locale} />
+        {
+          project.role && (
+            <span
+              class="stamp stamp-fill"
+              title={t(project.role.scope, locale, sl) || undefined}
+            >
+              {ui(`project.role.${project.role.type}`, locale)}
+            </span>
+          )
+        }
+      </div>
+      {summary && <p class="summary">{summary}</p>}
+      <div class="tech">
+        <TechStackList techStack={project.techStack} max={3} />
+      </div>
+      <div class="meta-strip receipts">
+        <MetricChips project={project} locale={locale} />
+      </div>
+      {
+        links.length > 0 && (
+          <div class="links-row">
+            {links.map((l) => (
+              <a
+                class:list={["btn", { primary: LINK_PRIORITY.includes(l.kind) }]}
+                href={l.url}
+                target="_blank"
+                rel="noopener"
+              >
+                {t(l.label, locale, sl) || l.kind}
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </header>
+
+    {isPrivate && <p class="note">{ui("project.proprietary", locale)}</p>}
+
+    <div class="nb-study">
+      <CaseStudy project={project} locale={locale} sourceLang={sl} />
+
+      {
+        project.highlights.length > 0 && (
+          <section class="study-section">
+            <h2 class="section-title">{ui("project.highlights", locale)}</h2>
+            <div class="hl-grid">
+              {project.highlights.map((h) => (
+                <article class="card hl">
+                  <p class="hl-text">{t(h.text, locale, sl)}</p>
+                  <p class="receipts-line">
+                    {h.evidence.map((e) => (
+                      <EvidenceLink
+                        evidence={e}
+                        repoUrl={repoUrl}
+                        isPrivate={isPrivate}
+                        locale={locale}
+                      />
+                    ))}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )
+      }
+
+      {
+        project.timeline.length > 0 && (
+          <section class="study-section">
+            <h2 class="section-title">{ui("project.timeline", locale)}</h2>
+            <Timeline
+              timeline={project.timeline}
+              locale={locale}
+              sourceLang={sl}
+              repoUrl={repoUrl}
+              isPrivate={isPrivate}
+            />
+          </section>
+        )
+      }
+
+      {
+        project.metrics && (
+          <section class="study-section">
+            <h2 class="section-title">{ui("project.metrics", locale)}</h2>
+            <div class="viz-stack">
+              {langs && <LanguageBars languages={project.metrics.languages} />}
+              {vel && (
+                <VelocitySparkline
+                  commitsByDay={project.metrics.total.commitsByDay}
+                  locale={locale}
+                />
+              )}
+              {heat && (
+                <ContributionHeatmap
+                  commitsByDay={project.metrics.total.commitsByDay}
+                  locale={locale}
+                />
+              )}
+              {!anyViz && <MetricChips project={project} locale={locale} />}
+            </div>
+          </section>
+        )
+      }
+
+      {
+        project.architectureDiagram && (
+          <section class="study-section">
+            <h2 class="section-title">{ui("project.architecture", locale)}</h2>
+            <figure class="card diagram">
+              <img
+                src={"/" + project.architectureDiagram}
+                alt={ui("project.architecture", locale)}
+                loading="lazy"
+              />
+            </figure>
+          </section>
+        )
+      }
+
+      {
+        project.screenshots.length > 0 && (
+          <section class="study-section">
+            <h2 class="section-title">{ui("project.screenshots", locale)}</h2>
+            <Screenshots
+              screenshots={project.screenshots}
+              locale={locale}
+              sourceLang={sl}
+            />
+          </section>
+        )
+      }
+    </div>
+  </article>
+</Base>
+
+<style>
+  .page {
+    margin-top: var(--space-8, 64px);
+    margin-bottom: var(--space-8, 64px);
+    display: grid;
+    gap: var(--nb-section-pad, 96px);
+  }
+
+  /* ---------- tl;dr masthead ---------- */
+  .tldr {
+    display: grid;
+    gap: var(--space-4, 16px);
+    border-bottom: 3px solid var(--line);
+    padding-bottom: var(--space-6, 32px);
+  }
+  .title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3, 12px);
+  }
+  .name {
+    margin: 0;
+    font-size: var(--nb-fs-d2);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .summary {
+    margin: 0;
+    font-size: var(--text-lg, 22px);
+    line-height: 1.5;
+    max-width: 60ch;
+  }
+  .tech :global(.tech-list) {
+    gap: var(--space-2, 8px);
+  }
+  .receipts {
+    margin: var(--space-2, 8px) 0 0;
+  }
+  .links-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3, 12px);
+    margin-top: var(--space-2, 8px);
+  }
+
+  /* ---------- proprietary note ---------- */
+  .note {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 13px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    border: 2px dashed var(--line);
+    background: var(--bg);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+  }
+
+  /* ---------- numbered case study ---------- */
+  .nb-study {
+    display: grid;
+    gap: var(--nb-section-pad, 96px);
+  }
+  /* CaseStudy renders its own sibling <section>s; keep the study rhythm even. */
+  .nb-study :global(.case-study) {
+    display: grid;
+    gap: var(--nb-section-pad, 96px);
+  }
+  .study-section {
+    display: grid;
+    gap: var(--space-5, 24px);
+  }
+
+  /* ---------- highlights ---------- */
+  .hl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: var(--space-5, 24px);
+  }
+  .hl {
+    padding: var(--space-5, 24px);
+  }
+  .hl-text {
+    margin: 0;
+    line-height: 1.65;
+  }
+  .receipts-line {
+    margin: var(--space-4, 16px) 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px) var(--space-4, 16px);
+    border-top: 2px solid var(--line);
+    padding-top: var(--space-3, 12px);
+  }
+
+  /* ---------- metrics viz ---------- */
+  .viz-stack {
+    display: grid;
+    gap: var(--space-7, 48px);
+  }
+
+  /* ---------- architecture ---------- */
+  .diagram {
+    margin: 0;
+    padding: var(--space-4, 16px);
+  }
+  .diagram img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  @media (max-width: 720px) {
+    .page {
+      margin-top: var(--space-7, 48px);
+      gap: var(--nb-section-pad, 64px);
+    }
+    .nb-study,
+    .nb-study :global(.case-study) {
+      gap: var(--nb-section-pad, 64px);
+    }
+  }
+</style>

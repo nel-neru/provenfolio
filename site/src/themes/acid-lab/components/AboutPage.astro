@@ -1,0 +1,188 @@
+---
+/**
+ * Acid-lab about — identity, bio, and computed evidence-linked skills. The
+ * skill list is never hand-typed: computeSkills(aggregates, profile) groups
+ * by category, each chip's title lists the backing project ids. Restyled
+ * into the lab (framed avatar, sticker role, mono contact rail); the data
+ * access and grouping are unchanged from the structural reference.
+ */
+import Base from "../../../layouts/Base.astro";
+import { t, ui } from "../../../lib/i18n.js";
+import { getProfile, getAggregates, computeSkills } from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const aggregates = await getAggregates();
+
+const skills = computeSkills(aggregates, profile);
+const CAT_ORDER = ["language", "framework", "runtime", "infra", "tool"];
+const catRank = (c: string) => {
+  const i = CAT_ORDER.indexOf(c);
+  return i === -1 ? 99 : i;
+};
+const categories = [...new Set(skills.map((s) => s.category))].sort(
+  (a, b) => catRank(a) - catRank(b) || a.localeCompare(b)
+);
+const skillGroups = categories.map((cat) => ({
+  cat,
+  items: skills.filter((s) => s.category === cat),
+}));
+---
+
+<Base locale={locale} title={ui("about.title", locale)} path="/about">
+  <div class="container page">
+    <header class="who">
+      {
+        profile.avatar && (
+          <img
+            class="avatar"
+            src={"/" + profile.avatar}
+            alt={profile.name}
+            width="96"
+            height="96"
+          />
+        )
+      }
+      <div class="who-id">
+        <h1 class="name">{profile.name}</h1>
+        <span class="sticker mag r2 role">{t(profile.role, locale, sl)}</span>
+      </div>
+    </header>
+
+    <p class="bio">{t(profile.bio, locale, sl)}</p>
+
+    {
+      skills.length > 0 && (
+        <section class="block">
+          <h2 class="section-title">{ui("about.skills", locale)}</h2>
+          <div class="skill-groups">
+            {skillGroups.map((g) => (
+              <div class="skill-row">
+                {g.items.map((s) => (
+                  <span
+                    class="chip"
+                    title={s.projectIds.join(", ") || undefined}
+                  >
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <section class="block">
+      <ul class="contact" role="list">
+        {
+          profile.socials.map((s) => (
+            <li>
+              <a href={s.url} rel="me noopener">
+                {s.platform}
+                <span aria-hidden="true"> ↗</span>
+              </a>
+              {s.handle && <span class="handle">@{s.handle}</span>}
+            </li>
+          ))
+        }
+        {
+          profile.email && (
+            <li>
+              <a href={`mailto:${profile.email}`}>{profile.email}</a>
+            </li>
+          )
+        }
+      </ul>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: var(--space-7);
+    max-width: 48rem;
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+  }
+  .avatar {
+    border-radius: var(--radius);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-sm);
+    flex: none;
+  }
+  .who-id {
+    display: grid;
+    gap: var(--space-3);
+    justify-items: start;
+  }
+  .name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .role {
+    /* sticker primitive supplies the pill + hard shadow + tilt */
+    text-transform: none;
+    letter-spacing: 0.04em;
+  }
+
+  .bio {
+    margin: var(--space-6) 0 0;
+    white-space: pre-line;
+    line-height: 1.9;
+    color: var(--text);
+  }
+
+  .block {
+    margin-top: var(--space-7);
+  }
+  .skill-groups {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .skill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .contact {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.04em;
+  }
+  .contact a:hover,
+  .contact a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .handle {
+    margin-left: 0.6em;
+    color: var(--text-faint);
+  }
+
+  @media (max-width: 520px) {
+    .who {
+      gap: var(--space-4);
+    }
+  }
+</style>

@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "-w", "studio"],
       "port": 4600
+    },
+    {
+      "name": "design-proposals",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "design:preview"],
+      "port": 4700
     }
   ]
 }

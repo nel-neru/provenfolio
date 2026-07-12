@@ -1,0 +1,305 @@
+---
+/**
+ * Cross-project history — the monograph's chronology plate. Density-gated by
+ * showHistoryPage(): until the data has time depth or breadth, an honest
+ * empty note plus the project register (sorted by first commit) renders
+ * instead of a bar chart that would lie. The full view is a pure-CSS
+ * horizontal span chart over projectSpans (clay/moss/faint bars on a manilla
+ * track), yearly activity as receipt chips, and a tech-adoption line from
+ * techFrequency. Structure/logic mirror the midnight HistoryPage; only the
+ * dress changes.
+ */
+import Base from "../../../layouts/Base.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import { ui, localePath } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  getAggregates,
+  getProjects,
+  showHistoryPage,
+} from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const aggregates = await getAggregates();
+const visible = showHistoryPage(aggregates);
+
+// Sparse branch: all projects, oldest first (still useful).
+const projects = await getProjects();
+const byFirstCommit = [...projects].sort((a, b) =>
+  (a.metrics?.total.firstCommit ?? "9999").localeCompare(
+    b.metrics?.total.firstCommit ?? "9999"
+  )
+);
+
+// Full branch: span bars across the min..max commit range.
+const DAY = 86_400_000;
+const spans = (aggregates?.projectSpans ?? []).filter(
+  (s) => s.firstCommit && s.lastCommit
+);
+const minT = spans.length
+  ? Math.min(...spans.map((s) => Date.parse(s.firstCommit!)))
+  : 0;
+const maxT = spans.length
+  ? Math.max(...spans.map((s) => Date.parse(s.lastCommit!)))
+  : 0;
+const range = Math.max(maxT - minT, DAY);
+
+const rows = spans.map((s) => ({
+  id: s.id,
+  name: s.name,
+  placement: s.placement,
+  commits: s.commits,
+  first: s.firstCommit!,
+  last: s.lastCommit!,
+  left: ((Date.parse(s.firstCommit!) - minT) / range) * 100,
+  width: Math.max(
+    ((Date.parse(s.lastCommit!) - Date.parse(s.firstCommit!)) / range) * 100,
+    1.5
+  ),
+}));
+
+// Year gridlines: Jan 1 of each year inside the range.
+const years: Array<{ year: number; left: number }> = [];
+if (spans.length) {
+  for (
+    let y = new Date(minT).getUTCFullYear() + 1;
+    y <= new Date(maxT).getUTCFullYear();
+    y++
+  ) {
+    const t = Date.parse(`${y}-01-01T00:00:00Z`);
+    if (t >= minT && t <= maxT) years.push({ year: y, left: ((t - minT) / range) * 100 });
+  }
+}
+
+const yearly = aggregates?.yearlyActivity ?? [];
+// Tech adoption note, ordered by first use.
+const adoption = (aggregates?.techFrequency ?? [])
+  .filter((t) => t.firstUsed)
+  .sort((a, b) => a.firstUsed!.localeCompare(b.firstUsed!));
+---
+
+<Base locale={locale} title={ui("history.title", locale)} path="/history">
+  <div class="container page">
+    <header class="page-head">
+      <h1 class="page-title">
+        {ui("history.title", locale)}<span class="fullstop" aria-hidden="true">.</span>
+      </h1>
+    </header>
+
+    {
+      !visible ? (
+        <>
+          <p class="empty-note">{ui("history.empty", locale)}</p>
+          <div class="grid">
+            {byFirstCommit.map((p) => (
+              <ProjectCard
+                project={p}
+                locale={locale}
+                sourceLang={sl}
+                defaultLocale={defaultLocale}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <section class="block">
+            <div class="span-chart">
+              {years.map((y) => (
+                <span
+                  class="year-line"
+                  style={`left:${y.left}%`}
+                  aria-hidden="true"
+                >
+                  <span class="year-label">{y.year}</span>
+                </span>
+              ))}
+              {rows.map((r) => (
+                <div class="span-row">
+                  <a
+                    class="span-name"
+                    href={localePath(`/projects/${r.id}`, locale, defaultLocale)}
+                  >
+                    {r.name}
+                  </a>
+                  <div class="track">
+                    <span
+                      class:list={["bar", `pl-${r.placement}`]}
+                      style={`left:${r.left}%;width:${r.width}%`}
+                      title={`${r.first} — ${r.last}`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {yearly.length > 0 && (
+            <section class="block">
+              <div class="year-chips">
+                {yearly.map((y) => (
+                  <span class="chip">
+                    <b>{y.year}</b> {y.commits} {ui("metrics.commits", locale)} ·{" "}
+                    {y.activeDays} {ui("metrics.activeDays", locale)}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {adoption.length > 0 && (
+            <section class="block">
+              <p class="adoption">
+                {adoption.map((t, i) => (
+                  <span class="adoption-item">
+                    {i > 0 && <span class="sep" aria-hidden="true"> · </span>}
+                    {t.name}
+                    <span class="since"> {t.firstUsed!.slice(0, 4)}~</span>
+                  </span>
+                ))}
+              </p>
+            </section>
+          )}
+        </>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .page {
+    margin-top: clamp(2.5rem, 6vh, 4rem);
+    padding-bottom: 2rem;
+  }
+  .page-head {
+    margin-bottom: var(--sec-gap);
+  }
+  .page-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-size: var(--fs-title);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .empty-note {
+    margin: 0 0 2.5rem;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: var(--fs-lede);
+    color: var(--text-dim);
+    max-width: 46ch;
+  }
+  .empty-note:lang(ja) {
+    font-family: var(--font-sans);
+    font-style: normal;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+    gap: 1.25rem;
+  }
+  .block + .block {
+    margin-top: var(--sec-gap);
+  }
+
+  /* Span chart: a book's chronology plate — mono year rules, hairline
+     tracks, editorial clay/moss bars keyed to placement. */
+  .span-chart {
+    position: relative;
+    display: grid;
+    gap: 1.05rem;
+    padding-block: 1.75rem 0.5rem;
+  }
+  .year-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 1px dashed var(--line-strong);
+  }
+  .year-label {
+    position: absolute;
+    top: -0.4rem;
+    left: 0.4rem;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--fs-mono-sm);
+    color: var(--text-faint);
+  }
+  .span-row {
+    display: grid;
+    grid-template-columns: minmax(8rem, 14rem) 1fr;
+    align-items: center;
+    gap: 1rem;
+  }
+  .span-name {
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .span-name:hover {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.22em;
+    text-decoration-color: currentColor;
+  }
+  .track {
+    position: relative;
+    height: 7px;
+    background: var(--bg-overlay);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    overflow: hidden;
+  }
+  .bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 0;
+    background: var(--text-faint);
+  }
+  .pl-products {
+    background: var(--accent);
+  }
+  .pl-lab {
+    background: var(--ok);
+  }
+  .pl-archive {
+    background: var(--line-strong);
+  }
+  .year-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .adoption {
+    margin: 0;
+    font-family: var(--font-serif);
+    color: var(--text-dim);
+    font-size: 1rem;
+    line-height: 2;
+  }
+  .adoption:lang(ja) {
+    font-family: var(--font-sans);
+  }
+  .sep {
+    color: var(--line-strong);
+  }
+  .since {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 0.78em;
+  }
+</style>

@@ -32,6 +32,7 @@ const DOC_PAIRS: Array<{ canonical: string; translation: string }> = [
     "DATA-CONTRACT",
     "EXTENDING-SOURCES",
     "PIPELINE",
+    "DESIGN",
   ].map((n) => ({
     canonical: `engine/docs/${n}.md`,
     translation: `engine/docs/${n}.ja.md`,
@@ -134,6 +135,9 @@ const tracked = execFileSync(
 for (const rel of tracked) {
   if (!SCAN_EXTENSIONS.has(path.extname(rel))) continue;
   if (JAPANESE_ALLOWLIST.some((re) => re.test(rel))) continue;
+  // ls-files also reports index entries whose working-tree file was deleted
+  // but not yet staged — nothing to scan there.
+  if (!fs.existsSync(path.join(ROOT, rel))) continue;
   const lines = read(rel).split("\n");
   const hits: number[] = [];
   lines.forEach((line, i) => {

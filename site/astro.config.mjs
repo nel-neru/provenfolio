@@ -2,6 +2,7 @@
 import { defineConfig } from "astro/config";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { activeTheme } from "./theme.config.mjs";
 
 /**
  * Locales come from the owner's profile — the engine never hardcodes them.
@@ -9,6 +10,16 @@ import { fileURLToPath } from "node:url";
  */
 const profile = JSON.parse(
   readFileSync(fileURLToPath(new URL("../data/profile.json", import.meta.url)), "utf8")
+);
+
+/**
+ * "@theme" resolves to the active theme package (theme.config.mjs). All
+ * site code imports theme files through this alias so switching themes is
+ * a one-line config change; the static imports keep Astro's CSS collection
+ * intact (a dynamic-import resolver would not).
+ */
+const themeDir = fileURLToPath(
+  new URL(`./src/themes/${activeTheme}`, import.meta.url)
 );
 
 export default defineConfig({
@@ -21,6 +32,9 @@ export default defineConfig({
     },
   },
   vite: {
+    resolve: {
+      alias: { "@theme": themeDir },
+    },
     server: {
       fs: {
         // allow importing engine schemas and data/ from outside site/

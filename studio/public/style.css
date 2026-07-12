@@ -1,16 +1,4 @@
-/* Provenfolio Studio — dark theme consistent with the site */
-:root {
-  --bg: #0b0d12;
-  --raised: #12151d;
-  --line: #262b38;
-  --text: #e8eaf0;
-  --dim: #9aa1b5;
-  --accent: #7c9aff;
-  --red: #e5636e;
-  --yellow: #e0b34c;
-  --green: #5fbf77;
-  --radius: 10px;
-}
+/* Provenfolio Studio — design tokens come from the active site theme via /theme.css */
 
 * { box-sizing: border-box; }
 
@@ -19,7 +7,7 @@ html, body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, "Noto Sans JP", sans-serif;
+  font-family: var(--font-sans, system-ui, "Noto Sans JP", sans-serif);
   font-size: 14px;
 }
 
@@ -31,7 +19,7 @@ html, body {
   min-width: 280px;
   display: flex;
   flex-direction: column;
-  background: var(--raised);
+  background: var(--bg-raised);
   border-right: 1px solid var(--line);
 }
 #owner-name {
@@ -46,7 +34,7 @@ html, body {
   margin: 12px 16px 6px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--dim);
+  color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -56,15 +44,15 @@ html, body {
   cursor: pointer;
   border-left: 3px solid transparent;
 }
-#lists li:hover { background: rgba(124, 154, 255, 0.06); }
+#lists li:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 #lists li.selected {
-  background: rgba(124, 154, 255, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-left-color: var(--accent);
 }
 .item-name { display: flex; align-items: center; gap: 6px; }
-.item-name .star { color: var(--yellow); }
-.item-name .pending { color: var(--dim); }
-.empty-hint { color: var(--dim); padding: 4px 16px; font-size: 12px; }
+.item-name .star { color: var(--warn); }
+.item-name .pending { color: var(--text-dim); }
+.empty-hint { color: var(--text-dim); padding: 4px 16px; font-size: 12px; }
 
 .meter {
   margin-top: 6px;
@@ -74,7 +62,7 @@ html, body {
   overflow: hidden;
 }
 .meter > span { display: block; height: 100%; border-radius: 3px; }
-.meter-score { font-size: 11px; color: var(--dim); margin-top: 3px; }
+.meter-score { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
 
 #sidebar-actions {
   padding: 12px;
@@ -98,12 +86,12 @@ button:hover { border-color: var(--accent); }
 button.accent {
   background: var(--accent);
   border-color: var(--accent);
-  color: #0b0d12;
+  color: var(--bg);
   font-weight: 600;
 }
 button.accent:hover { filter: brightness(1.1); }
-button.danger { color: var(--red); }
-button.danger:hover { border-color: var(--red); }
+button.danger { color: var(--error, #e5636e); }
+button.danger:hover { border-color: var(--error, #e5636e); }
 button.small { padding: 3px 9px; font-size: 12px; border-radius: 6px; }
 
 input, select, textarea {
@@ -124,7 +112,7 @@ input[type="checkbox"] { width: auto; }
 
 /* ---------- Main panel ---------- */
 #main { flex: 1; overflow-y: auto; }
-#main-empty { padding: 48px; color: var(--dim); }
+#main-empty { padding: 48px; color: var(--text-dim); }
 #main-content { padding: 0 28px 120px; max-width: 1100px; }
 #main-header {
   position: sticky;
@@ -141,27 +129,27 @@ input[type="checkbox"] { width: auto; }
   background: none;
   border-radius: 0;
   border-bottom: 2px solid transparent;
-  color: var(--dim);
+  color: var(--text-dim);
   padding: 8px 14px;
 }
 #tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
 #tabs button:hover { color: var(--text); }
 
 .card {
-  background: var(--raised);
+  background: var(--bg-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 18px;
   margin: 18px 0;
 }
 .card h3 { margin: 0 0 14px; font-size: 15px; }
-.card h4 { margin: 18px 0 8px; font-size: 13px; color: var(--dim); }
+.card h4 { margin: 18px 0 8px; font-size: 13px; color: var(--text-dim); }
 
 .field { margin-bottom: 14px; }
 .field label {
   display: block;
   font-size: 12px;
-  color: var(--dim);
+  color: var(--text-dim);
   margin-bottom: 5px;
 }
 .field-row { display: flex; gap: 12px; }
@@ -171,11 +159,11 @@ input[type="checkbox"] { width: auto; }
 .missing-list li {
   padding: 7px 0;
   border-bottom: 1px solid var(--line);
-  color: var(--yellow);
+  color: var(--warn);
 }
 .missing-list li::before { content: "⚠ "; }
 .missing-list li:last-child { border-bottom: none; }
-.all-done { color: var(--green); }
+.all-done { color: var(--ok); }
 
 .big-meter { height: 10px; margin: 8px 0 4px; }
 .big-score { font-size: 26px; font-weight: 700; }
@@ -186,7 +174,7 @@ input[type="checkbox"] { width: auto; }
 
 /* Prose: side-by-side locale columns */
 .prose-field { margin-bottom: 18px; }
-.prose-field > .prose-label { font-size: 12px; color: var(--dim); margin-bottom: 6px; }
+.prose-field > .prose-label { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
 .prose-cols { display: flex; gap: 12px; }
 .prose-col { flex: 1; min-width: 0; }
 .prose-col .lang-tag {
@@ -211,7 +199,7 @@ input[type="checkbox"] { width: auto; }
   border-radius: 6px;
   background: var(--line);
 }
-.shot-card .src { font-size: 11px; color: var(--dim); word-break: break-all; margin: 6px 0; }
+.shot-card .src { font-size: 11px; color: var(--text-dim); word-break: break-all; margin: 6px 0; }
 .shot-card .alt-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
 .shot-card .alt-row .lang-tag { font-size: 11px; color: var(--accent); width: 22px; }
 
@@ -220,7 +208,7 @@ input[type="checkbox"] { width: auto; }
   position: fixed;
   left: 0; right: 0; bottom: 0;
   height: 280px;
-  background: var(--raised);
+  background: var(--bg-raised);
   border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -232,7 +220,7 @@ input[type="checkbox"] { width: auto; }
   align-items: center;
   padding: 6px 14px;
   border-bottom: 1px solid var(--line);
-  color: var(--dim);
+  color: var(--text-dim);
   font-size: 12px;
 }
 #drawer-bar button { border: none; background: none; font-size: 16px; padding: 2px 8px; }
@@ -241,7 +229,7 @@ input[type="checkbox"] { width: auto; }
   overflow-y: auto;
   margin: 0;
   padding: 12px 14px;
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
   font-size: 12px;
   line-height: 1.55;
   color: var(--text);
@@ -254,11 +242,11 @@ input[type="checkbox"] { width: auto; }
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: var(--raised);
+  background: var(--bg-raised);
   border: 1px solid var(--accent);
   border-radius: var(--radius);
   padding: 10px 18px;
   z-index: 30;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
 }
-#toast.error { border-color: var(--red); color: var(--red); }
+#toast.error { border-color: var(--error, #e5636e); color: var(--error, #e5636e); }

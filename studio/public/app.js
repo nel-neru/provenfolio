@@ -112,7 +112,7 @@ function locales() {
   return [prof.sourceLang, ...(prof.targetLangs || [])];
 }
 function meterColor(score) {
-  return score < 50 ? "var(--red)" : score < 80 ? "var(--yellow)" : "var(--green)";
+  return score < 50 ? "var(--error, #e5636e)" : score < 80 ? "var(--warn)" : "var(--ok)";
 }
 
 // ---------------------------------------------------------------------------
@@ -289,7 +289,7 @@ function intakeTab(intake, project) {
   if (!intake) {
     frag.append(el("div", { class: "card" }, [
       el("h3", {}, t("tabIntake")),
-      el("p", { style: "color:var(--dim)" }, t("noIntakeFile")),
+      el("p", { style: "color:var(--text-dim)" }, t("noIntakeFile")),
     ]));
     return frag;
   }
@@ -425,7 +425,7 @@ function intakeTab(intake, project) {
   renderOutcomes();
   const outcomesCard = el("div", { class: "card" }, [
     el("h3", {}, t("outcomesHeading")),
-    el("p", { style: "color:var(--dim);font-size:12px;margin-top:0" }, t("outcomesNote")),
+    el("p", { style: "color:var(--text-dim);font-size:12px;margin-top:0" }, t("outcomesNote")),
     outcomesBox,
   ]);
 
@@ -605,11 +605,11 @@ function proseTab(project) {
       );
     });
     if (project.timeline.length === 0) {
-      card.append(el("p", { style: "color:var(--dim)" }, t("noTimeline")));
+      card.append(el("p", { style: "color:var(--text-dim)" }, t("noTimeline")));
     }
   }));
 
-  frag.append(el("p", { style: "color:var(--dim);font-size:12px" }, t("proseOwnershipNote")));
+  frag.append(el("p", { style: "color:var(--text-dim);font-size:12px" }, t("proseOwnershipNote")));
   return frag;
 }
 
@@ -642,7 +642,7 @@ function mediaTab(project) {
   frag.append(el("div", { class: "card" }, [
     el("h3", {}, t("addScreenshots")),
     el("div", { class: "dyn-row" }, [fileInput, uploadBtn]),
-    el("p", { style: "color:var(--dim);font-size:12px;margin-bottom:0" }, t("screenshotNote")),
+    el("p", { style: "color:var(--text-dim);font-size:12px;margin-bottom:0" }, t("screenshotNote")),
   ]));
 
   const grid = el("div", { class: "shots-grid" });
@@ -678,7 +678,7 @@ function mediaTab(project) {
     ]));
   }
   if (project.screenshots.length === 0) {
-    grid.append(el("p", { style: "color:var(--dim)" }, t("noScreenshots")));
+    grid.append(el("p", { style: "color:var(--text-dim)" }, t("noScreenshots")));
   }
   frag.append(el("div", { class: "card" }, [el("h3", {}, t("registeredHeading")), grid]));
   return frag;

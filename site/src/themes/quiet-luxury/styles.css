@@ -1,0 +1,581 @@
+/*
+ * Quiet Luxury theme stylesheet — a printed monograph on warm paper.
+ * Owns the typographic rhythm, the book primitives (kicker, caplink,
+ * metaline, spec sheet, plates, colophon, finis) and the shared primitive
+ * classes every leaf component relies on: .card, .chip, .section-title,
+ * .evidence-link. Showcase-only drama is scoped under
+ * body[data-surface="showcase"]; reduced motion gets the settled page.
+ */
+
+:root {
+  /* Theme-local constants outside the token contract (see proposal). */
+  --line-strong: #c9bda6; /* strong table rules */
+  --font-serif: "Source Serif 4", "Hiragino Mincho ProN", "Yu Mincho",
+    Georgia, serif; /* reading-prose voice (ThemeTokens has no serif slot) */
+
+  /* One modular type ladder for every page (~1.24 ratio). */
+  --fs-caps-sm: 0.65rem; /* dense small caps: spec labels, receipts, meta */
+  --fs-caps: 0.7rem; /* standard small caps: nav, kickers, sec heads */
+  --fs-mono-sm: 0.72rem; /* mono annotations: legends, colophon */
+  --fs-mono: 0.8rem; /* mono data: indices, dates, receipts */
+  --fs-prose: 1.0625rem; /* serif reading size */
+  --fs-lede: clamp(1.125rem, 1.02rem + 0.55vw, 1.35rem);
+  --fs-h3: 1.3125rem;
+  --fs-title: clamp(1.7rem, 3.4vw, 2.15rem);
+  --sec-gap: clamp(3.25rem, 8vh, 5.5rem);
+}
+
+/* ---------- body rhythm: paper grain, warm ink ---------- */
+
+body[data-surface] {
+  line-height: 1.65;
+  /* Paper grain at 2.8% — the surface itself is the brand. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.028'/%3E%3C/svg%3E");
+}
+
+body[data-surface]:lang(ja) {
+  line-height: 1.9;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 430;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- links: never hue-alone ---------- */
+
+body a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: color-mix(in srgb, currentColor 32%, transparent);
+  transition:
+    text-decoration-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+body a:hover {
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 0.22em;
+}
+
+body :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---------- small-caps wayfinding: one voice for nav/socials/CTAs ---------- */
+
+body a.caplink {
+  font-family: var(--font-sans);
+  font-size: var(--fs-caps);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+body a.caplink:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+  text-decoration-color: currentColor;
+}
+body a.caplink.ext::after {
+  content: " \2197";
+  color: var(--text-faint);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+body a.caplink.clay {
+  color: var(--accent);
+}
+
+/* The one clay quirk, carried on every page. */
+.fullstop {
+  color: var(--show-accent2, var(--accent));
+}
+
+hr.rule-strong {
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- kicker: small-caps page opener ---------- */
+
+.kicker {
+  margin: 0 0 1.5rem;
+  color: var(--text-faint);
+  font-size: var(--fs-caps);
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+.kicker:lang(ja) {
+  letter-spacing: 0.3em;
+  font-weight: 500;
+}
+
+/* ---------- section heads: clay mono index + small caps + trailing rule ----------
+   .section-title is the shared primitive (CaseStudy and pages emit it);
+   a .folio ancestor resets the chapter counter. */
+
+.folio {
+  counter-reset: sec;
+}
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 0 0 1.9rem;
+  font-family: var(--font-sans);
+  font-size: var(--fs-caps);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.section-title::before {
+  counter-increment: sec;
+  content: counter(sec, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-mono);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--accent);
+}
+.section-title::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line);
+  transform: translateY(-0.2em);
+}
+.section-title:lang(ja) {
+  letter-spacing: 0.14em;
+}
+
+/* ---------- standfirst: the lede under a display title ---------- */
+
+.stand-first {
+  margin: 1.9rem 0 0;
+  max-width: 44ch;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--fs-lede);
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+.stand-first:lang(ja) {
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 600;
+  font-feature-settings: "palt" 1;
+  line-height: 1.75;
+  letter-spacing: 0.04em;
+  font-size: clamp(1.0625rem, 1rem + 0.5vw, 1.25rem);
+}
+
+/* ---------- meta lines: middot small caps (category, role, tech) ---------- */
+
+.metaline {
+  margin: 0.6rem 0 0;
+  font-size: var(--fs-caps-sm);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.metaline:lang(ja) {
+  letter-spacing: 0.22em;
+  font-weight: 500;
+}
+.metaline .dot {
+  color: var(--line-strong);
+  margin-inline: 0.45em;
+}
+/* CategoryBadge inside a metaline sheds its chip box, keeps its dot. */
+.metaline .chip {
+  display: inline-flex;
+  background: none;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  white-space: normal;
+}
+/* TechStackList inside a metaline becomes a middot-separated line. */
+.metaline .tech-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+}
+.metaline .tech-list .chip + .chip::before {
+  content: "\00B7";
+  color: var(--line-strong);
+  margin-inline: 0.45em;
+}
+
+/* ---------- spec sheet: hairline-ruled, mono digits ---------- */
+
+.spec {
+  align-self: start;
+}
+.spec-caption {
+  margin: 0 0 0.45rem;
+  font-size: var(--fs-caps-sm);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.spec-rows {
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.spec-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.62rem 0;
+  border-top: 1px solid var(--line);
+}
+.spec-row dt {
+  font-size: var(--fs-caps-sm);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.spec-row dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+/* LanguageBars inside a spec rail: 5px print-registration microbar,
+   legend as a mono annotation line. */
+.spec .langbars {
+  margin-top: 1rem;
+}
+.spec .langbars svg {
+  height: 5px;
+  border-radius: 0;
+}
+.spec .langbars .legend {
+  gap: 0.2rem 0.9rem;
+  margin-top: 0.5rem;
+}
+.spec .langbars .legend li {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  gap: 0.35em;
+}
+.spec .langbars .legend .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+}
+.spec .langbars .legend .name {
+  color: var(--text-faint);
+}
+.spec .langbars .legend .pct {
+  color: var(--text-dim);
+}
+
+/* LanguageBars as the reading-page composition table. */
+.langs-detail {
+  max-width: 40rem;
+}
+.langs-detail .langbars svg {
+  height: 7px;
+  border-radius: 0;
+}
+.langs-detail .langbars .legend {
+  display: block;
+  margin-top: 1.5rem;
+}
+.langs-detail .langbars .legend li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm, 0.875rem);
+}
+.langs-detail .langbars .legend li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.langs-detail .langbars .legend .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+}
+.langs-detail .langbars .legend .name {
+  color: var(--text-dim);
+}
+.langs-detail .langbars .legend .pct {
+  margin-left: auto;
+  font-size: var(--fs-mono);
+  color: var(--text-dim);
+}
+
+/* ---------- case-study prose: book measure, serif reading voice ---------- */
+
+.case-study .prose {
+  font-family: var(--font-serif);
+  font-size: var(--fs-prose);
+  line-height: 1.75;
+  max-width: 66ch;
+}
+.case-study .prose:lang(ja) {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.95;
+}
+
+/* ---------- colophon rows (skills on home/about): typographic list ---------- */
+
+.col-row {
+  display: grid;
+  grid-template-columns: 14rem 1fr;
+  gap: 1.5rem;
+  border-top: 1px solid var(--line);
+  padding: 1.15rem 0;
+}
+.col-row:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.col-label {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-mono);
+  color: var(--accent);
+  padding-top: 0.2rem;
+}
+.col-items {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-dim);
+}
+.col-items .dot {
+  color: var(--line-strong);
+  margin-inline: 0.55em;
+}
+@media (max-width: 720px) {
+  .col-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
+
+/* ---------- shared primitives the leaf components rely on ---------- */
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* Chips speak in the receipt voice: manilla tab, hairline, mono numbers. */
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  padding: 0.16rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.chip b {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  color: var(--text);
+}
+
+/* Evidence receipts: mono chips on manilla — the trust affordance. */
+.evidence-link {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  color: var(--text-dim);
+  background: var(--bg-overlay);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.22rem 0.6rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+body a.evidence-link {
+  text-decoration: none;
+  color: var(--text-dim);
+}
+body a.evidence-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--bg-raised);
+  text-decoration: none;
+}
+
+.receipt-label {
+  font-size: var(--fs-caps-sm);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ---------- restyled shared cards (Projects/History grids) ---------- */
+
+.project-card .name {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 1.18rem;
+  font-weight: 450;
+  letter-spacing: -0.005em;
+}
+.project-card .summary {
+  font-family: var(--font-serif);
+}
+body a.project-card {
+  text-decoration: none;
+  box-shadow: none;
+}
+body a.project-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md, none);
+  text-decoration: none;
+}
+
+/* ---------- timeline (shared viz) in the book voice ---------- */
+
+.tl-frame .timeline::before {
+  width: 1px;
+  border-radius: 0;
+  background: var(--line-strong);
+  left: 4px;
+}
+.tl-frame .event::before {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--bg);
+  background: var(--line-strong);
+}
+.tl-frame .event:last-child::before {
+  background: var(--show-accent2, var(--accent));
+}
+.tl-frame .event-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.08rem;
+}
+
+/* ---------- end ornament ---------- */
+
+.finis {
+  margin: var(--sec-gap) 0 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  color: var(--show-accent2, var(--accent));
+  letter-spacing: 0.6em;
+  padding-left: 0.6em;
+}
+
+/* ============================================================
+   Showcase drama (home only): the once-per-load staggered rise
+   and one L-to-R rule draw — the reading-direction metaphor.
+   Defined ONLY under no-preference: with reduced motion there is
+   no animation at all and the settled page IS the design.
+   ============================================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+  body[data-surface="showcase"] .rise {
+    animation: ql-rise 0.7s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  body[data-surface="showcase"] .rise.d1 {
+    animation-delay: 0.08s;
+  }
+  body[data-surface="showcase"] .rise.d2 {
+    animation-delay: 0.16s;
+  }
+  body[data-surface="showcase"] .rise.d3 {
+    animation-delay: 0.24s;
+  }
+  body[data-surface="showcase"] .rise.d4 {
+    animation-delay: 0.32s;
+  }
+  body[data-surface="showcase"] .rule-draw {
+    transform-origin: left;
+    animation: ql-draw 0.9s ease both 0.45s;
+  }
+}
+
+@keyframes ql-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ql-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* ---------- print: the page is already a book chapter ---------- */
+
+@media print {
+  body[data-surface] {
+    background-image: none;
+  }
+  .finis {
+    display: none;
+  }
+  .evidence-link,
+  .chip {
+    background: #fff;
+    border-color: #ccc;
+    color: #333;
+  }
+}

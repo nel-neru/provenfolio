@@ -1,5 +1,12 @@
 {
   "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    // Editor/astro-check mirror of the "@theme" Vite alias (astro.config.mjs).
+    // Points at the ACTIVE theme; /design switch updates it with theme.config.mjs.
+    "paths": {
+      "@theme/*": ["./src/themes/midnight/*"]
+    }
+  },
   "include": [".astro/types.d.ts", "src/**/*", "astro.config.mjs"],
   "exclude": ["dist"]
 }

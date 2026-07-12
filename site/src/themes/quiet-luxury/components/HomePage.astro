@@ -1,0 +1,358 @@
+---
+/**
+ * Home — the monograph cover. Pure typographic hero (this theme replaces
+ * the WebGL canvas with paper + type, per the proposal): small-caps kicker,
+ * oversized Fraunces name with the clay full stop, serif standfirst,
+ * small-caps socials. Then one drawn rule, the front-matter totals table,
+ * featured projects as numbered plates with hairline spec rails, and
+ * skills as a colophon list. Shared by / and /<lang>/ routes.
+ */
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import LanguageBars from "../../../components/viz/LanguageBars.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  getAggregates,
+  getFeatured,
+  computeSkills,
+  showLanguages,
+} from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const aggregates = await getAggregates();
+const featured = await getFeatured();
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+
+const skills = computeSkills(aggregates, profile);
+const CAT_ORDER = ["language", "framework", "runtime", "infra", "tool"];
+const catRank = (c: string) => {
+  const i = CAT_ORDER.indexOf(c);
+  return i === -1 ? 99 : i;
+};
+const categories = [...new Set(skills.map((s) => s.category))].sort(
+  (a, b) => catRank(a) - catRank(b) || a.localeCompare(b)
+);
+const skillGroups = categories.map((cat) => ({
+  cat,
+  items: skills.filter((s) => s.category === cat),
+}));
+
+const num = (n: number) => n.toLocaleString(locale);
+const index = (i: number) => String(i + 1).padStart(2, "0");
+const role = t(profile.role, locale, sl);
+const tagline = t(profile.tagline, locale, sl);
+---
+
+<Base locale={locale} path="/" ogImage="/og/profile.png" surface="showcase">
+  <section class="hero container">
+    {role && <p class="kicker rise">{role}</p>}
+    <h1 class="hero-name rise d1">
+      {profile.name}<span class="fullstop" aria-hidden="true">.</span>
+    </h1>
+    {tagline && <p class="stand-first rise d2">{tagline}</p>}
+    {
+      profile.socials.length > 0 && (
+        <div class="hero-socials rise d3">
+          {profile.socials.map((s) => (
+            <a class="caplink ext" href={s.url} rel="me noopener">
+              {s.platform}
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </section>
+
+  <div class="container" aria-hidden="true"><hr class="rule-strong rule-draw" /></div>
+
+  {
+    aggregates && (
+      <section class="frontmatter container rise d4">
+        <div class="fm-grid">
+          <div class="fm-cell">
+            <span class="fm-num">{num(aggregates.totals.commits)}</span>
+            <span class="fm-label">{ui("metrics.commits", locale)}</span>
+          </div>
+          <div class="fm-cell">
+            <span class="fm-num">{num(aggregates.totals.activeDays)}</span>
+            <span class="fm-label">{ui("metrics.activeDays", locale)}</span>
+          </div>
+          <div class="fm-cell">
+            <span class="fm-num">{num(aggregates.totals.projects)}</span>
+            <span class="fm-label">{ui("nav.projects", locale)}</span>
+          </div>
+          <div class="fm-cell">
+            <span class="fm-num">{num(aggregates.techFrequency.length)}</span>
+            <span class="fm-label">{ui("home.skills", locale)}</span>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <div class="folio">
+    {
+      featured.length > 0 && (
+        <section class="sec container">
+          <h2 class="section-title" data-reveal>{ui("home.featured", locale)}</h2>
+          <div data-reveal-group>
+            {featured.map((p, i) => {
+              const m = p.metrics;
+              const summary = t(p.summary, locale, sl);
+              return (
+                <article class="plate" data-reveal>
+                  <div class="plate-index" aria-hidden="true">{index(i)}&thinsp;&mdash;</div>
+                  <div class="plate-body">
+                    <h3 class="plate-title">
+                      <a href={lp(`/projects/${p.id}`)}>{p.name}</a>
+                    </h3>
+                    <p class="metaline">
+                      <CategoryBadge category={p.category} locale={locale} />
+                      {p.role && (
+                        <>
+                          <span class="dot" aria-hidden="true">&middot;</span>
+                          <span>{ui(`project.role.${p.role.type}`, locale)}</span>
+                        </>
+                      )}
+                    </p>
+                    {summary && <p class="plate-sum">{summary}</p>}
+                    {p.techStack.length > 0 && (
+                      <p class="metaline plate-tech">
+                        <TechStackList techStack={p.techStack} max={5} />
+                      </p>
+                    )}
+                  </div>
+                  {m && (
+                    <aside class="spec" aria-label={ui("project.metrics", locale)}>
+                      <dl class="spec-rows">
+                        <div class="spec-row">
+                          <dt>{ui("metrics.commits", locale)}</dt>
+                          <dd>{num(m.total.commits)}</dd>
+                        </div>
+                        <div class="spec-row">
+                          <dt>{ui("metrics.activeDays", locale)}</dt>
+                          <dd>{num(m.total.activeDays)}</dd>
+                        </div>
+                        <div class="spec-row">
+                          <dt>{ui("metrics.span", locale)}</dt>
+                          <dd>
+                            {num(m.total.durationDays)}{ui("metrics.days", locale)}
+                          </dd>
+                        </div>
+                      </dl>
+                      {showLanguages(p) && <LanguageBars languages={m.languages} />}
+                    </aside>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+          <p class="view-all">
+            <a class="caplink" href={lp("/projects")}>
+              {ui("home.viewAll", locale)}&thinsp;&rarr;
+            </a>
+          </p>
+        </section>
+      )
+    }
+
+    {
+      skills.length > 0 && (
+        <section class="sec container">
+          <h2 class="section-title" data-reveal>{ui("home.skills", locale)}</h2>
+          <div data-reveal-group>
+            {skillGroups.map((g, i) => (
+              <div class="col-row" data-reveal>
+                <div class="col-label" aria-hidden="true">{index(i)}</div>
+                <p class="col-items">
+                  {g.items.map((s, j) => (
+                    <>
+                      {j > 0 && <span class="dot" aria-hidden="true">&middot;</span>}
+                      <span title={s.projectIds.join(", ") || undefined}>{s.name}</span>
+                    </>
+                  ))}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .hero {
+    padding-block: clamp(4.5rem, 12vh, 8rem) clamp(3rem, 8vh, 5rem);
+  }
+  .hero-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-size: var(--show-hero-scale, var(--text-display, 3.5rem));
+    font-weight: 370;
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .hero :global(.stand-first) {
+    margin-top: 2rem;
+  }
+  .hero-socials {
+    margin-top: 2.4rem;
+    display: flex;
+    gap: 1.8rem;
+    flex-wrap: wrap;
+  }
+
+  /* Front matter: script-produced totals as a book's front-pages table. */
+  .frontmatter {
+    border-bottom: 1px solid var(--line-strong, var(--line));
+  }
+  .fm-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .fm-cell {
+    padding: 1.6rem 1.25rem 1.5rem;
+    border-left: 1px solid var(--line);
+  }
+  .fm-cell:first-child {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .fm-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.65rem;
+    letter-spacing: -0.01em;
+  }
+  .fm-label {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: var(--fs-caps-sm, 0.65rem);
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .sec {
+    padding-block: var(--sec-gap, 4rem) 0;
+  }
+
+  /* Plates: numbered catalog entries with a hairline 15.5rem spec rail. */
+  .plate {
+    display: grid;
+    grid-template-columns: 3.4rem 1fr 15.5rem;
+    gap: 0 2.5rem;
+    border-top: 1px solid var(--line);
+    padding: 2.6rem 1.4rem;
+    margin-inline: -1.4rem;
+    transition:
+      background-color 0.22s ease,
+      box-shadow 0.22s ease;
+  }
+  .plate:last-of-type {
+    border-bottom: 1px solid var(--line);
+  }
+  .plate:hover,
+  .plate:focus-within {
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-md, none);
+  }
+  .plate-index {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--fs-mono, 0.8rem);
+    color: var(--accent);
+    padding-top: 0.5rem;
+  }
+  .plate-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-size: var(--fs-title, 1.9rem);
+    font-weight: 430;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .plate-title a {
+    text-decoration: none;
+    color: var(--text);
+  }
+  .plate-title a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.14em;
+    text-decoration-color: var(--show-accent2, var(--accent));
+  }
+  .plate-sum {
+    margin: 1.15rem 0 0;
+    font-family: var(--font-serif, var(--font-sans));
+    font-size: var(--fs-prose, 1.0625rem);
+    line-height: 1.72;
+    max-width: 58ch;
+  }
+  .plate-sum:lang(ja) {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+  .plate-body :global(.plate-tech) {
+    margin-top: 1.2rem;
+  }
+  .view-all {
+    margin: 1.6rem 0 0;
+  }
+
+  @media (max-width: 900px) {
+    .plate {
+      grid-template-columns: 3.4rem 1fr;
+    }
+    .plate :global(.spec) {
+      grid-column: 2;
+      margin-top: 1.6rem;
+      max-width: 26rem;
+    }
+  }
+  @media (max-width: 720px) {
+    .fm-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .fm-cell {
+      border-left: 0;
+      padding-inline: 0;
+    }
+    .fm-cell:nth-child(2n) {
+      border-left: 1px solid var(--line);
+      padding-left: 1.25rem;
+    }
+    .fm-cell:nth-child(n + 3) {
+      border-top: 1px solid var(--line);
+    }
+    .plate {
+      grid-template-columns: 1fr;
+      padding-inline: 1.1rem;
+      margin-inline: -1.1rem;
+    }
+    .plate-index {
+      padding-top: 0;
+      margin-bottom: 0.5rem;
+    }
+    .plate :global(.spec) {
+      grid-column: 1;
+    }
+  }
+</style>

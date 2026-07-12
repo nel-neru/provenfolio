@@ -1,0 +1,476 @@
+/*
+ * Neo-brutalist theme stylesheet — the SHARED SYSTEM from the proposal
+ * mockups: paper + ink + one shrieking accent, 2px borders, hard zero-blur
+ * shadows, zero radius. Owns typography rhythm plus the shared primitive
+ * classes every leaf component relies on (.card, .chip, .section-title,
+ * .evidence-link) and the theme-wide voices (.stamp, .btn, .meta-strip,
+ * .section-head, .meter, .nb-ghost, .nb-on-ink). Showcase-only drama is
+ * scoped under body[data-surface="showcase"]; reduced motion gets designed
+ * static states, not slower animation.
+ */
+
+:root {
+  --nb-paper-on-ink: #f2efe6;
+  --nb-dim-on-ink: #b5b0a3;
+  --nb-gutter-ink: #d8d3c2;
+  --nb-hatch: repeating-linear-gradient(
+    45deg,
+    var(--bg-overlay) 0 6px,
+    var(--bg-raised) 6px 12px
+  );
+  /* Display clamps shared by both surfaces (d1 = --text-display token). */
+  --nb-fs-d3: clamp(28px, 3.6vw, 44px);
+  --nb-fs-d2: clamp(35px, 6vw, 72px);
+  --nb-fs-num: clamp(28px, 4vw, 57px);
+  --nb-fs-tag: clamp(19px, 2.9vw, 37px);
+  /* Alt display face for non-Latin display lines (not self-hosted; see tokens). */
+  --nb-font-display-alt: "Dela Gothic One", "Noto Sans JP", "Hiragino Sans",
+    "Yu Gothic UI", "Meiryo", sans-serif;
+  --nb-section-pad: var(--space-9, 96px);
+}
+
+/* ---------- body rhythm & headings ---------- */
+
+body {
+  font-size: var(--text-base, 17px);
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display, var(--font-sans));
+  /* Archivo Black ships one weight; avoid synthetic bolding. */
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+/* Ink links: the accent is never text — it appears as underlines only. */
+body a {
+  color: inherit;
+}
+body a:hover,
+body a:focus-visible {
+  text-decoration-thickness: 3px;
+  text-decoration-color: var(--accent);
+}
+
+::selection {
+  background: var(--line);
+  color: var(--bg);
+}
+.nb-on-ink ::selection {
+  background: var(--show-accent2, var(--accent-soft));
+  color: var(--line);
+}
+
+body :focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 0;
+}
+.nb-on-ink :focus-visible {
+  outline-color: var(--show-accent2, var(--bg));
+}
+
+[lang="ja"] {
+  line-height: 1.9;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+  line-break: strict;
+}
+
+.nb-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ink band helper (footer, metrics band, any dark strip). */
+.nb-on-ink {
+  background: var(--line);
+  color: var(--nb-paper-on-ink);
+}
+
+/* ---------- shared primitives the engine components rely on ---------- */
+
+.card {
+  background: var(--bg-raised);
+  border: 2px solid var(--line);
+  border-radius: 0;
+  box-shadow: var(--shadow-sm, none);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm, 13px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 2px solid var(--line);
+  border-radius: 0;
+  background: var(--bg-raised);
+  color: var(--text);
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+.chip b {
+  font-weight: 700;
+  color: var(--text);
+}
+/* CategoryBadge dot: square ink marker instead of a round dot. */
+.chip .dot {
+  border-radius: 0;
+  align-self: center;
+}
+
+.section-title {
+  font-family: var(--font-display, var(--font-sans));
+  font-size: var(--text-xl, 28px);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--text);
+  margin: 0 0 var(--space-5, 24px);
+}
+
+.evidence-link {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm, 13px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+a.evidence-link {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+a.evidence-link:hover,
+a.evidence-link:focus-visible {
+  text-decoration-thickness: 3px;
+  text-decoration-color: var(--accent);
+}
+code.evidence-link,
+span.evidence-link {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+/* ---------- stamps: the label voice (xs mono, 2px box) ---------- */
+
+.stamp {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 2px solid var(--line);
+  padding: 3px 8px;
+  background: var(--bg-raised);
+  color: var(--text);
+  white-space: nowrap;
+}
+.stamp-fill {
+  background: var(--show-accent2, var(--accent-soft));
+}
+.stamp-dashed {
+  border-style: dashed;
+  background: var(--bg);
+  color: var(--text-dim);
+}
+
+/* ---------- buttons: one recipe everywhere ---------- */
+
+.btn {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm, 13px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  border: 2px solid var(--line);
+  border-radius: 0;
+  background: var(--bg-raised);
+  color: var(--text);
+  padding: 10px 20px;
+  box-shadow: var(--shadow-sm, none);
+  cursor: pointer;
+  transition:
+    transform 0.12s ease-out,
+    box-shadow 0.12s ease-out;
+}
+.btn.primary {
+  background: var(--show-accent2, var(--accent-soft));
+  border-color: var(--line);
+  color: var(--text);
+}
+body a.btn:hover,
+body a.btn:focus-visible {
+  text-decoration: none;
+}
+.btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--line);
+}
+.btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+/* ---------- meta strip: exposed-metadata rule pair ---------- */
+
+.meta-strip {
+  border-block: 2px solid var(--line);
+  padding: var(--space-3, 12px) 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1, 4px) 14px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm, 13px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+.meta-strip .sep {
+  color: var(--text-faint);
+}
+/* MetricChips rendered inside a meta strip become plain mono tokens. */
+.meta-strip .metric-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1, 4px) 14px;
+}
+.meta-strip .chip {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: var(--text-sm, 13px);
+  letter-spacing: 0.06em;
+}
+.meta-strip .chip:not(:first-child)::before {
+  content: "/";
+  color: var(--text-faint);
+  margin-right: 14px;
+}
+
+/* ---------- section heads: 3px rule above + mono counter ---------- */
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px) var(--space-5, 24px);
+  border-top: 3px solid var(--line);
+  padding-top: var(--space-4, 16px);
+  margin-bottom: var(--space-7, 48px);
+}
+.section-head.quiet {
+  margin-bottom: var(--space-5, 24px);
+}
+body[data-surface="showcase"] .section-head:not(.quiet) .section-title {
+  font-size: var(--nb-fs-d3);
+}
+.section-head .section-title,
+.section-head h1,
+.section-head h2 {
+  border-top: none;
+  padding-top: 0;
+  margin: 0;
+}
+.section-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ghost numerals — outlined ink where supported, solid ink elsewhere. */
+.nb-ghost {
+  font-family: var(--font-display, var(--font-sans));
+  font-weight: 400;
+  line-height: 1;
+  color: var(--line);
+}
+@supports (-webkit-text-stroke: 2px #000) {
+  .nb-ghost {
+    color: transparent;
+    -webkit-text-stroke: 2px var(--line);
+  }
+}
+
+/* Case-study numbering: every section title inside .nb-study gets a rule
+ * above and an auto-incremented stroked counter — including the titles the
+ * shared CaseStudy component renders on its own. */
+.nb-study {
+  counter-reset: nb-sec;
+}
+.nb-study .section-title {
+  counter-increment: nb-sec;
+  border-top: 3px solid var(--line);
+  padding-top: var(--space-4, 16px);
+}
+.nb-study .section-title::before {
+  content: counter(nb-sec, decimal-leading-zero);
+  margin-right: 0.3em;
+  color: var(--line);
+}
+@supports (-webkit-text-stroke: 1.5px #000) {
+  .nb-study .section-title::before {
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--line);
+  }
+}
+/* Heads own the rule; the title inside must not double it. */
+.nb-study .section-head .section-title {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* ---------- meter: the chart voice (hatched track, ink endcap) ---------- */
+
+.meter {
+  height: 18px;
+  border: 2px solid var(--line);
+  background: var(--nb-hatch);
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-right: 2px solid var(--line);
+}
+
+/* ---------- screenshot / placeholder tag ---------- */
+
+.shot-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 2px solid var(--line);
+  background: var(--bg);
+  padding: 4px 10px;
+  text-align: center;
+}
+
+/* ---------- showcase drama (home surface only) ---------- */
+
+body[data-surface="showcase"] .nb-ticker {
+  position: relative;
+  border-block: 3px solid var(--line);
+  background: var(--show-accent2, var(--accent-soft));
+  overflow: hidden;
+}
+body[data-surface="showcase"] .nb-ticker-track {
+  display: flex;
+  width: max-content;
+  padding: 10px 0;
+  animation: nb-tick 26s linear infinite;
+}
+body[data-surface="showcase"] .nb-ticker:hover .nb-ticker-track,
+body[data-surface="showcase"] .nb-ticker:focus-within .nb-ticker-track,
+body[data-surface="showcase"] .nb-ticker.nb-paused .nb-ticker-track {
+  animation-play-state: paused;
+}
+body[data-surface="showcase"] .nb-seq {
+  font-family: var(--font-display, var(--font-sans));
+  font-size: var(--text-lg, 22px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-right: 0.6em;
+  color: var(--text);
+}
+@keyframes nb-tick {
+  to {
+    transform: translateX(-50%);
+  }
+}
+body[data-surface="showcase"] .nb-ticker-pause {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  border: none;
+  border-left: 3px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm, 13px);
+  font-weight: 700;
+  cursor: pointer;
+}
+body[data-surface="showcase"] .nb-ticker-pause:hover {
+  background: var(--bg-raised);
+}
+
+@keyframes nb-stamp-in {
+  from {
+    transform: translate(6px, 6px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* ---------- responsive rhythm ---------- */
+
+@media (max-width: 720px) {
+  :root {
+    --nb-section-pad: var(--space-8, 64px);
+  }
+  .btn {
+    padding: 9px 16px;
+  }
+}
+
+/* ---------- reduced motion: designed static states ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm, none), inset 0 0 0 1px var(--line);
+  }
+  .btn:active {
+    transform: none;
+    box-shadow: var(--shadow-sm, none);
+  }
+  /* Ticker freezes into a static bordered strip showing one sequence. */
+  body[data-surface="showcase"] .nb-ticker-track {
+    animation: none;
+    width: auto;
+  }
+  body[data-surface="showcase"] .nb-seq[aria-hidden="true"],
+  body[data-surface="showcase"] .nb-ticker-pause {
+    display: none;
+  }
+}
+
+/* ---------- print: ink on white, no freight shadows ---------- */
+
+@media print {
+  .card,
+  .chip,
+  .btn {
+    box-shadow: none;
+  }
+}

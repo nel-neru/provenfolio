@@ -1,0 +1,649 @@
+---
+/**
+ * Home — the showcase surface at energy 4/5. Stacked display hero (ink line /
+ * outlined line / accent-block line) built from the profile, exposed-metadata
+ * meta strip with script-produced totals, a yellow tech ticker fed by
+ * aggregates.techFrequency (pause button + hover/focus pause + reduced-motion
+ * static), unequal-height work cards that jump onto their shadows, and the
+ * skill manifest as an exposed table whose share meters read straight from
+ * script-measured language percentages. The mockup's pure-CSS hero replaces
+ * the WebGL canvas per the proposal.
+ */
+import Base from "../../../layouts/Base.astro";
+import CategoryBadge from "../../../components/CategoryBadge.astro";
+import TechStackList from "../../../components/TechStackList.astro";
+import MetricChips from "../../../components/MetricChips.astro";
+import { t, ui, localePath } from "../../../lib/i18n.js";
+import {
+  getProfile,
+  getAggregates,
+  getFeatured,
+  getProjects,
+  computeSkills,
+} from "../../../lib/data.js";
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const profile = await getProfile();
+const sl = profile.sourceLang;
+const defaultLocale = sl;
+const aggregates = await getAggregates();
+const featured = await getFeatured();
+const projects = await getProjects();
+const lp = (p: string) => localePath(p, locale, defaultLocale);
+
+/** Other-locale text that differs from the primary rendering (or nothing). */
+const altLocales = [sl, ...profile.targetLangs].filter((l) => l !== locale);
+function altOf(
+  text: Parameters<typeof t>[0],
+  primary: string
+): { locale: string; text: string } | undefined {
+  for (const l of altLocales) {
+    const v = t(text, l, sl);
+    if (v && v !== primary) return { locale: l, text: v };
+  }
+  return undefined;
+}
+
+/* Hero lines: name in ink, role split so its last word gets the accent block. */
+const roleText = t(profile.role, locale, sl);
+const roleWords = roleText.split(/\s+/).filter(Boolean);
+const roleBlock = roleWords.length > 0 ? roleWords[roleWords.length - 1] : "";
+const roleOutline = roleWords.slice(0, -1).join(" ");
+
+const tagline = t(profile.tagline, locale, sl);
+const altTagline = altOf(profile.tagline, tagline);
+
+/* Exposed metadata — script-produced totals only. */
+const totals = aggregates?.totals;
+const fmt = (n: number) => n.toLocaleString(locale);
+const pad3 = (n: number) => String(n).padStart(3, "0");
+
+/* Ticker sequence from aggregate tech frequency (doubled for loop length). */
+const tickerNames = (aggregates?.techFrequency ?? []).map((f) => f.name);
+const seqText =
+  tickerNames.length > 0
+    ? [...tickerNames, ...tickerNames].join(" • ") + " •"
+    : "";
+
+/* Skill manifest rows: name/category from computeSkills, share = the max
+ * script-measured language percentage across projects, evidence = projects. */
+const skills = computeSkills(aggregates, profile);
+const nameOf = new Map(projects.map((p) => [p.id, p.name]));
+const rows = skills.map((s) => {
+  let best: { pct: number; id: string } | undefined;
+  for (const p of projects) {
+    for (const l of p.metrics?.languages ?? []) {
+      if (
+        l.name.toLowerCase() === s.name.toLowerCase() &&
+        (!best || l.pct > best.pct)
+      ) {
+        best = { pct: l.pct, id: p.id };
+      }
+    }
+  }
+  const evidence = s.projectIds
+    .slice(0, 3)
+    .map((id) => ({ id, name: nameOf.get(id) ?? id }));
+  return { name: s.name, category: s.category, best, evidence };
+});
+rows.sort((a, b) => (b.best?.pct ?? -1) - (a.best?.pct ?? -1));
+---
+
+<Base locale={locale} path="/" ogImage="/og/profile.png" surface="showcase">
+  <section class="hero">
+    <div class="container hero-inner">
+      <h1 class="hero-title">
+        <span class="line l1">{profile.name}</span>
+        {roleOutline && <span class="line l2 nb-ghost">{roleOutline}</span>}
+        {
+          roleBlock && (
+            <span class="line l3">
+              <span class="accent-block">{roleBlock}</span>
+            </span>
+          )
+        }
+      </h1>
+      {tagline && <p class="hero-tag">{tagline}</p>}
+      {
+        altTagline && (
+          <p class="hero-tag-alt" lang={altTagline.locale}>
+            {altTagline.text}
+          </p>
+        )
+      }
+      {
+        totals && (
+          <p class="meta-strip">
+            <span>
+              {fmt(totals.projects)} {ui("nav.projects", locale)}
+            </span>
+            <span class="sep" aria-hidden="true">/</span>
+            <span>
+              {fmt(totals.commits)} {ui("metrics.commits", locale)}
+            </span>
+            <span class="sep" aria-hidden="true">/</span>
+            <span>
+              {fmt(totals.activeDays)} {ui("metrics.activeDays", locale)}
+            </span>
+            {roleText && (
+              <>
+                <span class="sep" aria-hidden="true">/</span>
+                <span>{roleText}</span>
+              </>
+            )}
+          </p>
+        )
+      }
+      {
+        profile.socials.length > 0 && (
+          <div class="hero-socials">
+            {profile.socials.map((s) => (
+              <a class="btn" href={s.url} rel="me noopener">
+                {s.platform} &#8599;
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  {
+    seqText && (
+      <section
+        class="nb-ticker"
+        aria-label={ui("home.skills", locale)}
+        data-nb-ticker
+      >
+        <div class="nb-ticker-track">
+          <span class="nb-seq">{seqText}&nbsp;</span>
+          <span class="nb-seq" aria-hidden="true">{seqText}&nbsp;</span>
+        </div>
+        <button
+          class="nb-ticker-pause"
+          type="button"
+          aria-pressed="false"
+          aria-label="Pause ticker"
+          data-nb-ticker-pause
+        >
+          &#8214;
+        </button>
+      </section>
+    )
+  }
+
+  {
+    featured.length > 0 && (
+      <section class="section" id="work">
+        <div class="container">
+          <div class="section-head">
+            <h2 class="section-title">{ui("home.featured", locale)}</h2>
+            <span class="section-count">
+              {pad3(featured.length)} / {pad3(projects.length)}
+            </span>
+          </div>
+          <div class="work-grid">
+            {featured.map((p, i) => {
+              const href = lp(`/projects/${p.id}`);
+              const summary = t(p.summary, locale, sl);
+              const altSummary = altOf(p.summary, summary);
+              const shot = p.screenshots[0];
+              return (
+                <article class="pcard">
+                  <div class="pcard-head">
+                    <CategoryBadge category={p.category} locale={locale} />
+                    <span class="nb-ghost pcard-idx" aria-hidden="true">
+                      {pad3(i + 1)}
+                    </span>
+                  </div>
+                  {shot ? (
+                    <div class="pcard-shot">
+                      <img
+                        src={"/" + shot.src}
+                        alt={t(shot.alt, locale, sl)}
+                        loading="lazy"
+                      />
+                    </div>
+                  ) : (
+                    <div class="pcard-shot pcard-shot-empty" aria-hidden="true">
+                      <span class="shot-tag">{p.name}</span>
+                    </div>
+                  )}
+                  <h3 class="pcard-title">
+                    <a href={href}>{p.name}</a>
+                  </h3>
+                  {p.role && (
+                    <p class="pcard-role">
+                      <span class="stamp">
+                        {ui(`project.role.${p.role.type}`, locale)}
+                      </span>
+                    </p>
+                  )}
+                  {summary && <p class="pcard-sum">{summary}</p>}
+                  {altSummary && (
+                    <p class="pcard-sum pcard-sum-alt" lang={altSummary.locale}>
+                      {altSummary.text}
+                    </p>
+                  )}
+                  <div class="pcard-receipts">
+                    <MetricChips project={p} locale={locale} />
+                  </div>
+                  <div class="pcard-tech">
+                    <TechStackList techStack={p.techStack} max={4} />
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <p class="view-all">
+            <a class="btn primary" href={lp("/projects")}>
+              {ui("home.viewAll", locale)} &rarr;
+            </a>
+          </p>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    rows.length > 0 && (
+      <section class="section skills-section" id="skills">
+        <div class="container">
+          <div class="section-head">
+            <h2 class="section-title">{ui("home.skills", locale)}</h2>
+            <span class="section-count">{pad3(rows.length)}</span>
+          </div>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label={ui("home.skills", locale)}
+          >
+            <table class="manifest">
+              <thead>
+                <tr>
+                  <th scope="col">{ui("project.stack", locale)}</th>
+                  <th scope="col">{ui("metrics.languages", locale)}</th>
+                  <th scope="col">{ui("project.evidence", locale)}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr>
+                    <td>
+                      <span class="chip">{r.name}</span>
+                    </td>
+                    <td>
+                      {r.best ? (
+                        <div class="share-cell">
+                          <div class="meter">
+                            <span style={`width:${r.best.pct}%`} />
+                          </div>
+                          <span class="share-num">{r.best.pct}%</span>
+                        </div>
+                      ) : (
+                        <span class="share-none">&mdash; {r.category}</span>
+                      )}
+                    </td>
+                    <td class="ev-cell">
+                      {r.evidence.length > 0
+                        ? r.evidence.map((e) => (
+                            <a href={lp(`/projects/${e.id}`)}>{e.name}</a>
+                          ))
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    )
+  }
+</Base>
+
+<script>
+  // Ticker pause/play (WCAG 2.2.2). Idempotent across View Transitions.
+  const initTicker = () => {
+    document.querySelectorAll("[data-nb-ticker]").forEach((ticker) => {
+      if (!(ticker instanceof HTMLElement) || ticker.dataset.nbReady) return;
+      ticker.dataset.nbReady = "1";
+      const pause = ticker.querySelector("[data-nb-ticker-pause]");
+      if (!(pause instanceof HTMLButtonElement)) return;
+      pause.addEventListener("click", () => {
+        const paused = ticker.classList.toggle("nb-paused");
+        pause.setAttribute("aria-pressed", paused ? "true" : "false");
+        pause.setAttribute("aria-label", paused ? "Play ticker" : "Pause ticker");
+        pause.textContent = paused ? "▸" : "‖";
+      });
+    });
+  };
+  initTicker();
+  document.addEventListener("astro:page-load", initTicker);
+</script>
+
+<style>
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative;
+    padding: var(--nb-section-pad, 96px) 0 var(--space-8, 64px);
+    overflow: hidden;
+  }
+  /* Drawn grid gutter — the visible-structure device. */
+  .hero::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 63%;
+    width: 2px;
+    background: var(--nb-gutter-ink, var(--line));
+  }
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+  }
+  .hero-title {
+    margin: 0;
+    font-family: var(--font-display, var(--font-sans));
+    font-weight: 400;
+    font-size: var(--show-hero-scale, var(--text-display, 15vw));
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+  .hero-title .line {
+    display: block;
+    animation: nb-stamp-in 0.18s steps(3) backwards;
+  }
+  .hero-title .l2 {
+    animation-delay: 0.07s;
+    -webkit-text-stroke-width: 2.5px;
+  }
+  .hero-title .l3 {
+    animation-delay: 0.14s;
+  }
+  .accent-block {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--line);
+    padding: 0 0.14em;
+    box-shadow: var(--shadow-lg, none);
+  }
+  .hero-tag {
+    margin: var(--space-6, 32px) 0 0;
+    font-family: var(--nb-font-display-alt, var(--font-sans));
+    font-feature-settings: "palt" 1;
+    font-size: var(--nb-fs-tag, var(--text-lg, 22px));
+    line-height: 1.35;
+  }
+  .hero-tag-alt {
+    margin: var(--space-2, 8px) 0 0;
+    font-size: var(--text-lg, 22px);
+    color: var(--text-dim);
+  }
+  .hero .meta-strip {
+    margin-top: var(--space-7, 48px);
+  }
+  .hero-socials {
+    margin-top: var(--space-5, 24px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3, 12px);
+  }
+
+  /* ---------- sections ---------- */
+  .section {
+    padding: var(--nb-section-pad, 96px) 0;
+  }
+  .skills-section {
+    padding-top: 0;
+  }
+
+  /* ---------- work grid: deliberately unequal card heights ---------- */
+  .work-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+    gap: var(--space-7, 48px);
+    align-items: start;
+  }
+  .pcard {
+    position: relative;
+    background: var(--bg-raised);
+    border: 2px solid var(--line);
+    box-shadow: var(--shadow-md, none);
+    padding: var(--space-5, 24px);
+    transition:
+      transform 0.12s ease-out,
+      box-shadow 0.12s ease-out;
+  }
+  .pcard:hover,
+  .pcard:focus-within {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--line);
+  }
+  .pcard-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-3, 12px);
+    margin-bottom: var(--space-4, 16px);
+  }
+  .pcard-head :global(.category-badge) {
+    background: var(--show-accent2, var(--accent-soft));
+  }
+  .pcard-idx {
+    font-size: 44px;
+  }
+  .pcard-shot {
+    border: 2px solid var(--line);
+    background: var(--nb-hatch);
+    min-height: 180px;
+    max-height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .pcard-shot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .pcard-title {
+    margin: var(--space-4, 16px) 0 0;
+    font-size: var(--text-xl, 28px);
+    line-height: 1;
+  }
+  /* Stretched link: the whole card is clickable through the title link. */
+  .pcard-title a {
+    text-decoration: none;
+    color: var(--text);
+    background-image: linear-gradient(var(--accent), var(--accent));
+    background-repeat: no-repeat;
+    background-size: 0 6px;
+    background-position: 0 100%;
+    transition: background-size 0.12s ease-out;
+    padding-bottom: 4px;
+  }
+  .pcard-title a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .pcard:hover .pcard-title a,
+  .pcard-title a:focus-visible {
+    background-size: 100% 6px;
+  }
+  .pcard-role {
+    margin: var(--space-3, 12px) 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px);
+  }
+  .pcard-sum {
+    margin: var(--space-3, 12px) 0 0;
+    line-height: 1.65;
+    max-width: 52ch;
+  }
+  .pcard-sum-alt {
+    margin-top: var(--space-2, 8px);
+    font-size: 15px;
+    color: var(--text-dim);
+  }
+  .pcard-receipts {
+    margin-top: var(--space-4, 16px);
+  }
+  .pcard-tech {
+    margin-top: var(--space-3, 12px);
+  }
+  .pcard-tech :global(.chip) {
+    border-width: 1px;
+    font-weight: 400;
+    background: var(--bg-overlay);
+    text-transform: none;
+  }
+  .view-all {
+    margin: var(--space-7, 48px) 0 0;
+  }
+
+  /* ---------- skill manifest ---------- */
+  .table-scroll {
+    overflow-x: auto;
+    border: 3px solid var(--line);
+    background: var(--bg-raised);
+  }
+  .manifest {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 560px;
+  }
+  .manifest th {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 11px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: left;
+    background: var(--bg-overlay);
+    border-bottom: 3px solid var(--line);
+    padding: 10px var(--space-4, 16px);
+  }
+  .manifest td {
+    border-bottom: 1px solid var(--line);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    vertical-align: middle;
+  }
+  .manifest tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .manifest th + th,
+  .manifest td + td {
+    border-left: 1px solid var(--line);
+  }
+  .manifest tbody tr:hover td {
+    background: var(--bg);
+  }
+  .share-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3, 12px);
+    min-width: 220px;
+  }
+  .share-cell .meter {
+    flex: 1;
+    height: 14px;
+  }
+  .share-num {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 13px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 44px;
+    text-align: right;
+  }
+  .share-none {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 13px);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .ev-cell {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 11px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+  }
+  .ev-cell a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  .ev-cell a:hover,
+  .ev-cell a:focus-visible {
+    text-decoration: underline;
+    text-decoration-thickness: 3px;
+    text-decoration-color: var(--accent);
+  }
+  .ev-cell a + a::before {
+    content: "/ ";
+    color: var(--text-faint);
+    margin-inline: 0.35em 0.15em;
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 900px) {
+    .hero::after {
+      display: none;
+    }
+  }
+  @media (max-width: 720px) {
+    .hero {
+      padding: var(--space-7, 48px) 0;
+    }
+    .hero .meta-strip {
+      margin-top: var(--space-6, 32px);
+    }
+    .pcard {
+      box-shadow: var(--shadow-sm, none);
+    }
+    .pcard:hover,
+    .pcard:focus-within {
+      box-shadow: 5px 5px 0 var(--line);
+    }
+    .accent-block {
+      box-shadow: 5px 5px 0 var(--line);
+    }
+    .work-grid {
+      gap: var(--space-6, 32px);
+    }
+    .pcard-shot {
+      min-height: 140px;
+    }
+  }
+
+  /* ---------- reduced motion: designed static state ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-title .line {
+      animation: none;
+    }
+    .pcard:hover,
+    .pcard:focus-within {
+      transform: none;
+      box-shadow: var(--shadow-md, none), inset 0 0 0 1px var(--line);
+    }
+    .pcard:hover .pcard-title a,
+    .pcard-title a:focus-visible {
+      background-size: 100% 6px;
+      transition: none;
+    }
+  }
+</style>
