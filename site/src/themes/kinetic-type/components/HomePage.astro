@@ -410,7 +410,9 @@ const techCount = aggregates?.techFrequency.length ?? 0;
     font-size: var(--text-sm, 0.875rem);
   }
   .row .desc .alt {
-    opacity: 0.75;
+    /* --text-dim already reads as secondary at full opacity (>=4.5:1 body
+       contrast); dimming it further would drop translated summaries below AA. */
+    font-style: italic;
   }
   .row .meta {
     grid-area: meta;

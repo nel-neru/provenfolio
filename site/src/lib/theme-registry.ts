@@ -49,6 +49,13 @@ export function listInstalledThemes(): string[] {
 export function listVisitorThemes(): string[] {
   const installed = listInstalledThemes();
   if (visitorThemes === "all") return installed;
+  if (!Array.isArray(visitorThemes)) {
+    throw new Error(
+      `theme.config.mjs: visitorThemes must be "all" or an array of theme names, got ${JSON.stringify(
+        visitorThemes
+      )}`
+    );
+  }
   return (visitorThemes as string[]).filter((t) => installed.includes(t));
 }
 

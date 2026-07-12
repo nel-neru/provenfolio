@@ -59,8 +59,14 @@ const site = Astro.site?.href?.replace(/\/$/, "") ?? "";
 const fontFaces = fontFacesFor(tokens);
 const fontPreloads = (tokens.webfonts ?? []).filter((f) => f.preload);
 
-// Visitor design switcher: hidden when fewer than two themes are exposed.
-const visitorList = listVisitorThemes();
+// Visitor design switcher. The active theme is always offered first (it
+// links to the indexed root URLs), followed by the configured alternates —
+// so a visitor can always get back to the live design even when
+// visitorThemes is an explicit array that omits it. Hidden below two entries.
+const visitorList = [
+  activeTheme,
+  ...listVisitorThemes().filter((name) => name !== activeTheme),
+];
 const showSwitcher = visitorList.length >= 2;
 const logicalPath = lp(path);
 const themeHref = (name: string) =>
