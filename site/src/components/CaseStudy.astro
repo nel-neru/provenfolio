@@ -80,6 +80,9 @@ const m = project.metrics;
   .prose {
     margin: 0;
     white-space: pre-line;
+    /* Long URLs/identifiers in agent prose must wrap instead of forcing
+     * horizontal overflow on narrow viewports. */
+    overflow-wrap: anywhere;
     color: var(--text);
     max-width: 65ch;
   }

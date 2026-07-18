@@ -16,6 +16,13 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Global guard: decorative bleeds or long unbroken strings must never
+ * produce a horizontal scrollbar on narrow viewports. */
+html,
+body {
+  overflow-x: clip;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
