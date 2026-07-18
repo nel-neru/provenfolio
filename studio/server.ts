@@ -37,6 +37,7 @@ import {
   intakeFile,
 } from "../engine/scripts/lib/paths.js";
 import { readJson, writeJson, listJsonFiles } from "../engine/scripts/lib/io.js";
+import { formatClaudeStreamLine } from "../engine/scripts/lib/claude-stream-log.js";
 import { computeCompleteness } from "../engine/scripts/lib/completeness.js";
 import { parseRepoUrl, slugify } from "../engine/sources/github/lib.js";
 import { themeCssVars, themeFontFaces } from "../site/src/theme.js";
@@ -259,6 +260,22 @@ function pushChunkLines(runner: StreamRunner, chunk: Buffer, carry: { buf: strin
   for (const line of lines) runner.push(line);
 }
 
+/** Like pushChunkLines, but each line is a claude stream-json event that gets
+ * rendered into human-readable progress lines (noise dropped) before the SSE
+ * fan-out. Non-JSON lines pass through, so plain-text output still shows. */
+function pushClaudeStreamLines(
+  runner: StreamRunner,
+  chunk: Buffer,
+  carry: { buf: string }
+): void {
+  carry.buf += chunk.toString("utf8");
+  const lines = carry.buf.split(/\r?\n/);
+  carry.buf = lines.pop() ?? "";
+  for (const line of lines) {
+    for (const rendered of formatClaudeStreamLine(line)) runner.push(rendered);
+  }
+}
+
 /** Resolve a command on PATH the way `where` does (Windows only). */
 function resolveOnPath(name: string): string | undefined {
   for (const rawDir of (process.env.PATH ?? "").split(path.delimiter)) {
@@ -306,11 +323,17 @@ function startAnalyze(): void {
   // Never spawn through a shell: a shell re-parses the argument string, which
   // both mangles the space in the prompt and is an injection hazard. The CLI
   // is resolved explicitly instead (see resolveClaudeLaunch).
+  // stream-json (which requires --verbose in print mode) emits one JSON event
+  // per line as the run progresses; plain print mode stays silent until the
+  // whole 10-30 minute pipeline finishes, which reads as a hang in the log.
   const launch = resolveClaudeLaunch([
     "-p",
     "/analyze --pending",
     "--permission-mode",
     "acceptEdits",
+    "--output-format",
+    "stream-json",
+    "--verbose",
   ]);
   if (!launch) {
     analyzeRunner.push('Claude Code CLI not found. Run "/analyze --pending" in Claude Code instead.');
@@ -335,7 +358,7 @@ function startAnalyze(): void {
 
   const outCarry = { buf: "" };
   const errCarry = { buf: "" };
-  child.stdout?.on("data", (chunk: Buffer) => pushChunkLines(analyzeRunner, chunk, outCarry));
+  child.stdout?.on("data", (chunk: Buffer) => pushClaudeStreamLines(analyzeRunner, chunk, outCarry));
   child.stderr?.on("data", (chunk: Buffer) => pushChunkLines(analyzeRunner, chunk, errCarry));
 
   child.on("error", (err: NodeJS.ErrnoException) => {
@@ -348,7 +371,7 @@ function startAnalyze(): void {
   });
 
   child.on("close", (code) => {
-    if (outCarry.buf) analyzeRunner.push(outCarry.buf);
+    for (const rendered of formatClaudeStreamLine(outCarry.buf)) analyzeRunner.push(rendered);
     if (errCarry.buf) analyzeRunner.push(errCarry.buf);
     analyzeRunner.push(`[studio] exited (exit code ${code ?? "?"})`);
     analyzeRunner.done(code);
