@@ -1,12 +1,21 @@
 ---
 import { getManifest, listPrerenderThemes } from "../../../lib/theme-registry.js";
-import { getProfile } from "../../../lib/data.js";
+import { getProfile, getAggregates, showHistoryPage } from "../../../lib/data.js";
 
 export function getStaticPaths() {
   return listPrerenderThemes().map((theme) => ({ params: { theme } }));
 }
 
 const profile = await getProfile();
+const aggregates = await getAggregates();
+
+// Density gate — same condition that hides the History nav link. While the
+// gate is closed the page must not ship at all: emit a build-time redirect
+// stub to this theme's home page (Astro renders it with noindex + canonical)
+// instead of exposing the sparse placeholder to direct URL hits.
+if (!showHistoryPage(aggregates))
+  return Astro.redirect(`/t/${Astro.params.theme}/`, 307);
+
 const { HistoryPage } = (await getManifest(Astro.params.theme!)).components;
 ---
 
