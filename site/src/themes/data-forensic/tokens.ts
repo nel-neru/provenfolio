@@ -28,7 +28,7 @@ export const theme: ThemeTokens = {
 
   text: "#C9D2CC",
   textDim: "#93A09A",
-  textFaint: "#5F6B65",
+  textFaint: "#77867E",
 
   /** Semantic: ok mirrors the accent; amber is the evidence stamp */
   ok: "#3DD68C",

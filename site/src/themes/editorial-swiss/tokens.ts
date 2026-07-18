@@ -27,7 +27,7 @@ export const theme: ThemeTokens = {
 
   text: "#111110",
   textDim: "#55524B",
-  textFaint: "#807C72",
+  textFaint: "#726E66",
 
   /** Semantic. error reuses the accent: one red on the whole surface. */
   ok: "#1E7A3C",
