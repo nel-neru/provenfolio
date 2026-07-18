@@ -27,7 +27,7 @@ const durationDays = project.metrics?.total.durationDays;
       ))}
       {durationDays !== undefined && (
         <span class="chip">
-          <b>{durationDays}</b>{ui("metrics.days", locale)}
+          <b>{durationDays}</b>{ui("metrics.days", locale)} {ui("metrics.span", locale)}
         </span>
       )}
     </div>

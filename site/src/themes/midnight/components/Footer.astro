@@ -16,9 +16,17 @@ const profile = await getProfile();
 <footer class="site-footer">
   <div class="container footer-inner">
     <span>© {new Date().getFullYear()} {profile.name}</span>
-    <span class="footer-socials">
-      {profile.socials.map((s) => <a href={s.url} rel="me noopener">{s.platform}</a>)}
-    </span>
+    {
+      profile.socials.length > 0 && (
+        <span class="footer-socials">
+          {profile.socials.map((s) => (
+            <a href={s.url} rel="me noopener">
+              {s.platform}
+            </a>
+          ))}
+        </span>
+      )
+    }
     <span class="footer-note">{ui("footer.builtWith", locale)}</span>
   </div>
 </footer>

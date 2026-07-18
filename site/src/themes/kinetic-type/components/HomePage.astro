@@ -103,15 +103,17 @@ const techCount = aggregates?.techFrequency.length ?? 0;
         <span class="en">{tagline}</span>
         {altTagline && <span class="alt" lang={altLocale}>{altTagline}</span>}
       </p>
-      <p class="hero-socials mono">
-        {
-          profile.socials.map((s) => (
-            <a href={s.url} rel="me noopener">
-              {s.platform}<span class="arrow" aria-hidden="true"> ↗</span>
-            </a>
-          ))
-        }
-      </p>
+      {
+        profile.socials.length > 0 && (
+          <p class="hero-socials mono">
+            {profile.socials.map((s) => (
+              <a href={s.url} rel="me noopener">
+                {s.platform}<span class="arrow" aria-hidden="true"> ↗</span>
+              </a>
+            ))}
+          </p>
+        )
+      }
     </div>
   </section>
 
