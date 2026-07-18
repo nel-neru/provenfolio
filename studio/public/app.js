@@ -12,7 +12,7 @@ const state = {
   data: null, // { profile, manifest, projects, intakes }
   theme: null, // { activeTheme, visitorThemes, installed }
   selectedId: null,
-  view: null, // null (project view) | "design" | "engine"
+  view: null, // null (project view) | "design" | "engine" | "profile"
   tab: "overview",
 };
 
@@ -106,6 +106,17 @@ async function refreshState() {
   render();
 }
 
+/** Refresh data + sidebar WITHOUT rebuilding the main panel. Used by
+ * background events (an analysis finishing) so an open editor's unsaved
+ * working copy is never wiped mid-edit; the main panel updates on the
+ * user's next navigation instead. */
+async function refreshSidebarOnly() {
+  state.data = await api("/api/state");
+  setStudioLang(state.data.profile.sourceLang);
+  hydrateStaticText();
+  renderSidebar();
+}
+
 function currentProject() {
   return (state.data.projects || []).find((p) => p.id === state.selectedId) || null;
 }
@@ -127,8 +138,27 @@ function selectProject(id) {
   location.hash = "#/project/" + encodeURIComponent(id);
 }
 
+/** Registered by editor panels holding an unsaved working copy:
+ * { hash, isDirty } — navigation away asks for confirmation while dirty. */
+let unsavedGuard = null;
+let restoringHash = false;
+
+window.addEventListener("beforeunload", (e) => {
+  if (unsavedGuard && unsavedGuard.isDirty()) e.preventDefault();
+});
+
 function applyHash() {
-  if (location.hash === "#/design" || location.hash === "#/engine") {
+  if (restoringHash) { restoringHash = false; return; }
+  if (unsavedGuard && location.hash !== unsavedGuard.hash && unsavedGuard.isDirty()) {
+    if (!confirm(t("unsavedLeaveConfirm"))) {
+      // Put the hash back without re-rendering (a rebuild would wipe the edits).
+      restoringHash = true;
+      location.hash = unsavedGuard.hash;
+      return;
+    }
+  }
+  unsavedGuard = null;
+  if (["#/design", "#/engine", "#/profile"].includes(location.hash)) {
     state.view = location.hash.slice(2);
     state.selectedId = null;
     render();
@@ -203,15 +233,18 @@ function render() {
   const empty = document.getElementById("main-empty");
   const content = document.getElementById("main-content");
 
-  if (state.view === "design" || state.view === "engine") {
+  const panels = {
+    design: [designPanel, "designTitle"],
+    engine: [enginePanel, "engineTitle"],
+    profile: [profilePanel, "profileTitle"],
+  };
+  if (state.view && panels[state.view]) {
     empty.hidden = true;
     content.hidden = false;
-    document.getElementById("main-title").textContent =
-      t(state.view === "design" ? "designTitle" : "engineTitle");
+    const [buildPanel, titleKey] = panels[state.view];
+    document.getElementById("main-title").textContent = t(titleKey);
     document.getElementById("tabs").replaceChildren();
-    document.getElementById("tab-body").replaceChildren(
-      state.view === "design" ? designPanel() : enginePanel()
-    );
+    document.getElementById("tab-body").replaceChildren(buildPanel());
     return;
   }
 
@@ -709,6 +742,259 @@ function mediaTab(project) {
   return frag;
 }
 
+// ---------------- Profile ----------------
+function profilePanel() {
+  const frag = document.createDocumentFragment();
+  const langs = locales();
+  let dirty = false;
+
+  // Working copy — mutated by inputs, saved on demand (avatar acts immediately).
+  const doc = JSON.parse(JSON.stringify(state.data.profile));
+  doc.role = doc.role || {};
+  doc.tagline = doc.tagline || {};
+  doc.bio = doc.bio || {};
+  doc.seo = doc.seo || { title: "", description: {} };
+  doc.seo.description = doc.seo.description || {};
+  doc.socials = doc.socials || [];
+  doc.skillOverrides = doc.skillOverrides || [];
+  doc.identities = doc.identities || [];
+  doc.targetLangs = doc.targetLangs || [];
+
+  const textField = (label, key, opts = {}) => {
+    const input = el("input", {
+      value: doc[key] ?? "",
+      oninput: (e) => {
+        if (e.target.value.trim() === "" && opts.optional) delete doc[key];
+        else doc[key] = e.target.value.trim();
+      },
+    });
+    return el("div", { class: "field" }, [el("label", {}, label), input]);
+  };
+
+  /** Localized text: one column per locale, writing straight into `obj`.
+   * Columns cover the configured locales PLUS any locale already present in
+   * the data, so changing sourceLang/targetLangs never hides existing text. */
+  const locField = (label, obj, opts = {}) => {
+    const colLangs = [...new Set([...langs, ...Object.keys(obj)])];
+    const cols = colLangs.map((lang) => {
+      const input = el(opts.multiline ? "textarea" : "input", {
+        value: obj[lang] || "",
+        oninput: (e) => (obj[lang] = e.target.value),
+      });
+      return el("div", { class: "prose-col" }, [el("div", { class: "lang-tag" }, lang), input]);
+    });
+    return el("div", { class: "prose-field" }, [
+      el("div", { class: "prose-label" }, label),
+      el("div", { class: "prose-cols" }, cols),
+    ]);
+  };
+
+  const basics = el("div", { class: "card" }, [
+    el("h3", {}, t("profileBasicHeading")),
+    el("p", { style: "color:var(--text-dim);font-size:12px;margin-top:0" }, t("profileIntro")),
+    el("div", { class: "field-row" }, [
+      textField(t("profileFieldName"), "name"),
+      textField(t("profileFieldGithubUser"), "githubUser"),
+    ]),
+    el("div", { class: "field-row" }, [
+      textField(t("profileFieldEmail"), "email", { optional: true }),
+      textField(t("profileFieldSiteUrl"), "siteUrl", { optional: true }),
+      textField(t("profileFieldDomain"), "domain", { optional: true }),
+    ]),
+  ]);
+
+  // --- avatar (uploads/removals apply immediately, like the media tab) ---
+  const avatarBox = el("div");
+  const avatarFile = el("input", { type: "file", accept: ".png,.jpg,.jpeg,.webp,.gif" });
+  const avatarRemoveBtn = el("button", { class: "small danger", onclick: async () => {
+    if (!confirm(t("avatarRemoveConfirm"))) return;
+    try {
+      const saved = await api("/api/profile/avatar", { method: "DELETE" });
+      delete doc.avatar;
+      delete state.data.profile.avatar;
+      // The immediate write bumped updatedAt on disk — keep the working
+      // copy's concurrency token current so the next Save doesn't 409.
+      doc.updatedAt = saved.updatedAt;
+      state.data.profile.updatedAt = saved.updatedAt;
+      renderAvatar();
+      toast(t("avatarRemoved"));
+    } catch (e) { toast(t("deleteFailed", { message: e.message }), true); }
+  } }, t("delete"));
+  const avatarUploadBtn = el("button", { class: "small", onclick: async () => {
+    const file = avatarFile.files[0];
+    if (!file) { toast(t("selectFile"), true); return; }
+    try {
+      const res = await fetch("/api/profile/avatar?filename=" + encodeURIComponent(file.name), {
+        method: "POST", body: file, headers: { "content-type": "application/octet-stream" },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || res.statusText);
+      doc.avatar = body.avatar;
+      state.data.profile.avatar = body.avatar;
+      doc.updatedAt = body.updatedAt;
+      state.data.profile.updatedAt = body.updatedAt;
+      renderAvatar();
+      toast(t("avatarSaved"));
+    } catch (e) { toast(t("uploadFailed", { message: e.message }), true); }
+  } }, t("upload"));
+  const renderAvatar = () => {
+    avatarBox.replaceChildren(
+      doc.avatar
+        ? el("img", { class: "avatar-preview", src: "/" + doc.avatar, alt: "" })
+        : el("p", { style: "color:var(--text-dim);margin:0 0 8px" }, t("noAvatar"))
+    );
+    avatarRemoveBtn.hidden = !doc.avatar;
+  };
+  renderAvatar();
+  const avatarCard = el("div", { class: "card" }, [
+    el("h3", {}, t("avatarHeading")),
+    avatarBox,
+    el("div", { class: "dyn-row" }, [avatarFile, avatarUploadBtn, avatarRemoveBtn]),
+    el("p", { style: "color:var(--text-dim);font-size:12px;margin-bottom:0" }, t("avatarNote")),
+  ]);
+
+  const texts = el("div", { class: "card" }, [
+    el("h3", {}, t("profileTextsHeading")),
+    locField(t("profileFieldRole"), doc.role),
+    locField(t("profileFieldTagline"), doc.tagline),
+    locField(t("profileFieldBio"), doc.bio, { multiline: true }),
+  ]);
+
+  const seoTitle = el("input", {
+    value: doc.seo.title || "",
+    oninput: (e) => (doc.seo.title = e.target.value),
+  });
+  const seoCard = el("div", { class: "card" }, [
+    el("h3", {}, t("seoHeading")),
+    el("div", { class: "field" }, [el("label", {}, t("profileFieldSeoTitle")), seoTitle]),
+    locField(t("profileFieldSeoDescription"), doc.seo.description, { multiline: true }),
+  ]);
+
+  // --- dynamic rows: socials ---
+  const socialsBox = el("div");
+  const renderSocials = () => {
+    socialsBox.replaceChildren(
+      ...doc.socials.map((s, i) =>
+        el("div", { class: "dyn-row" }, [
+          el("input", { placeholder: t("socialPlatformPlaceholder"), value: s.platform || "",
+            oninput: (e) => (s.platform = e.target.value) }),
+          el("input", { placeholder: "https://...", value: s.url || "",
+            oninput: (e) => (s.url = e.target.value) }),
+          el("input", { placeholder: t("socialHandlePlaceholder"), value: s.handle || "",
+            oninput: (e) => { if (e.target.value === "") delete s.handle; else s.handle = e.target.value; } }),
+          el("button", { class: "small danger", onclick: () => { doc.socials.splice(i, 1); dirty = true; renderSocials(); } }, t("delete")),
+        ])
+      ),
+      el("button", { class: "small", onclick: () => { doc.socials.push({ platform: "", url: "" }); renderSocials(); } }, t("addSocial"))
+    );
+  };
+  renderSocials();
+  const socialsCard = el("div", { class: "card" }, [el("h3", {}, t("socialsHeading")), socialsBox]);
+
+  // --- dynamic rows: skill overrides ---
+  const skillsBox = el("div");
+  const renderSkills = () => {
+    skillsBox.replaceChildren(
+      ...doc.skillOverrides.map((o, i) =>
+        el("div", { class: "dyn-row" }, [
+          el("input", { placeholder: t("skillNamePlaceholder"), value: o.name || "",
+            oninput: (e) => (o.name = e.target.value) }),
+          el("input", { placeholder: t("skillCategoryPlaceholder"), value: o.category || "",
+            oninput: (e) => { if (e.target.value === "") delete o.category; else o.category = e.target.value; } }),
+          el("select", { onchange: (e) => (o.action = e.target.value) },
+            ["add", "hide"].map((a) => el("option", { value: a, selected: (o.action || "add") === a }, a))),
+          el("button", { class: "small danger", onclick: () => { doc.skillOverrides.splice(i, 1); dirty = true; renderSkills(); } }, t("delete")),
+        ])
+      ),
+      el("button", { class: "small", onclick: () => { doc.skillOverrides.push({ name: "", action: "add" }); renderSkills(); } }, t("addSkillOverride"))
+    );
+  };
+  renderSkills();
+  const skillsCard = el("div", { class: "card" }, [
+    el("h3", {}, t("skillOverridesHeading")),
+    el("p", { style: "color:var(--text-dim);font-size:12px;margin-top:0" }, t("skillOverridesNote")),
+    skillsBox,
+  ]);
+
+  // --- advanced: locales, identities, analytics ---
+  const sourceLangInput = el("input", {
+    value: doc.sourceLang || "",
+    oninput: (e) => (doc.sourceLang = e.target.value.trim()),
+  });
+  const targetLangsInput = el("input", {
+    value: doc.targetLangs.join(", "),
+    oninput: (e) => (doc.targetLangs = e.target.value.split(",").map((x) => x.trim()).filter(Boolean)),
+  });
+  const identitiesArea = el("textarea", {
+    value: doc.identities.join("\n"),
+    oninput: (e) => (doc.identities = e.target.value.split("\n").map((x) => x.trim()).filter(Boolean)),
+  });
+  const analyticsInput = el("input", {
+    value: (doc.analytics && doc.analytics.cloudflareToken) || "",
+    oninput: (e) => {
+      const v = e.target.value.trim();
+      if (v === "") delete doc.analytics;
+      else doc.analytics = { cloudflareToken: v };
+    },
+  });
+  const advancedCard = el("div", { class: "card" }, [
+    el("h3", {}, t("profileAdvancedHeading")),
+    el("p", { style: "color:var(--text-dim);font-size:12px;margin-top:0" }, t("profileAdvancedNote")),
+    el("div", { class: "field-row" }, [
+      el("div", { class: "field" }, [el("label", {}, t("profileFieldSourceLang")), sourceLangInput]),
+      el("div", { class: "field" }, [el("label", {}, t("profileFieldTargetLangs")), targetLangsInput]),
+    ]),
+    el("div", { class: "field" }, [el("label", {}, t("profileFieldIdentities")), identitiesArea]),
+    el("div", { class: "field" }, [el("label", {}, t("profileFieldAnalytics")), analyticsInput]),
+  ]);
+
+  const saveBtn = el("button", { class: "accent", onclick: async () => {
+    // Friendly pre-checks for the common mistakes, so the owner normally
+    // never sees a raw schema error. A row someone STARTED filling must not
+    // be dropped silently; a fully-empty "+ Add" row is stripped quietly.
+    if (!doc.name || !doc.githubUser || !doc.seo.title.trim()) {
+      toast(t("profileRequiredMissing"), true);
+      return;
+    }
+    if (doc.socials.some((s) => (s.platform || s.url || s.handle) && !(s.platform && s.url))) {
+      toast(t("socialRowIncomplete"), true);
+      return;
+    }
+    if (doc.skillOverrides.some((o) => !o.name && o.category)) {
+      toast(t("skillRowIncomplete"), true);
+      return;
+    }
+    try {
+      const payload = JSON.parse(JSON.stringify(doc));
+      payload.seo.title = payload.seo.title.trim();
+      payload.socials = payload.socials.filter((s) => s.platform && s.url);
+      payload.skillOverrides = payload.skillOverrides.filter((o) => o.name);
+      await api("/api/profile", { method: "PUT", json: payload });
+      dirty = false;
+      toast(t("profileSaved"));
+      await refreshState();
+    } catch (e) {
+      toast(
+        /changed on disk/.test(e.message)
+          ? t("profileConflict")
+          : t("saveFailed", { message: e.message }),
+        true
+      );
+    }
+  } }, t("profileSave"));
+
+  // Any input in the panel marks the working copy dirty (the avatar file
+  // picker is excluded — avatar actions apply immediately, not via Save).
+  const container = el("div", {
+    oninput: (e) => { if (e.target !== avatarFile) dirty = true; },
+    onchange: (e) => { if (e.target !== avatarFile) dirty = true; },
+  });
+  container.append(basics, avatarCard, texts, seoCard, socialsCard, skillsCard, advancedCard, saveBtn);
+  frag.append(container);
+  unsavedGuard = { hash: "#/profile", isDirty: () => dirty };
+  return frag;
+}
+
 // ---------------- Site design ----------------
 function designPanel() {
   const frag = document.createDocumentFragment();
@@ -943,7 +1229,9 @@ function attachStream() {
   eventSource.addEventListener("done", () => {
     eventSource.close();
     eventSource = null;
-    refreshState().catch(() => {});
+    // Sidebar-only: a full render here would rebuild whatever editor is open
+    // and silently discard the owner's unsaved edits.
+    refreshSidebarOnly().catch(() => {});
   });
   eventSource.onerror = () => {
     if (eventSource) { eventSource.close(); eventSource = null; }
@@ -988,6 +1276,10 @@ document.getElementById("btn-add-manual").addEventListener("click", async () => 
     await refreshState();
     selectProject(created.id);
   } catch (e) { toast(t("createFailed", { message: e.message }), true); }
+});
+
+document.getElementById("btn-profile").addEventListener("click", () => {
+  location.hash = "#/profile";
 });
 
 document.getElementById("btn-design").addEventListener("click", () => {

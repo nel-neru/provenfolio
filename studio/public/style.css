@@ -137,6 +137,16 @@ input[type="checkbox"] { width: auto; }
 .engine-commits { max-height: 180px; color: var(--text-dim); }
 .engine-log { max-height: 320px; }
 
+/* Profile panel */
+.avatar-preview {
+  display: block;
+  max-width: 96px;
+  max-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin: 0 0 8px;
+}
+
 /* ---------- Main panel ---------- */
 #main { flex: 1; overflow-y: auto; }
 #main-empty { padding: 48px; color: var(--text-dim); }
