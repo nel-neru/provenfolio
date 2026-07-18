@@ -61,9 +61,36 @@ const siteTitle =
   localizedSiteTitle || `${profile.name} — ${ui("seo.defaultTitle", locale)}`;
 const pageTitle = title ? `${title} — ${profile.name}` : siteTitle;
 const pageDesc = description ?? t(profile.seo.description, locale, sl);
-/** og:locale territory form, e.g. "pt-BR" → "pt_BR". */
-const ogLocale = (l: string) => l.replace("-", "_");
+/**
+ * og:locale wants language_TERRITORY (e.g. "ja_JP"). Codes that already
+ * carry a region ("pt-BR") just swap the dash for an underscore; bare
+ * language codes go through a table of common defaults. Unknown bare codes
+ * pass through unchanged: consumers accept a plain language code, and
+ * guessing a territory would be wrong more often than right.
+ */
+const OG_TERRITORY: Record<string, string> = {
+  en: "en_US",
+  ja: "ja_JP",
+  ko: "ko_KR",
+  zh: "zh_CN",
+  de: "de_DE",
+  fr: "fr_FR",
+  es: "es_ES",
+  it: "it_IT",
+  pt: "pt_BR",
+  ru: "ru_RU",
+};
+const ogLocale = (l: string) =>
+  l.includes("-") ? l.replace("-", "_") : (OG_TERRITORY[l] ?? l);
 const lp = (p: string) => localePath(p, locale, defaultLocale);
+/**
+ * Cloudflare Pages 308-redirects extensionless page URLs to their
+ * trailing-slash form ("/about" → "/about/"), so canonical/hreflang/og:url
+ * must point at the post-redirect URL. Applied here rather than inside
+ * localePath so in-site navigation links keep their current shape. Root
+ * ("/") already ends with a slash — no doubling.
+ */
+const withSlash = (p: string) => (p.endsWith("/") ? p : `${p}/`);
 
 const site = Astro.site?.href?.replace(/\/$/, "") ?? "";
 const fontFaces = fontFacesFor(tokens);
@@ -94,20 +121,20 @@ const themeHref = (name: string) =>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="theme-color" content={tokens.bg} />
     {isOverride && <meta name="robots" content="noindex" />}
-    <link rel="canonical" href={`${site}${logicalPath}`} />
+    <link rel="canonical" href={`${site}${withSlash(logicalPath)}`} />
     {
       locales.map((l) => (
         <link
           rel="alternate"
           hreflang={l}
-          href={`${site}${localePath(path, l, defaultLocale)}`}
+          href={`${site}${withSlash(localePath(path, l, defaultLocale))}`}
         />
       ))
     }
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDesc} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={`${site}${logicalPath}`} />
+    <meta property="og:url" content={`${site}${withSlash(logicalPath)}`} />
     <meta property="og:site_name" content={profile.name} />
     <meta property="og:locale" content={ogLocale(locale)} />
     {
@@ -151,7 +178,7 @@ const themeHref = (name: string) =>
     }
   </head>
   <body data-surface={surface} data-theme={themeName}>
-    <a href="#main" class="skip-link">Skip to content</a>
+    <a href="#main" class="skip-link">{ui("a11y.skipToContent", locale)}</a>
     <Header locale={locale} path={path} />
     <main id="main">
       <slot />
