@@ -43,6 +43,7 @@ import { themeCssVars, themeFontFaces } from "../site/src/theme.js";
 const HOST = "127.0.0.1";
 const PORT = 4600;
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
+const ASSETS_DIR = path.join(DATA_DIR, "assets");
 const SCREENSHOTS_DIR = path.join(DATA_DIR, "assets", "screenshots");
 const SITE_FONTS_DIR = path.join(ROOT, "site", "public", "fonts");
 const THEME_CONFIG_FILE = path.join(ROOT, "site", "theme.config.mjs");
@@ -546,6 +547,76 @@ function apiState(): unknown {
 }
 
 // ---------------------------------------------------------------------------
+// Profile — the owner's identity as shown on the site (name, intro texts,
+// SEO, socials, locales). Full-document PUT: the GUI sends the whole profile
+// back and the Zod schema is the gatekeeper, same as every other contract file.
+// ---------------------------------------------------------------------------
+
+function saveProfile(doc: unknown): Profile {
+  const profile = validate(
+    profileSchema,
+    { ...(doc as Record<string, unknown>), updatedAt: nowIso() },
+    "profile"
+  );
+  writeJson(PROFILE_FILE, profile);
+  return profile;
+}
+
+function apiPutProfile(body: unknown): unknown {
+  // Optimistic-concurrency guard: the panel sends back the updatedAt it was
+  // opened with; a mismatch means profile.json changed underneath (another
+  // tab, /setup, an /edit session) and a blind full-document write would
+  // silently revert those changes. The client matches on "changed on disk".
+  const incoming = (body ?? {}) as Record<string, unknown>;
+  if (fs.existsSync(PROFILE_FILE)) {
+    const current = readJson(PROFILE_FILE) as { updatedAt?: string };
+    if (
+      typeof incoming.updatedAt === "string" &&
+      typeof current.updatedAt === "string" &&
+      incoming.updatedAt !== current.updatedAt
+    ) {
+      throw new HttpError(409, "profile.json changed on disk since this panel was opened");
+    }
+  }
+  const profile = saveProfile(incoming);
+  // targetLangs feed the translation-completeness checks — keep scores honest.
+  for (const file of listJsonFiles(PROJECTS_DIR)) {
+    const parsed = projectSchema.safeParse(readJson(file));
+    if (parsed.success) saveProject(recomputeCompleteness(parsed.data, profile));
+  }
+  return profile;
+}
+
+async function apiPostAvatar(url: URL, req: IncomingMessage): Promise<unknown> {
+  const rawName = url.searchParams.get("filename");
+  if (!rawName) throw new HttpError(400, "filename query parameter required");
+  let name = sanitizeImageName(rawName);
+
+  const bytes = await readBody(req, IMAGE_BODY_LIMIT);
+  if (bytes.length === 0) throw new HttpError(400, "Empty image body");
+
+  fs.mkdirSync(ASSETS_DIR, { recursive: true });
+  // Never clobber an existing file: suffix -1, -2, ...
+  const ext = path.extname(name);
+  const stem = name.slice(0, -ext.length);
+  for (let i = 1; fs.existsSync(path.join(ASSETS_DIR, name)); i++) {
+    name = `${stem}-${i}${ext}`;
+  }
+  fs.writeFileSync(path.join(ASSETS_DIR, name), bytes);
+
+  const profile = loadProfile();
+  profile.avatar = `assets/${name}`;
+  return saveProfile(profile);
+}
+
+/** Remove the avatar reference only — the uploaded file stays in data/assets/. */
+function apiDeleteAvatar(): unknown {
+  const profile = loadProfile();
+  delete profile.avatar;
+  return saveProfile(profile);
+}
+
+// ---------------------------------------------------------------------------
 // Site design (theme.config.mjs) — the buyer picks the live theme and the
 // visitor-switcher set from the GUI instead of hand-editing the config.
 // ---------------------------------------------------------------------------
@@ -778,7 +849,7 @@ function apiPutProjectProse(id: string, body: unknown): unknown {
   return saveProject(recomputeCompleteness(project));
 }
 
-function sanitizeScreenshotName(raw: string): string {
+function sanitizeImageName(raw: string): string {
   const base = path.basename(raw).toLowerCase().replace(/\s+/g, "-");
   if (!/^[a-z0-9._-]+$/.test(base)) {
     throw new HttpError(400, `Invalid filename "${raw}" (allowed: a-z 0-9 . _ -)`);
@@ -798,7 +869,7 @@ async function apiPostScreenshot(
   const project = loadProject(id);
   const rawName = url.searchParams.get("filename");
   if (!rawName) throw new HttpError(400, "filename query parameter required");
-  let name = sanitizeScreenshotName(rawName);
+  let name = sanitizeImageName(rawName);
 
   const bytes = await readBody(req, IMAGE_BODY_LIMIT);
   if (bytes.length === 0) throw new HttpError(400, "Empty image body");
@@ -905,6 +976,15 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
   if (p === "/api/state" && method === "GET") {
     return sendJson(res, 200, apiState());
+  }
+
+  if (p === "/api/profile" && method === "PUT") {
+    return sendJson(res, 200, apiPutProfile(await readJsonBody(req)));
+  }
+
+  if (p === "/api/profile/avatar") {
+    if (method === "POST") return sendJson(res, 201, await apiPostAvatar(url, req));
+    if (method === "DELETE") return sendJson(res, 200, apiDeleteAvatar());
   }
 
   if (p === "/api/intake" && method === "POST") {

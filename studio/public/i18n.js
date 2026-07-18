@@ -152,6 +152,61 @@ const STUDIO_I18N = {
       "Changes take effect after the next build/publish. Restart Studio to update its own colors.",
     designSaveFailed: "Save failed: {message}",
 
+    // profile (data/profile.json editor)
+    btnProfile: "Profile",
+    profileTitle: "Profile",
+    profileIntro:
+      "Your identity as shown on the site — display name, intro texts, SEO, and social links. Saved to data/profile.json; the live site updates on the next build/publish.",
+    profileBasicHeading: "Basic info",
+    profileFieldName: "Display name (name)",
+    profileFieldGithubUser: "GitHub username (githubUser)",
+    profileFieldEmail: "Email (email)",
+    profileFieldSiteUrl: "Site URL (siteUrl)",
+    profileFieldDomain: "Custom domain (domain)",
+    avatarHeading: "Avatar (avatar)",
+    avatarNote:
+      'png / jpg / jpeg / webp / gif, max 10MB. Stored in data/assets/. Uploads and removals apply immediately — every other field waits for "Save profile".',
+    avatarSaved: "Avatar updated",
+    avatarRemoveConfirm:
+      "Remove the avatar from the site? (The uploaded file itself is kept in data/assets/.)",
+    avatarRemoved: "Avatar removed",
+    noAvatar: "No avatar set",
+    profileTextsHeading: "Intro texts",
+    profileFieldRole: "Role / job title (role)",
+    profileFieldTagline: "Tagline (tagline)",
+    profileFieldBio: "Bio (bio)",
+    seoHeading: "Search & sharing (seo)",
+    profileFieldSeoTitle: "Page title (seo.title)",
+    profileFieldSeoDescription: "Description (seo.description)",
+    socialsHeading: "Social links (socials)",
+    socialPlatformPlaceholder: "Platform (e.g. X, Zenn)",
+    socialHandlePlaceholder: "Handle (optional)",
+    addSocial: "+ Add link",
+    skillOverridesHeading: "Skill display corrections (skillOverrides)",
+    skillOverridesNote:
+      "Site skills are computed from analyzed evidence; use this only to add what analysis can't see or to hide noise.",
+    skillNamePlaceholder: "Skill (e.g. AWS)",
+    skillCategoryPlaceholder: "Category (optional)",
+    addSkillOverride: "+ Add correction",
+    profileAdvancedHeading: "Advanced",
+    profileAdvancedNote:
+      "These drive analysis and translation. Changing languages does not translate existing text by itself — ask Claude Code to re-translate afterwards. Changing identities needs /refresh to recompute ownership metrics.",
+    profileFieldSourceLang: "Source language (sourceLang)",
+    profileFieldTargetLangs: "Target languages (targetLangs, comma-separated)",
+    profileFieldIdentities: "Git identities (identities, one per line)",
+    profileFieldAnalytics: "Cloudflare Web Analytics token (analytics.cloudflareToken)",
+    profileSave: "Save profile",
+    profileSaved: "Profile saved. Rebuild or /publish to update the live site.",
+    profileRequiredMissing:
+      "Display name, GitHub username, and page title (seo.title) are required.",
+    socialRowIncomplete:
+      "A social link is missing its platform or URL — fill it in or delete that row.",
+    skillRowIncomplete:
+      "A skill correction is missing its skill name — fill it in or delete that row.",
+    profileConflict:
+      "profile.json changed outside this panel (another tab, /setup, or Claude Code). Reopen the Profile panel and redo the edit.",
+    unsavedLeaveConfirm: "You have unsaved profile changes. Leave and discard them?",
+
     // engine update (git-tracked distribution repo)
     btnEngine: "Engine update",
     btnGuide: "📘 Guide",
@@ -327,6 +382,61 @@ const STUDIO_I18N = {
     designRebuildNote:
       "変更は次回のビルド/公開で反映されます。Studio 自身の配色は再起動で更新されます。",
     designSaveFailed: "保存に失敗: {message}",
+
+    // profile (data/profile.json editor)
+    btnProfile: "プロフィール",
+    profileTitle: "プロフィール",
+    profileIntro:
+      "サイトに表示されるあなたの情報 — 表示名・紹介文・SEO・ソーシャルリンク。data/profile.json に保存され、公開サイトには次回のビルド/公開で反映されます。",
+    profileBasicHeading: "基本情報",
+    profileFieldName: "表示名 (name)",
+    profileFieldGithubUser: "GitHubユーザー名 (githubUser)",
+    profileFieldEmail: "メールアドレス (email)",
+    profileFieldSiteUrl: "サイトURL (siteUrl)",
+    profileFieldDomain: "独自ドメイン (domain)",
+    avatarHeading: "アバター (avatar)",
+    avatarNote:
+      "png / jpg / jpeg / webp / gif、最大10MB。data/assets/ に保存されます。アバターの追加・削除はその場で反映されます — 他の項目は「プロフィールを保存」で確定します。",
+    avatarSaved: "アバターを更新しました",
+    avatarRemoveConfirm:
+      "アバターをサイトから外しますか?(アップロード済みのファイル自体は data/assets/ に残ります)",
+    avatarRemoved: "アバターを外しました",
+    noAvatar: "アバターは未設定です",
+    profileTextsHeading: "紹介文",
+    profileFieldRole: "肩書き (role)",
+    profileFieldTagline: "キャッチコピー (tagline)",
+    profileFieldBio: "自己紹介 (bio)",
+    seoHeading: "検索・シェア設定 (seo)",
+    profileFieldSeoTitle: "ページタイトル (seo.title)",
+    profileFieldSeoDescription: "説明文 (seo.description)",
+    socialsHeading: "ソーシャルリンク (socials)",
+    socialPlatformPlaceholder: "プラットフォーム(例: X, Zenn)",
+    socialHandlePlaceholder: "ハンドル(任意)",
+    addSocial: "+ リンクを追加",
+    skillOverridesHeading: "スキル表示の補正 (skillOverrides)",
+    skillOverridesNote:
+      "サイトのスキル一覧は分析結果から自動計算されます。分析では見えないものの追加やノイズの非表示にだけ使ってください。",
+    skillNamePlaceholder: "スキル(例: AWS)",
+    skillCategoryPlaceholder: "カテゴリ(任意)",
+    addSkillOverride: "+ 補正を追加",
+    profileAdvancedHeading: "上級設定",
+    profileAdvancedNote:
+      "分析と翻訳の動作に関わる設定です。言語を変えても既存の文章が自動で翻訳されるわけではありません — 変更後に Claude Code へ再翻訳を頼んでください。identities の変更後は /refresh で本人コミット率の再計算が必要です。",
+    profileFieldSourceLang: "元の言語 (sourceLang)",
+    profileFieldTargetLangs: "翻訳先の言語 (targetLangs、カンマ区切り)",
+    profileFieldIdentities: "Gitの本人識別子 (identities、1行に1つ)",
+    profileFieldAnalytics: "Cloudflare Web Analytics トークン (analytics.cloudflareToken)",
+    profileSave: "プロフィールを保存",
+    profileSaved: "プロフィールを保存しました。反映にはリビルドまたは /publish が必要です。",
+    profileRequiredMissing:
+      "表示名・GitHubユーザー名・ページタイトル (seo.title) は必須です。",
+    socialRowIncomplete:
+      "ソーシャルリンクにプラットフォームまたはURLが未入力の行があります — 入力するか行を削除してください。",
+    skillRowIncomplete:
+      "スキル補正にスキル名が未入力の行があります — 入力するか行を削除してください。",
+    profileConflict:
+      "profile.json がこのパネルの外(別タブ・/setup・Claude Code)で変更されています。プロフィールパネルを開き直してから編集し直してください。",
+    unsavedLeaveConfirm: "保存していないプロフィールの変更があります。破棄して移動しますか?",
 
     // engine update (git-tracked distribution repo)
     btnEngine: "エンジン更新",
