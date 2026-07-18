@@ -4,6 +4,8 @@
  * link (or plain code when the repo is private/unlinked). Trust signal of
  * the whole product: no prefix, no decoration, just the receipt.
  */
+import { ui } from "../lib/i18n.js";
+
 interface Props {
   evidence: { kind: string; ref: string; label?: string };
   repoUrl?: string;
@@ -13,8 +15,15 @@ interface Props {
   locale: string;
 }
 
-const { evidence, repoUrl, isPrivate = false, sourceCommit } = Astro.props;
+const { evidence, repoUrl, isPrivate = false, sourceCommit, locale } = Astro.props;
 const { kind, ref, label } = evidence;
+
+/**
+ * Locale-resolved "owner-provided" marker (existing dictionary key). The
+ * other title values (`ref` file paths) are locale-neutral plain strings
+ * from the schema, so they render as-is.
+ */
+const ownerText = ui("evidence.owner", locale);
 
 /** Tolerate trailing slash / .git on the repo URL. */
 const base = repoUrl?.replace(/\/+$/, "").replace(/\.git$/, "");
@@ -53,7 +62,7 @@ if (kind === "commit") {
 
 {
   kind === "ownerInput" ? (
-    <span class="evidence-link" title="owner-provided">{label ?? "owner"}</span>
+    <span class="evidence-link" title={ownerText}>{label ?? ownerText}</span>
   ) : href ? (
     <a class="evidence-link" href={href} title={title} rel="noopener">
       {kind === "commit" ? <code>{text}</code> : text}
