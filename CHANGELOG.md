@@ -11,8 +11,6 @@ All notable changes to Provenfolio. Versioning follows the root `package.json` (
 - All user-facing docs now ship as EN+JA pairs (README + engine/docs), kept in sync by a hash-marker contract; Studio GUI strings moved to an en/ja dictionary keyed on `profile.sourceLang`; a new `check:i18n` CI guard fails on out-of-date translations or stray Japanese outside i18n files.
 - The distribution repo no longer tracks `data/`: a blank seed is bootstrapped on demand by `engine/scripts/ensure-data.ts` (wired into `npm run validate`, site dev/build, and Studio). `reset-data.ts` shares the same seed code.
 - `data-guard` CI is now a tracked-state check (zero `data/` paths allowed in the distribution repo); the `[seed]` escape hatch is gone.
-
-### Changed
 - **Target-locale routes are generated from `profile.targetLangs`.** The hardcoded `/en/` page trees are gone; `[lang]` dynamic routes build one tree per configured target locale (none when `targetLangs` is empty), so any locale pair works — with URL sets byte-identical to the previous output for existing ja+en instances. Custom-page wrappers follow the `[lang]/<name>.astro` pattern (see CUSTOMIZING).
 
 ### Fixed
@@ -42,7 +40,7 @@ All notable changes to Provenfolio. Versioning follows the root `package.json` (
 ### Security
 - Studio verifies theme-config rewrites in memory before writing (hand-edited formats are rejected with 422 instead of being corrupted) and validates image-upload magic bytes against the extension (415 on mismatch).
 - Studio rejects any request whose `Host` header is not an allowlisted local value (DNS-rebinding guard, applied to every method including GET).
-- Studio launches the `claude` CLI without a shell (argv array; on Windows an npm `.cmd` shim is unwrapped to its `cli.js` and run with `process.execPath`) — the last `shell: true` spawn in the engine is gone.
+- Studio launches the `claude` CLI without a shell (argv array; on Windows an npm `.cmd` shim is unwrapped to its `cli.js` and run with `process.execPath`).
 - `refresh.yml` is skipped on the canonical distribution repo, so its auto-commit loop can only run in instance repos.
 - `/setup` and `/publish` refuse to commit instance data when `origin` points at the distribution repo.
 - Docs now require instance repos to be private and warn against public forks (`engine/docs/GETTING-STARTED.md`).
