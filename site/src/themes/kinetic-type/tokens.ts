@@ -7,7 +7,7 @@
  * behind prefers-reduced-motion: the resting page is a designed poster.
  * CJK degradation: 'Noto Sans JP' is referenced by name only (never
  * self-hosted); systems without it fall back to Hiragino Sans / Yu Gothic
- * UI / Meiryo, and CJK display lines get weight, not width, variation.
+ * Medium / Meiryo, and CJK display lines get weight, not width, variation.
  */
 import type { ThemeTokens } from "../../lib/theme-types.js";
 
@@ -35,11 +35,11 @@ export const theme: ThemeTokens = {
   viz: ["#3A2417", "#6B3A1B", "#A34A15", "#D94E08", "#FF4D00"],
 
   fontSans:
-    "'Archivo', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif",
+    "'Archivo', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', system-ui, sans-serif",
   fontMono:
     "'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Noto Sans JP', 'Meiryo', monospace",
   fontDisplay:
-    "'Archivo', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif",
+    "'Archivo', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', system-ui, sans-serif",
 
   /** Poster edges: no rounding anywhere (pills opt out via 999px locally). */
   radius: "0px",

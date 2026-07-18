@@ -39,7 +39,7 @@ export const theme: ThemeTokens = {
   viz: ["#16352A", "#1E7A52", "#2AA96F", "#3DD68C", "#8CF0BE"],
 
   fontSans:
-    "'IBM Plex Sans', 'IBM Plex Sans JP', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif",
+    "'IBM Plex Sans', 'IBM Plex Sans JP', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', system-ui, sans-serif",
   fontMono:
     "'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace",
   fontDisplay: "'IBM Plex Mono', ui-monospace, monospace",

@@ -42,6 +42,16 @@ h4 {
   letter-spacing: -0.02em;
   font-weight: 600;
 }
+/* CJK glyphs carry no Latin-style tightening: undo the negative tracking.
+   The class-scoped heads that outweigh h*:lang(ja) are listed explicitly. */
+h1:lang(ja),
+h2:lang(ja),
+h3:lang(ja),
+h4:lang(ja),
+.pagehead h1:lang(ja),
+.row .row-title:lang(ja) {
+  letter-spacing: 0;
+}
 
 ::selection {
   background: var(--accent-soft);

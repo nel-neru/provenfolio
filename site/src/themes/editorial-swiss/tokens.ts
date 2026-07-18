@@ -10,7 +10,7 @@
  * U+2116 numero glyph this theme leans on — all "N°" marks are set in
  * mono). CJK is NOT self-hosted: 'Noto Sans JP' is named in the stacks so
  * visitors who have it win, degrading to the system JP stack (Hiragino
- * Sans / Yu Gothic UI / Meiryo) with no layout impact.
+ * Sans / Yu Gothic Medium / Meiryo) with no layout impact.
  */
 import type { ThemeTokens } from "../../lib/theme-types.js";
 
@@ -38,10 +38,10 @@ export const theme: ThemeTokens = {
   viz: ["#E4E2DB", "#C6C3B9", "#9B978B", "#55524B", "#111110"],
 
   fontSans:
-    "'Archivo', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif",
+    "'Archivo', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', system-ui, sans-serif",
   fontMono: "'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace",
   fontDisplay:
-    "'Archivo', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif",
+    "'Archivo', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', sans-serif",
 
   radius: "0px",
   radiusSmall: "2px",

@@ -39,6 +39,15 @@ h4 {
   letter-spacing: -0.02em;
   font-weight: 900;
 }
+/* CJK glyphs carry no Latin-style tightening: undo the negative tracking.
+   :where() keeps specificity at type level so tracked mono voices
+   (.section-title, .sec-head h2) still win for JA. */
+h1:where(:lang(ja)),
+h2:where(:lang(ja)),
+h3:where(:lang(ja)),
+h4:where(:lang(ja)) {
+  letter-spacing: 0;
+}
 
 a {
   color: var(--accent-lift);
@@ -53,6 +62,13 @@ a {
 [lang="ja"] {
   font-feature-settings: "palt" 1;
   letter-spacing: 0.03em;
+}
+/* CJK pages read at a taller rhythm. The [lang] block above only matches
+   the element carrying the attribute (<html> for whole-page JA), and its
+   inherited line-height loses to the body rule — so scope to body here. */
+body:lang(ja) {
+  line-height: 1.9;
+  font-feature-settings: "palt" 1;
 }
 
 section[id] {
@@ -331,6 +347,9 @@ section[id] {
 }
 .case-study .section-title::before {
   content: none;
+}
+.case-study .section-title:lang(ja) {
+  letter-spacing: 0;
 }
 .case-study .section-title::after {
   content: ".";

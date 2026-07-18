@@ -35,6 +35,15 @@ h4 {
   letter-spacing: -0.01em;
   font-weight: 700;
 }
+/* CJK glyphs carry no Latin-style tightening: undo the negative tracking.
+   :where() keeps specificity at type level so the tracked caps voice of
+   .section-title still wins for JA. */
+h1:where(:lang(ja)),
+h2:where(:lang(ja)),
+h3:where(:lang(ja)),
+h4:where(:lang(ja)) {
+  letter-spacing: 0;
+}
 
 /* Hairline focus ring, square like everything else. */
 :focus-visible {
@@ -414,6 +423,9 @@ body[data-surface="showcase"] .caret {
   font-family: var(--font-mono) !important;
   font-weight: 600 !important;
   letter-spacing: -0.01em;
+}
+.project-card .name:lang(ja) {
+  letter-spacing: 0;
 }
 
 /* Timeline: the git ledger — flat ruled rows instead of rail-and-dots. */

@@ -43,9 +43,10 @@ export const theme: ThemeTokens = {
   viz: ["#2e2745", "#453a66", "#8800ff", "#ff4fd8", "#c8ff00"],
 
   fontSans:
-    "'Space Grotesk', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', system-ui, sans-serif",
+    "'Space Grotesk', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', system-ui, sans-serif",
   fontMono: "'JetBrains Mono', ui-monospace, Consolas, monospace",
-  fontDisplay: "'Unbounded', 'Noto Sans JP', sans-serif",
+  fontDisplay:
+    "'Unbounded', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', sans-serif",
 
   /** The quantized two-radius system: 10px frames, pills for everything small. */
   radius: "10px",
