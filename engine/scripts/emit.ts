@@ -443,9 +443,21 @@ function verifyEvidence(ev: EvidenceRef): string | undefined {
     return evidenceFileProblem(repoDir, ev.ref);
   }
   if (ev.kind === "pr") {
-    const known = stats?.github?.pullRequests?.map((p) => p.number);
-    if (!known || known.length === 0) return undefined;
+    if (!stats) return undefined; // manual projects: skip
     const num = Number(ev.ref.replace(/^#/, ""));
+    const known = stats.github?.pullRequests?.map((p) => p.number);
+    if (!known) {
+      // fetch-github-meta fails soft, so a missing github block (or PR list)
+      // means the metadata was never fetched — not that the PR is bogus.
+      return (
+        `evidence PR #${num} could not be verified because GitHub metadata ` +
+        `is unavailable (offline or gh failure); re-run with network access ` +
+        `or drop the PR evidence`
+      );
+    }
+    // An empty list is ambiguous (no merged PRs vs. soft pulls-endpoint
+    // failure), so keep skipping it rather than risk a misleading error.
+    if (known.length === 0) return undefined;
     return known.includes(num)
       ? undefined
       : `evidence PR #${num} not found among merged PRs`;
