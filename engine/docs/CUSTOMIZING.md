@@ -31,7 +31,7 @@ Copy `site/src/themes/midnight` → `site/src/themes/<name>`, edit `tokens.ts` /
 `site/theme.config.mjs` → `visitorThemes`. `"all"` (default) exposes every installed theme: each is prerendered under `/t/<name>/` and a "Design" dock lets visitors flip the whole site live (`noindex`, canonical stays on your root URLs). List specific names to trim the menu, or `["<activeTheme>"]` to disable the switcher entirely.
 
 ### Add a page
-`site/src/pages/<name>.astro` (+ `en/<name>.astro` wrapper) using the `Base` layout and `lib/data.ts` accessors. New pages are yours — engine updates won't collide.
+`site/src/pages/<name>.astro` (+ a `[lang]/<name>.astro` wrapper with `getStaticPaths` over `targetLocales(profile)` for translated URLs) using the `Base` layout and `lib/data.ts` accessors. New pages are yours — engine updates won't collide.
 
 ### Optional flourishes (deliberately not shipped)
 The stock motion language is intentionally restrained (reveal + hero). If you want more, add them inside your theme package:

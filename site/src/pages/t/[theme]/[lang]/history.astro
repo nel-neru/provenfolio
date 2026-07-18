@@ -1,12 +1,16 @@
 ---
 import { getManifest, listPrerenderThemes } from "../../../../lib/theme-registry.js";
-import { localePath } from "../../../../lib/i18n.js";
+import { localePath, targetLocales } from "../../../../lib/i18n.js";
 import { getProfile, getAggregates, showHistoryPage } from "../../../../lib/data.js";
 
-export function getStaticPaths() {
-  return listPrerenderThemes().map((theme) => ({ params: { theme } }));
+export async function getStaticPaths() {
+  const profile = await getProfile();
+  return listPrerenderThemes().flatMap((theme) =>
+    targetLocales(profile).map((lang) => ({ params: { theme, lang } }))
+  );
 }
 
+const lang = Astro.params.lang!;
 const profile = await getProfile();
 const aggregates = await getAggregates();
 
@@ -16,11 +20,11 @@ const aggregates = await getAggregates();
 // instead of exposing the sparse placeholder to direct URL hits.
 if (!showHistoryPage(aggregates))
   return Astro.redirect(
-    `/t/${Astro.params.theme}${localePath("/", "en", profile.sourceLang)}`,
+    `/t/${Astro.params.theme}${localePath("/", lang, profile.sourceLang)}`,
     307
   );
 
 const { HistoryPage } = (await getManifest(Astro.params.theme!)).components;
 ---
 
-<HistoryPage locale="en" />
+<HistoryPage locale={lang} />

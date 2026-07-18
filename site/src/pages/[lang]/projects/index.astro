@@ -1,0 +1,12 @@
+---
+import ProjectsPage from "@theme/components/ProjectsPage.astro";
+import { targetLocales } from "../../../lib/i18n.js";
+import { getProfile } from "../../../lib/data.js";
+
+export async function getStaticPaths() {
+  const profile = await getProfile();
+  return targetLocales(profile).map((lang) => ({ params: { lang } }));
+}
+---
+
+<ProjectsPage locale={Astro.params.lang!} />

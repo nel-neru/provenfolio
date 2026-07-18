@@ -31,7 +31,7 @@
 `site/theme.config.mjs` → `visitorThemes`。`"all"`(デフォルト)はインストール済みの全テーマを公開します: 各テーマは `/t/<name>/` に事前レンダリングされ、「Design」ドックから訪問者がサイト全体のデザインをその場で切り替えられます(`noindex` 付き、canonical はあなたのルート URL のまま)。名前を列挙すればメニューを絞れ、`["<activeTheme>"]` にすればスイッチャーを完全に無効化できます。
 
 ### ページの追加
-`Base` レイアウトと `lib/data.ts` のアクセサを使って `site/src/pages/<name>.astro`(+ `en/<name>.astro` ラッパー)を作成します。新規ページはあなたのものです — エンジン更新と衝突しません。
+`Base` レイアウトと `lib/data.ts` のアクセサを使って `site/src/pages/<name>.astro`(+ 翻訳 URL 用に `targetLocales(profile)` を `getStaticPaths` で回す `[lang]/<name>.astro` ラッパー)を作成します。新規ページはあなたのものです — エンジン更新と衝突しません。
 
 ### オプションの装飾(意図的に同梱していません)
 標準のモーション言語は意図的に控えめにしています(リビール + ヒーロー)。さらに加えたい場合は、あなたのテーマパッケージの中に追加してください:
@@ -45,4 +45,4 @@
 ### レンダリング層を丸ごと置き換える
 サイトは `data/*.json` を消費する差し替え可能なコンシューマです。`engine/` を残したまま、任意のフレームワークを同じ契約に向ければ動きます(`engine/schemas` はプレーンな Zod + TS 型をエクスポートしています)。メンテナンス済みのテーマ群は失いますが、パイプラインは何も失いません。
 
-<!-- i18n:source=engine/docs/CUSTOMIZING.md sha256=3e7d86128a13af3990b9a845de9c5df1777ce911cffaa6f67187dacf16396c09 -->
+<!-- i18n:source=engine/docs/CUSTOMIZING.md sha256=a62d6e5d05c29d6fe33a83cfbdd7cc80cfb7afd07e16fdd51654b5739ebe6798 -->

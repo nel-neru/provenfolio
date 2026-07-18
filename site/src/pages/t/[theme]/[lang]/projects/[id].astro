@@ -1,12 +1,19 @@
 ---
 import { getManifest, listPrerenderThemes } from "../../../../../lib/theme-registry.js";
-import { getProjects } from "../../../../../lib/data.js";
+import { targetLocales } from "../../../../../lib/i18n.js";
+import { getProfile, getProjects } from "../../../../../lib/data.js";
 import type { ProjectData } from "../../../../../lib/data.js";
 
 export async function getStaticPaths() {
+  const profile = await getProfile();
   const projects = await getProjects();
   return listPrerenderThemes().flatMap((theme) =>
-    projects.map((p) => ({ params: { theme, id: p.id }, props: { project: p } }))
+    targetLocales(profile).flatMap((lang) =>
+      projects.map((p) => ({
+        params: { theme, lang, id: p.id },
+        props: { project: p },
+      }))
+    )
   );
 }
 
@@ -18,4 +25,4 @@ const { project } = Astro.props;
 const { ProjectPage } = (await getManifest(Astro.params.theme!)).components;
 ---
 
-<ProjectPage locale="en" project={project} />
+<ProjectPage locale={Astro.params.lang!} project={project} />

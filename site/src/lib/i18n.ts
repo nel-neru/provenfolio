@@ -29,6 +29,20 @@ export function localePath(
 }
 
 /**
+ * Locales that get their own prefixed URL tree ("/<lang>/..."). These are
+ * the profile's targetLangs minus sourceLang — the source locale already
+ * lives at the unprefixed root, so listing it as a target must not build a
+ * duplicate tree. Pages' getStaticPaths derive [lang] params from this;
+ * an empty list builds no extra locale tree at all.
+ */
+export function targetLocales(profile: {
+  sourceLang: string;
+  targetLangs: string[];
+}): string[] {
+  return profile.targetLangs.filter((lang) => lang !== profile.sourceLang);
+}
+
+/**
  * UI chrome strings (nav labels, section headings, meta labels). Content
  * comes from data; only interface furniture lives here. Locales without an
  * entry fall back to "en" strings.

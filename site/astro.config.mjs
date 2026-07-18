@@ -26,7 +26,7 @@ export default defineConfig({
   site: profile.siteUrl ?? "https://example.pages.dev",
   i18n: {
     defaultLocale: profile.sourceLang,
-    locales: [profile.sourceLang, ...profile.targetLangs],
+    locales: [...new Set([profile.sourceLang, ...profile.targetLangs])],
     routing: {
       prefixDefaultLocale: false,
     },

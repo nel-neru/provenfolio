@@ -1,0 +1,17 @@
+---
+/** Theme-preview home per target locale ("/t/<theme>/<lang>/"). */
+import { getManifest, listPrerenderThemes } from "../../../../lib/theme-registry.js";
+import { targetLocales } from "../../../../lib/i18n.js";
+import { getProfile } from "../../../../lib/data.js";
+
+export async function getStaticPaths() {
+  const profile = await getProfile();
+  return listPrerenderThemes().flatMap((theme) =>
+    targetLocales(profile).map((lang) => ({ params: { theme, lang } }))
+  );
+}
+
+const { HomePage } = (await getManifest(Astro.params.theme!)).components;
+---
+
+<HomePage locale={Astro.params.lang!} />

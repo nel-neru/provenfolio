@@ -1,0 +1,12 @@
+---
+import OverviewPage from "@theme/components/OverviewPage.astro";
+import { targetLocales } from "../../lib/i18n.js";
+import { getProfile } from "../../lib/data.js";
+
+export async function getStaticPaths() {
+  const profile = await getProfile();
+  return targetLocales(profile).map((lang) => ({ params: { lang } }));
+}
+---
+
+<OverviewPage locale={Astro.params.lang!} />
