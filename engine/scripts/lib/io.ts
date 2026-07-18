@@ -2,8 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 
+/** Read + parse a JSON file; parse errors are rethrown with the file path attached. */
 export function readJson(file: string): unknown {
-  return JSON.parse(fs.readFileSync(file, "utf8"));
+  const raw = fs.readFileSync(file, "utf8");
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    throw new ValidationFailure(
+      file,
+      `invalid JSON: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
 }
 
 /** Stable 2-space formatting + trailing newline so git diffs stay clean. */
