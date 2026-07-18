@@ -8,6 +8,7 @@
  */
 import http from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -639,20 +640,7 @@ function apiPutProfile(body: unknown): unknown {
 async function apiPostAvatar(url: URL, req: IncomingMessage): Promise<unknown> {
   const rawName = url.searchParams.get("filename");
   if (!rawName) throw new HttpError(400, "filename query parameter required");
-  let name = sanitizeImageName(rawName);
-
-  const bytes = await readBody(req, IMAGE_BODY_LIMIT);
-  if (bytes.length === 0) throw new HttpError(400, "Empty image body");
-  assertImageBody(name, bytes);
-
-  fs.mkdirSync(ASSETS_DIR, { recursive: true });
-  // Never clobber an existing file: suffix -1, -2, ...
-  const ext = path.extname(name);
-  const stem = name.slice(0, -ext.length);
-  for (let i = 1; fs.existsSync(path.join(ASSETS_DIR, name)); i++) {
-    name = `${stem}-${i}${ext}`;
-  }
-  fs.writeFileSync(path.join(ASSETS_DIR, name), bytes);
+  const name = await receiveImageUpload(req, ASSETS_DIR, sanitizeImageName(rawName));
 
   const profile = loadProfile();
   profile.avatar = `assets/${name}`;
@@ -944,8 +932,8 @@ function sanitizeImageName(raw: string): string {
 
 // Magic-byte validation for uploads: the extension names the claimed format
 // (IMAGE_EXTS — SVG is deliberately not accepted, it can script), the leading
-// bytes must agree, otherwise the body is rejected with 415 before it is
-// written anywhere.
+// bytes must agree, otherwise the body is rejected with 415 as soon as the
+// leading bytes arrive — before any of it reaches a final path.
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -988,6 +976,143 @@ function assertImageBody(name: string, bytes: Buffer): void {
   }
 }
 
+// Longest prefix sniffImageFormat needs to identify a format (WEBP: 12 bytes).
+const SNIFF_BYTES = 12;
+
+/**
+ * Stream an upload body into `tmpPath` instead of buffering it in memory.
+ * The size limit and the magic-byte check both run on the bytes as they
+ * arrive, so an oversized or mismatched body is rejected mid-transfer (the
+ * request is paused, not destroyed, so the error response still reaches the
+ * client). The temp file is always removed on failure — including client
+ * disconnects — never leaving residue behind. Resolves once the file is
+ * fully written and closed.
+ */
+function streamImageToFile(
+  req: IncomingMessage,
+  name: string,
+  tmpPath: string,
+  limit: number
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const out = fs.createWriteStream(tmpPath, { flags: "wx" });
+    let size = 0;
+    let head: Buffer = Buffer.alloc(0);
+    let headChecked = false;
+    let settled = false;
+
+    const discard = (err: unknown): void => {
+      if (settled) return;
+      settled = true;
+      req.pause();
+      req.removeListener("data", onData);
+      req.removeListener("end", onEnd);
+      // Wait for the fd to close before unlinking (Windows refuses otherwise).
+      const rm = () => fs.rm(tmpPath, { force: true }, () => reject(err));
+      if (out.closed) {
+        rm();
+      } else {
+        out.once("close", rm);
+        out.destroy();
+      }
+    };
+
+    const checkHead = (): void => {
+      headChecked = true;
+      assertImageBody(name, head); // throws HttpError(415) on mismatch
+    };
+
+    const onData = (chunk: Buffer): void => {
+      size += chunk.length;
+      if (size > limit) {
+        discard(new HttpError(413, `Body exceeds ${limit} bytes`));
+        return;
+      }
+      if (!headChecked) {
+        head = head.length === 0 ? chunk : Buffer.concat([head, chunk]);
+        if (head.length >= SNIFF_BYTES) {
+          try {
+            checkHead();
+          } catch (err) {
+            discard(err);
+            return;
+          }
+        }
+      }
+      if (!out.write(chunk)) {
+        req.pause();
+        out.once("drain", () => {
+          if (!settled) req.resume();
+        });
+      }
+    };
+
+    const onEnd = (): void => {
+      if (settled) return;
+      if (size === 0) {
+        discard(new HttpError(400, "Empty image body"));
+        return;
+      }
+      if (!headChecked) {
+        // Body ended before SNIFF_BYTES arrived — sniff what there is.
+        try {
+          checkHead();
+        } catch (err) {
+          discard(err);
+          return;
+        }
+      }
+      out.end(() => {
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+      });
+    };
+
+    out.on("error", (err) => discard(err));
+    req.on("data", onData);
+    req.on("end", onEnd);
+    req.on("error", (err) => discard(err));
+    // Mid-body client disconnects can surface as "close" without an "error".
+    req.on("close", () => {
+      if (!settled && !req.complete) {
+        discard(new Error("Client disconnected before the upload completed"));
+      }
+    });
+  });
+}
+
+/**
+ * Receive an image upload destined for `dir`/`name`: stream the body to a
+ * temp file inside the destination directory (same volume as data/assets, so
+ * the final rename is atomic), then rename it to the first non-clobbering
+ * variant of `name`. Returns the final file name.
+ */
+async function receiveImageUpload(
+  req: IncomingMessage,
+  dir: string,
+  name: string
+): Promise<string> {
+  fs.mkdirSync(dir, { recursive: true });
+  const tmpPath = path.join(dir, `.upload-${crypto.randomBytes(8).toString("hex")}.tmp`);
+  await streamImageToFile(req, name, tmpPath, IMAGE_BODY_LIMIT);
+
+  // Never clobber an existing file: suffix -1, -2, ...
+  const ext = path.extname(name);
+  const stem = name.slice(0, -ext.length);
+  for (let i = 1; fs.existsSync(path.join(dir, name)); i++) {
+    name = `${stem}-${i}${ext}`;
+  }
+  try {
+    fs.renameSync(tmpPath, path.join(dir, name));
+  } catch (err) {
+    fs.rmSync(tmpPath, { force: true });
+    throw err;
+  }
+  return name;
+}
+
 async function apiPostScreenshot(
   id: string,
   url: URL,
@@ -996,22 +1121,11 @@ async function apiPostScreenshot(
   const project = loadProject(id);
   const rawName = url.searchParams.get("filename");
   if (!rawName) throw new HttpError(400, "filename query parameter required");
-  let name = sanitizeImageName(rawName);
-
-  const bytes = await readBody(req, IMAGE_BODY_LIMIT);
-  if (bytes.length === 0) throw new HttpError(400, "Empty image body");
-  assertImageBody(name, bytes);
-
-  const dir = path.join(SCREENSHOTS_DIR, id);
-  fs.mkdirSync(dir, { recursive: true });
-
-  // Never clobber an existing file: suffix -1, -2, ...
-  const ext = path.extname(name);
-  const stem = name.slice(0, -ext.length);
-  for (let i = 1; fs.existsSync(path.join(dir, name)); i++) {
-    name = `${stem}-${i}${ext}`;
-  }
-  fs.writeFileSync(path.join(dir, name), bytes);
+  const name = await receiveImageUpload(
+    req,
+    path.join(SCREENSHOTS_DIR, id),
+    sanitizeImageName(rawName)
+  );
 
   const profile = loadProfile();
   const src = `assets/screenshots/${id}/${name}`;
