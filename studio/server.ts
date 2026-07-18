@@ -256,13 +256,23 @@ function startAnalyze(): void {
   analyzeRunner.begin("Analysis already running");
   analyzeRunner.push(`[studio] ${nowIso()} launching claude -p "/analyze --pending" ...`);
 
+  // The claude CLI is an npm .cmd shim on Windows, so it needs a shell there —
+  // but a shell concatenates args without escaping, which would split the
+  // prompt at its space ("--pending" became an unknown claude option). Quote
+  // the prompt manually on the shell path only.
+  const useShell = process.platform === "win32";
+  const prompt = "/analyze --pending";
   let child: ChildProcess;
   try {
-    child = spawn("claude", ["-p", "/analyze --pending", "--permission-mode", "acceptEdits"], {
-      cwd: ROOT,
-      shell: process.platform === "win32",
-      windowsHide: true,
-    });
+    child = spawn(
+      "claude",
+      ["-p", useShell ? `"${prompt}"` : prompt, "--permission-mode", "acceptEdits"],
+      {
+        cwd: ROOT,
+        shell: useShell,
+        windowsHide: true,
+      }
+    );
   } catch {
     analyzeRunner.push('Claude Code CLI not found. Run "/analyze --pending" in Claude Code instead.');
     analyzeRunner.done(-1);
