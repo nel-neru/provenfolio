@@ -70,7 +70,7 @@ test("grouped number with a decimal part keeps its fraction", () => {
 test("a grouped number NOT in the allow-list is a single error token", () => {
   const errors = lint("12,151 commits", new Set([99]));
   assert.equal(errors.length, 1);
-  assert.match(errors[0].message, /number 12151 /);
+  assert.match(errors[0]!.message, /number 12151 /);
 });
 
 // ---- tokenizer: decimals, percent, versions ----
@@ -194,8 +194,8 @@ test("unsourced numbers are reported per field with the parsed value", () => {
     new Set([6])
   );
   assert.equal(errors.length, 1);
-  assert.equal(errors[0].field, "caseStudy.results.en");
-  assert.match(errors[0].message, /number 300 /);
+  assert.equal(errors[0]!.field, "caseStudy.results.en");
+  assert.match(errors[0]!.message, /number 300 /);
 });
 
 // ---- banned phrases (unchanged behavior, kept under test) ----
@@ -206,6 +206,6 @@ test("banned puffery phrases are flagged case-insensitively", () => {
     "summary.ja": "OK text",
   });
   assert.equal(errors.length, 1);
-  assert.equal(errors[0].field, "summary.en");
-  assert.match(errors[0].message, /battle-tested/);
+  assert.equal(errors[0]!.field, "summary.en");
+  assert.match(errors[0]!.message, /battle-tested/);
 });
