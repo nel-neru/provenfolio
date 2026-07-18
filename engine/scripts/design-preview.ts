@@ -17,6 +17,13 @@ import { ROOT } from "./lib/paths.js";
 
 const HOST = "127.0.0.1";
 const PORT = 4700;
+// Host header values a local browser can legitimately send when talking to
+// this server (same DNS-rebinding guard as studio/server.ts). A rebinding
+// page is served from an attacker-owned domain whose DNS record is then
+// re-pointed at 127.0.0.1 — the browser happily reaches this server and
+// same-origin policy no longer helps, but the Host header still names the
+// attacker's domain. Allowlisting Host on every request shuts that down.
+const ALLOWED_HOSTS = new Set([`${HOST}:${PORT}`, `localhost:${PORT}`, `[::1]:${PORT}`]);
 const PROPOSALS_DIR = path.join(ROOT, "workspace", "design", "proposals");
 
 const MIME: Record<string, string> = {
@@ -79,6 +86,13 @@ const server = http.createServer((req, res) => {
   // One guard around the whole handler: a malformed request-target (e.g.
   // "//[") throws in `new URL`, and an uncaught throw would kill the server.
   try {
+    // DNS-rebinding guard: refuse any request whose Host header is not a
+    // known local name for this server (see ALLOWED_HOSTS).
+    const host = req.headers.host;
+    if (typeof host !== "string" || !ALLOWED_HOSTS.has(host.toLowerCase())) {
+      sendText(res, 403, "text/plain; charset=utf-8", "Unrecognized Host header");
+      return;
+    }
     if ((req.method ?? "GET") !== "GET") {
       sendText(res, 405, "text/plain; charset=utf-8", "Method not allowed");
       return;
