@@ -643,6 +643,7 @@ async function apiPostAvatar(url: URL, req: IncomingMessage): Promise<unknown> {
 
   const bytes = await readBody(req, IMAGE_BODY_LIMIT);
   if (bytes.length === 0) throw new HttpError(400, "Empty image body");
+  assertImageBody(name, bytes);
 
   fs.mkdirSync(ASSETS_DIR, { recursive: true });
   // Never clobber an existing file: suffix -1, -2, ...
@@ -687,20 +688,51 @@ async function readThemeConfig(): Promise<{ activeTheme: string; visitorThemes: 
   return { activeTheme: mod.activeTheme, visitorThemes: mod.visitorThemes };
 }
 
-/** Rewrite only the two export lines, preserving the file's comment header. */
-function writeThemeConfig(activeTheme: string, visitorThemes: "all" | string[]): void {
+/**
+ * Rewrite only the two export lines, preserving the file's comment header.
+ *
+ * theme.config.mjs is buyer-owned, so it may have been hand-edited into a
+ * shape this line-level rewrite cannot handle (multi-line arrays, extra
+ * indirection, commented-out duplicates that shadow the real export...).
+ * Safety valve: before touching the disk, re-import the rewritten source and
+ * confirm it evaluates to exactly the requested values — anything else is
+ * rejected with 422 and the file is left untouched.
+ */
+async function writeThemeConfig(activeTheme: string, visitorThemes: "all" | string[]): Promise<void> {
   const src = fs.readFileSync(THEME_CONFIG_FILE, "utf8");
   const vt = visitorThemes === "all" ? '"all"' : JSON.stringify(visitorThemes);
+  const handEdited = (detail: string): HttpError =>
+    new HttpError(
+      422,
+      `theme.config.mjs ${detail} — the file looks hand-edited into a format Studio cannot rewrite safely. Edit site/theme.config.mjs directly instead.`
+    );
   let out = src;
   if (/export const activeTheme = "[^"]*";/.test(out)) {
     out = out.replace(/export const activeTheme = "[^"]*";/, `export const activeTheme = "${activeTheme}";`);
   } else {
-    throw new HttpError(500, "theme.config.mjs: could not find the activeTheme export to update");
+    throw handEdited("has no recognizable activeTheme export");
   }
   if (/export const visitorThemes = [^;]*;/.test(out)) {
     out = out.replace(/export const visitorThemes = [^;]*;/, `export const visitorThemes = ${vt};`);
   } else {
-    throw new HttpError(500, "theme.config.mjs: could not find the visitorThemes export to update");
+    throw handEdited("has no recognizable visitorThemes export");
+  }
+  // Re-parse the rewritten module (in-memory, via a data: URL — nothing is
+  // written yet) and verify both exports carry exactly the requested values.
+  let parsed: { activeTheme?: unknown; visitorThemes?: unknown };
+  try {
+    const dataUrl = `data:text/javascript;base64,${Buffer.from(out, "utf8").toString("base64")}`;
+    parsed = (await import(dataUrl)) as { activeTheme?: unknown; visitorThemes?: unknown };
+  } catch {
+    throw handEdited("would no longer be valid JavaScript after the rewrite");
+  }
+  const visitorThemesOk = Array.isArray(visitorThemes)
+    ? Array.isArray(parsed.visitorThemes) &&
+      parsed.visitorThemes.length === visitorThemes.length &&
+      visitorThemes.every((t, i) => (parsed.visitorThemes as unknown[])[i] === t)
+    : parsed.visitorThemes === "all";
+  if (parsed.activeTheme !== activeTheme || !visitorThemesOk) {
+    throw handEdited("would not carry the requested values after the rewrite");
   }
   fs.writeFileSync(THEME_CONFIG_FILE, out);
 }
@@ -735,7 +767,7 @@ async function apiPutTheme(body: unknown): Promise<unknown> {
     if (installed.every((t) => visitorThemes.includes(t))) visitorThemes = "all";
   }
 
-  writeThemeConfig(activeTheme, visitorThemes);
+  await writeThemeConfig(activeTheme, visitorThemes);
   return { activeTheme, visitorThemes, installed };
 }
 
@@ -910,6 +942,52 @@ function sanitizeImageName(raw: string): string {
   return base;
 }
 
+// Magic-byte validation for uploads: the extension names the claimed format
+// (IMAGE_EXTS — SVG is deliberately not accepted, it can script), the leading
+// bytes must agree, otherwise the body is rejected with 415 before it is
+// written anywhere.
+
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+function sniffImageFormat(bytes: Buffer): "png" | "jpeg" | "webp" | "gif" | undefined {
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(PNG_MAGIC)) return "png";
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
+  if (
+    bytes.length >= 12 &&
+    bytes.toString("latin1", 0, 4) === "RIFF" &&
+    bytes.toString("latin1", 8, 12) === "WEBP"
+  ) {
+    return "webp";
+  }
+  if (bytes.length >= 6) {
+    const sig = bytes.toString("latin1", 0, 6);
+    if (sig === "GIF87a" || sig === "GIF89a") return "gif";
+  }
+  return undefined;
+}
+
+/** Sniffed format each accepted extension must resolve to. */
+const EXT_TO_FORMAT: Record<string, "png" | "jpeg" | "webp" | "gif"> = {
+  png: "png",
+  jpg: "jpeg",
+  jpeg: "jpeg",
+  webp: "webp",
+  gif: "gif",
+};
+
+/** 415 unless the body's magic bytes match the (already sanitized) extension. */
+function assertImageBody(name: string, bytes: Buffer): void {
+  const ext = path.extname(name).slice(1);
+  const expected = EXT_TO_FORMAT[ext];
+  const actual = sniffImageFormat(bytes);
+  if (!expected || actual !== expected) {
+    throw new HttpError(
+      415,
+      `Body does not look like a ${expected ?? ext} image (magic bytes do not match ".${ext}")`
+    );
+  }
+}
+
 async function apiPostScreenshot(
   id: string,
   url: URL,
@@ -922,6 +1000,7 @@ async function apiPostScreenshot(
 
   const bytes = await readBody(req, IMAGE_BODY_LIMIT);
   if (bytes.length === 0) throw new HttpError(400, "Empty image body");
+  assertImageBody(name, bytes);
 
   const dir = path.join(SCREENSHOTS_DIR, id);
   fs.mkdirSync(dir, { recursive: true });
