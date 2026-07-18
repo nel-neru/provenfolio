@@ -4,12 +4,12 @@
  * 1. Every user-facing doc ships as an EN+JA pair. The translation file
  *    carries a marker recording the sha256 of the canonical file; editing
  *    the canonical without re-translating breaks the marker and fails CI.
- *    Canonical side: README is authored in Japanese (marketing copy);
- *    engine/docs are authored in English.
- * 2. Japanese text may appear ONLY in *.ja.md and the i18n dictionaries
- *    (site i18n.ts, studio i18n.js, the ja lint wordlist, translator
- *    example). Everything else — code, comments, CLI output, CHANGELOG,
- *    commit-adjacent files — is English-only.
+ *    Canonical side: README and the GUIDE are authored in Japanese
+ *    (marketing/owner copy); engine/docs are authored in English.
+ * 2. Japanese text may appear ONLY in *.ja.md / *.ja.html and the i18n
+ *    dictionaries (site i18n.ts, studio i18n.js, the ja lint wordlist,
+ *    translator example). Everything else — code, comments, CLI output,
+ *    CHANGELOG, commit-adjacent files — is English-only.
  *
  * Usage:
  *   tsx engine/scripts/check-i18n.ts            # check (CI mode)
@@ -25,6 +25,8 @@ import { ROOT } from "./lib/paths.js";
 const DOC_PAIRS: Array<{ canonical: string; translation: string }> = [
   // marketing copy is authored in Japanese; README.md is the translation
   { canonical: "README.ja.md", translation: "README.md" },
+  // the owner's manual (non-engineer HTML guide) is likewise Japanese-first
+  { canonical: "GUIDE.ja.html", translation: "GUIDE.html" },
   ...[
     "GETTING-STARTED",
     "UPDATING",
@@ -45,6 +47,7 @@ const JAPANESE_ALLOWLIST: RegExp[] = [
   // (instance repos track data/ and run this same CI)
   /^data\//,
   /\.ja\.md$/,
+  /\.ja\.html$/,
   /^site\/src\/lib\/i18n\.ts$/,
   /^studio\/public\/i18n\.js$/,
   /^engine\/scripts\/lib\/lints\.ts$/,

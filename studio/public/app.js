@@ -12,7 +12,7 @@ const state = {
   data: null, // { profile, manifest, projects, intakes }
   theme: null, // { activeTheme, visitorThemes, installed }
   selectedId: null,
-  view: null, // null (project view) | "design"
+  view: null, // null (project view) | "design" | "engine"
   tab: "overview",
 };
 
@@ -128,8 +128,8 @@ function selectProject(id) {
 }
 
 function applyHash() {
-  if (location.hash === "#/design") {
-    state.view = "design";
+  if (location.hash === "#/design" || location.hash === "#/engine") {
+    state.view = location.hash.slice(2);
     state.selectedId = null;
     render();
     return;
@@ -203,12 +203,15 @@ function render() {
   const empty = document.getElementById("main-empty");
   const content = document.getElementById("main-content");
 
-  if (state.view === "design") {
+  if (state.view === "design" || state.view === "engine") {
     empty.hidden = true;
     content.hidden = false;
-    document.getElementById("main-title").textContent = t("designTitle");
+    document.getElementById("main-title").textContent =
+      t(state.view === "design" ? "designTitle" : "engineTitle");
     document.getElementById("tabs").replaceChildren();
-    document.getElementById("tab-body").replaceChildren(designPanel());
+    document.getElementById("tab-body").replaceChildren(
+      state.view === "design" ? designPanel() : enginePanel()
+    );
     return;
   }
 
@@ -782,6 +785,143 @@ function designPanel() {
   return frag;
 }
 
+// ---------------- Engine update ----------------
+let engineSource = null;
+
+function attachEngineStream(logPre, onDone, onLost) {
+  if (engineSource) engineSource.close();
+  logPre.hidden = false;
+  logPre.textContent = "";
+  engineSource = new EventSource("/api/engine/stream");
+  // The server replays its whole ring buffer on every (re)connect — start clean.
+  engineSource.onopen = () => { logPre.textContent = ""; };
+  engineSource.onmessage = (e) => {
+    logPre.textContent += e.data + "\n";
+    logPre.scrollTop = logPre.scrollHeight;
+  };
+  engineSource.addEventListener("done", (e) => {
+    if (engineSource) { engineSource.close(); engineSource = null; }
+    onDone(e.data === "" ? null : Number(e.data));
+  });
+  engineSource.onerror = () => {
+    // CONNECTING = the browser is auto-reconnecting; leave it alone.
+    if (engineSource && engineSource.readyState === EventSource.CLOSED) {
+      engineSource = null;
+      if (onLost) onLost();
+    }
+  };
+}
+
+function enginePanel() {
+  const frag = document.createDocumentFragment();
+
+  const versionLine = el("p", { style: "margin:0 0 10px" }, "");
+  const statusLine = el("p", { style: "margin:0 0 10px;font-weight:600" }, t("engineIdleHint"));
+  const commitsPre = el("pre", { class: "engine-commits", hidden: true });
+  const logPre = el("pre", { class: "engine-log", hidden: true });
+  const doneNote = el("p", { style: "margin:10px 0 0", hidden: true }, "");
+
+  const onDone = (code) => {
+    doneNote.hidden = false;
+    if (code === 0) {
+      doneNote.style.color = "var(--ok)";
+      doneNote.textContent = t("engineDoneNote");
+      statusLine.textContent = "";
+    } else {
+      doneNote.style.color = "var(--error, #e5636e)";
+      doneNote.textContent = t("engineFailedNote");
+    }
+    updateBtn.disabled = false;
+    checkBtn.disabled = false;
+  };
+
+  const onLost = () => {
+    statusLine.textContent = t("engineStreamLost");
+    updateBtn.disabled = false;
+    checkBtn.disabled = false;
+  };
+
+  const checkBtn = el("button", { onclick: () => check(true) }, t("engineCheck"));
+  const updateBtn = el("button", {
+    class: "accent",
+    hidden: true,
+    onclick: async () => {
+      if (!confirm(t("engineConfirm"))) return;
+      updateBtn.disabled = true;
+      checkBtn.disabled = true;
+      doneNote.hidden = true;
+      statusLine.textContent = t("engineRunning");
+      try {
+        await api("/api/engine/update", { method: "POST" });
+      } catch (e) {
+        if (!/already running|409/i.test(e.message)) {
+          toast(t("engineStartFailed", { message: e.message }), true);
+          statusLine.textContent = t("engineIdleHint");
+          updateBtn.disabled = false;
+          checkBtn.disabled = false;
+          return;
+        }
+      }
+      attachEngineStream(logPre, onDone, onLost);
+    },
+  }, t("engineUpdateNow"));
+
+  async function check(doFetch) {
+    checkBtn.disabled = true;
+    updateBtn.hidden = true;
+    commitsPre.hidden = true;
+    doneNote.hidden = true;
+    let stillRunning = false;
+    if (doFetch) statusLine.textContent = t("engineChecking");
+    try {
+      const s = await api("/api/engine/status" + (doFetch ? "?fetch=1" : ""));
+      versionLine.textContent = t("engineVersion", { version: s.version });
+      if (s.running) {
+        stillRunning = true;
+        statusLine.textContent = t("engineRunning");
+        attachEngineStream(logPre, onDone, onLost);
+      } else if (!s.remote) {
+        statusLine.textContent = t("engineNoRemote");
+      } else if (!doFetch) {
+        statusLine.textContent = t("engineIdleHint");
+        // A finished run's log + outcome are still on the server — surface them.
+        if (s.lastExit !== null && s.lastExit !== undefined) {
+          attachEngineStream(logPre, onDone, onLost);
+        }
+      } else if (s.behind === null) {
+        statusLine.textContent = t("engineNoRef");
+      } else if (s.behind === 0) {
+        statusLine.textContent = t("engineUpToDate");
+      } else {
+        statusLine.textContent = t("engineBehind", { count: s.behind });
+        if (s.commits && s.commits.length > 0) {
+          commitsPre.textContent = s.commits.join("\n");
+          commitsPre.hidden = false;
+        }
+        updateBtn.hidden = false;
+      }
+    } catch (e) {
+      statusLine.textContent = t("engineCheckFailed", { message: e.message });
+    } finally {
+      checkBtn.disabled = stillRunning;
+    }
+  }
+
+  frag.append(el("div", { class: "card" }, [
+    el("h3", {}, t("engineTitle")),
+    el("p", { style: "color:var(--text-dim);font-size:12px;margin-top:0" }, t("engineIntro")),
+    versionLine,
+    statusLine,
+    commitsPre,
+    el("div", { style: "display:flex;gap:8px;margin-top:4px" }, [checkBtn, updateBtn]),
+    logPre,
+    doneNote,
+  ]));
+
+  check(false);
+  return frag;
+}
+
 // ---------------------------------------------------------------------------
 // Analyze drawer (SSE)
 // ---------------------------------------------------------------------------
@@ -852,6 +992,14 @@ document.getElementById("btn-add-manual").addEventListener("click", async () => 
 
 document.getElementById("btn-design").addEventListener("click", () => {
   location.hash = "#/design";
+});
+
+document.getElementById("btn-engine").addEventListener("click", () => {
+  location.hash = "#/engine";
+});
+
+document.getElementById("btn-guide").addEventListener("click", () => {
+  window.open("/guide", "_blank", "noopener");
 });
 
 document.getElementById("btn-analyze").addEventListener("click", runAnalyze);

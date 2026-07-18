@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Provenfolio 完全使用ガイド — オーナーズマニュアル</title>
+<style>
+  :root {
+    --bg: #F6F7FA;
+    --paper: #FFFFFF;
+    --ink: #1B1E28;
+    --dim: #5C6375;
+    --faint: #8B92A6;
+    --accent: #4A63C4;
+    --accent-soft: rgba(74, 99, 196, 0.10);
+    --line: #DDE1EB;
+    --ok: #2E7D5B;
+    --warn: #8A6A1F;
+    --code-bg: #12151D;
+    --code-ink: #E8EAF0;
+    --say-bg: rgba(74, 99, 196, 0.07);
+    --mono: ui-monospace, "Cascadia Code", Consolas, "Courier New", monospace;
+    --sans: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0B0D12;
+      --paper: #12151D;
+      --ink: #E8EAF0;
+      --dim: #9AA1B5;
+      --faint: #6A7186;
+      --accent: #7C9AFF;
+      --accent-soft: rgba(124, 154, 255, 0.12);
+      --line: #262B38;
+      --ok: #5DD39E;
+      --warn: #E8C268;
+      --code-bg: #171B26;
+      --code-ink: #E8EAF0;
+      --say-bg: rgba(124, 154, 255, 0.08);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); line-height: 1.85; font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 960px; margin-inline: auto; padding: 0 20px 96px; }
+  .prose { max-width: 760px; }
+
+  /* ---------- hero ---------- */
+  header.hero { padding: 64px 0 40px; border-bottom: 1px solid var(--line); }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em;
+    color: var(--accent); text-transform: uppercase;
+  }
+  h1 {
+    margin: 10px 0 14px; font-size: clamp(28px, 5vw, 42px);
+    line-height: 1.3; letter-spacing: -0.01em; text-wrap: balance; font-weight: 800;
+  }
+  .hero-lead { color: var(--dim); max-width: 640px; margin: 0; }
+  .hero-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  .hero-links a {
+    display: inline-block; padding: 7px 16px; border: 1px solid var(--line);
+    border-radius: 999px; color: var(--ink); text-decoration: none;
+    font-size: 13.5px; background: var(--paper);
+  }
+  .hero-links a strong { color: var(--accent); font-weight: 600; }
+  .hero-links a:hover { border-color: var(--accent); }
+
+  /* ---------- TOC ---------- */
+  .toc { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 10px; margin: 36px 0 0; }
+  .toc a {
+    display: flex; gap: 10px; align-items: baseline; padding: 12px 14px;
+    background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+    text-decoration: none; color: var(--ink); font-size: 14px; line-height: 1.5;
+  }
+  .toc a:hover { border-color: var(--accent); }
+  .toc .n { font-family: var(--mono); font-size: 12px; color: var(--accent); flex: none; }
+
+  /* ---------- sections ---------- */
+  section { padding-top: 64px; }
+  .sec-label {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
+    color: var(--accent);
+  }
+  h2 {
+    margin: 6px 0 18px; font-size: clamp(22px, 3.5vw, 30px);
+    line-height: 1.35; letter-spacing: -0.01em; font-weight: 800; text-wrap: balance;
+  }
+  h3 { margin: 34px 0 10px; font-size: 18.5px; font-weight: 700; }
+  p { margin: 0 0 14px; }
+  section > .prose > p, .prose li { color: var(--ink); }
+  .lead { font-size: 17px; color: var(--dim); }
+  ul, ol { padding-left: 1.4em; margin: 0 0 14px; }
+  li { margin-bottom: 6px; }
+  li::marker { color: var(--accent); }
+  b, strong { font-weight: 700; }
+  a { color: var(--accent); }
+
+  /* ---------- say card ---------- */
+  .say {
+    background: var(--say-bg); border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 14px 18px; margin: 16px 0;
+  }
+  .say .tag {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    color: var(--accent); display: block; margin-bottom: 6px;
+  }
+  .say .phrase { font-size: 16.5px; font-weight: 700; line-height: 1.7; }
+  .say .note { font-size: 13px; color: var(--dim); margin: 6px 0 0; }
+
+  /* ---------- code ---------- */
+  .codebox { margin: 14px 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+  .codebox .bar {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+    background: var(--paper); color: var(--faint);
+    padding: 6px 14px; border-bottom: 1px solid var(--line);
+  }
+  .codebox pre {
+    margin: 0; padding: 14px 16px; background: var(--code-bg); color: var(--code-ink);
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.7; overflow-x: auto;
+  }
+  code.inline {
+    font-family: var(--mono); font-size: 0.88em; background: var(--accent-soft);
+    padding: 1px 6px; border-radius: 5px;
+  }
+
+  /* ---------- callouts ---------- */
+  .callout {
+    display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--paper);
+    padding: 13px 16px; margin: 16px 0; font-size: 14.5px;
+  }
+  .callout .pill {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    padding: 3px 9px; border-radius: 999px; margin-top: 2px; white-space: nowrap;
+  }
+  .callout.hint .pill { background: var(--accent-soft); color: var(--accent); }
+  .callout.warn .pill { background: rgba(200,160,60,0.14); color: var(--warn); }
+  .callout p { margin: 0; color: var(--dim); }
+  .callout p b { color: var(--ink); }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--paper); }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; letter-spacing: 0.08em; color: var(--faint); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td code, th code { font-family: var(--mono); font-size: 12.5px; color: var(--accent); white-space: nowrap; }
+  td .mut { color: var(--dim); font-size: 13px; }
+
+  /* ---------- figures ---------- */
+  figure { margin: 22px 0; }
+  figcaption {
+    font-size: 13px; color: var(--faint); margin-top: 10px;
+    font-family: var(--mono); letter-spacing: 0.04em;
+  }
+  .frame {
+    border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+    overflow-x: auto; background: var(--paper);
+  }
+  .frame .titlebar {
+    display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+    border-bottom: 1px solid var(--line); background: var(--paper);
+  }
+  .frame .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+  .frame .url {
+    font-family: var(--mono); font-size: 11.5px; color: var(--faint);
+    background: var(--bg); border-radius: 6px; padding: 2px 10px; margin-left: 6px;
+  }
+
+  /* ---------- flow diagrams (self-contained, no external libraries) ---------- */
+  .flow {
+    display: flex; flex-wrap: nowrap; align-items: stretch; gap: 8px;
+    background: var(--paper); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px; overflow-x: auto;
+  }
+  .flow .fnode {
+    flex: 1 1 130px; min-width: 122px; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; font-size: 13px; line-height: 1.6; background: var(--bg);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .flow .fnode b { display: block; font-size: 13.5px; }
+  .flow .fnode .fm { color: var(--dim); font-size: 12px; }
+  .flow .fnode.you { border-color: var(--accent); background: var(--accent-soft); }
+  .flow .arrowbox {
+    flex: none; align-self: center; display: flex; flex-direction: column;
+    align-items: center; gap: 2px; padding: 0 2px;
+  }
+  .flow .arrowbox .fm { color: var(--faint); font-size: 11px; white-space: nowrap; }
+  .flow .arrow { color: var(--accent); font-weight: 700; font-size: 16px; }
+  .flow.vert { flex-direction: column; overflow-x: visible; }
+  .flow.vert .fnode { min-width: 0; }
+  @media (max-width: 620px) {
+    .flow { flex-direction: column; overflow-x: visible; }
+    .flow .fnode { min-width: 0; }
+    .flow .arrow { transform: rotate(90deg); }
+  }
+
+  /* studio mockup (always dark = real Studio look) */
+  .studio { display: grid; grid-template-columns: 200px 1fr; min-height: 300px; min-width: 480px; background: #0b0d12; color: #e8eaf0; font-size: 12px; }
+  .studio .side, .studio .main { min-width: 0; }
+  .studio .side { background: #12151d; border-right: 1px solid #262b38; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .studio .side h4 { margin: 0 0 2px; font-size: 12.5px; color: #e8eaf0; }
+  .studio .side .cap { font-size: 9.5px; letter-spacing: 0.1em; color: #5c6375; text-transform: uppercase; margin-top: 6px; }
+  .studio .proj { border-left: 3px solid #7c9aff; background: rgba(124,154,255,0.1); padding: 5px 8px; border-radius: 0 6px 6px 0; }
+  .studio .meterline { height: 4px; border-radius: 2px; background: #262b38; margin-top: 4px; overflow: hidden; }
+  .studio .meterline i { display: block; height: 100%; width: 86%; background: #5dd39e; }
+  .studio .sbtn { border: 1px solid #262b38; border-radius: 8px; padding: 5px 8px; color: #e8eaf0; background: #0b0d12; }
+  .studio .sbtn.hl { border-color: #7c9aff; color: #7c9aff; font-weight: 700; }
+  .studio .sbtn.acc { background: #7c9aff; color: #0b0d12; border-color: #7c9aff; font-weight: 700; }
+  .studio .main { padding: 14px 16px; }
+  .studio .main h3 { margin: 0 0 8px; font-size: 16px; color: #e8eaf0; }
+  .studio .tabs { display: flex; gap: 2px; border-bottom: 1px solid #262b38; margin-bottom: 12px; }
+  .studio .tabs i { font-style: normal; padding: 4px 10px; color: #9aa1b5; }
+  .studio .tabs i.on { color: #e8eaf0; border-bottom: 2px solid #7c9aff; }
+  .studio .card2 { background: #12151d; border: 1px solid #262b38; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+  .studio .card2 h5 { margin: 0 0 5px; font-size: 12.5px; }
+  .studio .card2 .mut2 { color: #9aa1b5; font-size: 10.5px; }
+  .studio select.mock, .studio .checks { margin-top: 6px; }
+  .studio .selectmock { background: #0b0d12; border: 1px solid #262b38; border-radius: 6px; padding: 4px 8px; display: inline-block; min-width: 150px; color: #e8eaf0; }
+  .studio .checks { display: flex; flex-wrap: wrap; gap: 5px 12px; }
+  .studio .checks i { font-style: normal; color: #e8eaf0; }
+  .studio .checks i::before { content: "☑ "; color: #7c9aff; }
+  .studio .checks i.off::before { content: "☐ "; color: #5c6375; }
+
+  /* site mockup w/ dock */
+  .sitemock { position: relative; background: #0b0d12; min-height: 230px; min-width: 420px; padding: 26px; color: #e8eaf0; }
+  .sitemock .name { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; text-align: center; margin-top: 34px; }
+  .sitemock .sub { text-align: center; color: #9aa1b5; font-size: 12.5px; margin-top: 6px; }
+  .sitemock .glow { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 42%, rgba(124,154,255,0.20), transparent 70%); }
+  .sitemock .nav { display: flex; justify-content: space-between; font-size: 11.5px; color: #9aa1b5; position: relative; }
+  .dock { position: absolute; right: 16px; bottom: 14px; font-family: var(--mono); font-size: 11px; }
+  .dock .pillbtn { background: #12151d; border: 1px solid #262b38; border-radius: 999px; padding: 5px 12px; color: #9aa1b5; }
+  .dock .pillbtn b { color: #7c9aff; font-weight: 600; }
+  .dock .menu { position: absolute; bottom: 34px; right: 0; background: #12151d; border: 1px solid #262b38; border-radius: 10px; padding: 6px; width: 150px; }
+  .dock .menu i { display: block; font-style: normal; padding: 3px 10px; color: #9aa1b5; border-radius: 6px; }
+  .dock .menu i.cur { color: #7c9aff; }
+
+  /* ---------- theme gallery ---------- */
+  .themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 12px; margin: 18px 0; }
+  .tcard { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--paper); }
+  .tcard .swatch { height: 64px; display: flex; align-items: center; padding: 0 16px; font-weight: 800; font-size: 15px; letter-spacing: 0.01em; }
+  .tcard .body { padding: 11px 15px 13px; }
+  .tcard .tname { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .tcard .tdesc { font-size: 13px; color: var(--dim); margin-top: 3px; line-height: 1.65; }
+  .tcard .badge2 { float: right; font-size: 10px; font-family: var(--mono); letter-spacing: 0.1em; color: var(--faint); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+
+  /* ---------- steps ---------- */
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 18px 0; }
+  .steps > li {
+    counter-increment: step; position: relative; padding: 0 0 18px 46px; margin: 0;
+  }
+  .steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .steps > li:not(:last-child)::after {
+    content: ""; position: absolute; left: 13.5px; top: 32px; bottom: 2px;
+    width: 1px; background: var(--line);
+  }
+  .steps b.st { display: block; margin-bottom: 3px; }
+  .steps .mut { color: var(--dim); font-size: 14px; }
+
+  /* glossary */
+  dl.gloss { margin: 16px 0; display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  dl.gloss > div { display: grid; grid-template-columns: 150px 1fr; background: var(--paper); border-bottom: 1px solid var(--line); }
+  dl.gloss > div:last-child { border-bottom: none; }
+  dl.gloss dt { padding: 11px 14px; font-weight: 700; font-size: 14px; }
+  dl.gloss dd { margin: 0; padding: 11px 16px 11px 0; color: var(--dim); font-size: 14px; }
+  @media (max-width: 560px) {
+    dl.gloss > div { grid-template-columns: 1fr; }
+    dl.gloss dd { padding: 0 14px 11px; }
+  }
+  footer.end { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--faint); font-size: 13px; font-family: var(--mono); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="hero-eyebrow">PROVENFOLIO OWNER'S MANUAL</span>
+  <h1>Provenfolio 完全使用ガイド</h1>
+  <p class="hero-lead">あなたの GitHub のリポジトリを AI が分析して、<b>証拠付きのポートフォリオサイト</b>を自動で作り、育て続けるシステムです。このガイドは、エンジニアの知識がなくても全機能を使いこなせるように書かれています。</p>
+  <div class="hero-links">
+    <a href="http://localhost:4600" target="_blank" rel="noopener"><strong>Studio</strong>&ensp;localhost:4600(管理画面)</a>
+    <a href="http://localhost:4321" target="_blank" rel="noopener"><strong>プレビュー</strong>&ensp;localhost:4321</a>
+  </div>
+
+  <nav class="toc" aria-label="目次">
+    <a href="#s1"><span class="n">01</span>全体のしくみ(3つの約束)</a>
+    <a href="#s2"><span class="n">02</span>操作の入口は3つ</a>
+    <a href="#s3"><span class="n">03</span>作品を追加する</a>
+    <a href="#s4"><span class="n">04</span>Studio(管理画面)の使い方</a>
+    <a href="#s5"><span class="n">05</span>文章を直す・翻訳</a>
+    <a href="#s6"><span class="n">06</span>スクリーンショットを載せる</a>
+    <a href="#s7"><span class="n">07</span>デザインを変える(7テーマ)</a>
+    <a href="#s8"><span class="n">08</span>プレビューと公開</a>
+    <a href="#s9"><span class="n">09</span>週次の自動更新</a>
+    <a href="#s10"><span class="n">10</span>エンジンのアップデート</a>
+    <a href="#s11"><span class="n">11</span>コマンド早見表</a>
+    <a href="#s12"><span class="n">12</span>困ったとき Q&amp;A</a>
+    <a href="#s13"><span class="n">13</span>用語ミニ辞典</a>
+  </nav>
+</header>
+
+<!-- ================================================================ -->
+<section id="s1">
+  <span class="sec-label">SECTION 01</span>
+  <h2>全体のしくみ — 3つの約束</h2>
+  <div class="prose">
+    <p class="lead">Provenfolio は「盛らないポートフォリオ」を作るための仕組みです。裏側では次の流れが動いています。</p>
+  </div>
+
+  <figure>
+    <div class="flow" role="img" aria-label="リポジトリからサイト公開までの流れ">
+      <div class="fnode"><b>あなたの GitHub リポジトリ</b></div>
+      <div class="arrowbox"><span class="arrow">→</span></div>
+      <div class="fnode"><b>分析</b><span class="fm">コミット履歴・コードを読む</span></div>
+      <div class="arrowbox"><span class="arrow">→</span></div>
+      <div class="fnode you"><b>data/ フォルダ</b><span class="fm">あなたの資産。役割・動機・成果などの入力もここに合流</span></div>
+      <div class="arrowbox"><span class="arrow">→</span></div>
+      <div class="fnode"><b>サイト生成</b><span class="fm">全ページ・全テーマ</span></div>
+      <div class="arrowbox"><span class="arrow">→</span></div>
+      <div class="fnode"><b>公開</b><span class="fm">あなたの URL へ</span></div>
+    </div>
+    <figcaption>図1 — リポジトリからサイト公開までの流れ</figcaption>
+  </figure>
+
+  <div class="prose">
+    <p>このシステムには、信頼性を守るための<b>3つの約束</b>が組み込まれています。</p>
+    <ol>
+      <li><b>数字はぜんぶ実測。</b> コミット数・開発日数・言語比率などサイトに出る数値は、すべてプログラムが git 履歴から自動計測したものだけ。AI が数字を「盛る」ことは構造的にできません。</li>
+      <li><b>主張には証拠リンク。</b> 「起動を大幅に短縮」のようなアピールには、必ず根拠(コミット・ファイル・PR)へのリンクが付きます。根拠がない主張はサイトに載りません。</li>
+      <li><b>文章の最終所有者はあなた。</b> AI が下書きを書きますが、あなたが編集した文章は再分析でも勝手に上書きされません(編集済みを自動検知します)。</li>
+    </ol>
+    <div class="callout hint"><span class="pill">ヒント</span><p><b><code class="inline">data/</code> フォルダ = あなたの財産。</b>プロフィール・作品データ・スクショが全部ここに入っています。他はぜんぶ「エンジン(道具)」で、data/ さえあればサイトはいつでも作り直せます。</p></div>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s2">
+  <span class="sec-label">SECTION 02</span>
+  <h2>操作の入口は3つ — 迷ったら Claude に話しかける</h2>
+  <div class="prose">
+    <p>やることはどれも3通りの方法でできます。<b>どれを使っても結果は同じ</b>です。</p>
+  </div>
+
+  <div class="tablewrap"><table>
+    <tr><th>入口</th><th>向いていること</th><th>始め方</th></tr>
+    <tr>
+      <td><b>① Claude に頼む</b><br><span class="mut">いちばん簡単</span></td>
+      <td>ほぼ全部。迷ったらこれ</td>
+      <td>Claude Code を Provenfolio のフォルダで開いて、ふだんの言葉で話しかける</td>
+    </tr>
+    <tr>
+      <td><b>② Studio(管理画面)</b><br><span class="mut">目で見て操作</span></td>
+      <td>作品情報の入力、文章編集、スクショ管理、デザイン変更、エンジン更新</td>
+      <td>「Studio を起動して」と言う → ブラウザで <code>localhost:4600</code></td>
+    </tr>
+    <tr>
+      <td><b>③ コマンド</b><br><span class="mut">慣れたら</span></td>
+      <td>決まりきった操作を素早く</td>
+      <td>ターミナルに打つ(<a href="#s11">§11 の早見表</a>)</td>
+    </tr>
+  </table></div>
+
+  <div class="prose">
+    <div class="say">
+      <span class="tag">CLAUDE にこう言う</span>
+      <span class="phrase">「Studio を起動して」</span>
+      <p class="note">ブラウザで管理画面が開きます。終了もお任せでOK。Claude Code は Provenfolio のフォルダ(このリポジトリの場所)で起動してください。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s3">
+  <span class="sec-label">SECTION 03</span>
+  <h2>作品を追加する — いちばんよく使う操作</h2>
+  <div class="prose">
+    <p class="lead">GitHub のリポジトリの URL を渡すだけで、分析 → 文章の下書き → 翻訳まで自動で進みます。</p>
+    <div class="say">
+      <span class="tag">CLAUDE にこう言う</span>
+      <span class="phrase">「/analyze https://github.com/(あなたのアカウント)/(リポジトリ名) 」</span>
+      <p class="note">「この作品をポートフォリオに追加して: (URL)」でも通じます。GitHub にない作品は「手動で作品を追加したい」と言えば OK。</p>
+    </div>
+  </div>
+
+  <figure>
+    <div class="flow vert" role="img" aria-label="/analyze の流れ">
+      <div class="fnode"><b>URL を渡す</b></div>
+      <div class="arrowbox"><span class="arrow">↓</span></div>
+      <div class="fnode"><b>自動: リポジトリを取得して分析</b><span class="fm">コミット履歴・コードを読む</span></div>
+      <div class="arrowbox"><span class="arrow">↓</span></div>
+      <div class="fnode you"><b>あなたの出番: 質問に答える(5分)</b><span class="fm">カテゴリ・役割・動機・デモリンク・成果</span></div>
+      <div class="arrowbox"><span class="arrow">↓</span></div>
+      <div class="fnode"><b>自動: ケーススタディ執筆</b><span class="fm">続けて翻訳版も生成</span></div>
+      <div class="arrowbox"><span class="arrow">↓</span></div>
+      <div class="fnode"><b>完成度スコアの確認</b><span class="fm">Studio の「概要」タブ</span></div>
+    </div>
+    <figcaption>図2 — /analyze の流れ。「あなたの出番」以外は全部自動</figcaption>
+  </figure>
+
+  <div class="prose">
+    <h3>「あなたの出番」で聞かれること</h3>
+    <p>機械には分からない、本人しか知らない情報だけを聞かれます。Studio の<b>「インテーク」タブ</b>から後で書き足すこともできます。</p>
+    <ul>
+      <li><b>カテゴリ</b> — プロダクト / 受託 / OSS / 趣味 / 学習 のどれ?</li>
+      <li><b>役割</b> — ひとりで作った? チームでの担当は?</li>
+      <li><b>動機</b> — なぜ作った? 何を解決したかった?</li>
+      <li><b>デモリンク</b> — 動くものを見せられる URL(ストア・動画も可)</li>
+      <li><b>数字で語れる成果</b> — ユーザー数・DL数・速度改善など(あれば)</li>
+    </ul>
+    <div class="callout hint"><span class="pill">ヒント</span><p>追加した作品は<b>公開するまでネットには出ません</b>。何個でも気軽に追加して、Studio で仕上がりを見てから公開しましょう。</p></div>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s4">
+  <span class="sec-label">SECTION 04</span>
+  <h2>Studio(管理画面)の使い方</h2>
+  <div class="prose">
+    <p class="lead">Studio はあなた専用のコックピット。<b>このパソコンの中だけ</b>で動き、ネットには公開されません。</p>
+  </div>
+
+  <figure>
+    <div class="frame">
+      <div class="titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:4600</span></div>
+      <div class="studio">
+        <div class="side">
+          <h4>Studio</h4>
+          <span class="cap">プロジェクト</span>
+          <div class="proj">★ sample-app<div class="meterline"><i></i></div><span style="color:#9aa1b5;font-size:10px">完成度 86 / 100</span></div>
+          <span class="cap">保留インテーク</span>
+          <div style="color:#5c6375">⏳ new-app(分析待ち)</div>
+          <div style="flex:1"></div>
+          <div class="sbtn">+ リポジトリ追加</div>
+          <div class="sbtn">+ 手動プロジェクト</div>
+          <div class="sbtn hl">サイトのデザイン</div>
+          <div class="sbtn">エンジン更新</div>
+          <div class="sbtn">📘 使い方ガイド</div>
+          <div class="sbtn acc">▶ 分析実行</div>
+        </div>
+        <div class="main">
+          <h3>sample-app</h3>
+          <div class="tabs"><i class="on">概要</i><i>インテーク</i><i>プロース</i><i>メディア</i></div>
+          <div class="card2"><h5>完成度 — 86</h5><div class="mut2">⚠ スクリーンショットを1枚以上追加<br>⚠ 定量的な成果を入力</div></div>
+        </div>
+      </div>
+    </div>
+    <figcaption>図3 — Studio の画面構成(サンプル表示)</figcaption>
+  </figure>
+
+  <div class="tablewrap"><table>
+    <tr><th>場所</th><th>何をするところ?</th></tr>
+    <tr><td><b>概要タブ</b></td><td>完成度スコア(100点満点)と「あと何が足りないか」のリスト。<span class="mut">80点以上で緑=公開推奨ライン</span></td></tr>
+    <tr><td><b>インテークタブ</b></td><td>カテゴリ・役割・動機・成果などの入力フォーム。書き換えたら完成度も更新される</td></tr>
+    <tr><td><b>プロースタブ</b></td><td>サイトに載る文章の編集。<b>元の言語と翻訳が左右に並ぶ</b>ので見比べながら直せる</td></tr>
+    <tr><td><b>メディアタブ</b></td><td>スクリーンショットのアップロード・削除・alt テキスト(説明文)入力</td></tr>
+    <tr><td><b>「サイトのデザイン」ボタン</b></td><td>サイトのデザインテーマを切り替えるパネル(<a href="#s7">§7</a>)</td></tr>
+    <tr><td><b>「エンジン更新」ボタン</b></td><td>Provenfolio 本体の更新を確認して取り込むパネル(<a href="#s10">§10</a>)</td></tr>
+    <tr><td><b>「📘 使い方ガイド」ボタン</b></td><td>このガイドを開く</td></tr>
+    <tr><td><b>▶ 分析実行</b></td><td>「分析待ち」の作品をまとめて分析開始。ログが画面下に流れる</td></tr>
+  </table></div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s5">
+  <span class="sec-label">SECTION 05</span>
+  <h2>文章を直す・翻訳を追いつかせる</h2>
+  <div class="prose">
+    <p>AI の下書きは「たたき台」。あなたの言葉に直してこそポートフォリオです。方法は2つ:</p>
+    <ul>
+      <li><b>Studio の「プロース」タブ</b> — 自分でテキストボックスを直接編集(直したその場で保存)</li>
+      <li><b>Claude に頼む</b> — 会話で直したいときはこちら</li>
+    </ul>
+    <div class="say">
+      <span class="tag">CLAUDE にこう言う</span>
+      <span class="phrase">「/edit (作品名) — 概要文をもっと簡潔に、成果を先頭に持ってきて」</span>
+      <p class="note">元の文章を直したら翻訳版も自動で追従させてくれます。「翻訳だけやり直して」もOK。</p>
+    </div>
+    <div class="callout warn"><span class="pill">たいせつ</span><p><b>あなたが編集した文章は保護されます。</b>再分析しても上書きされません。AI に書き直させたい場合だけ、その旨を明示的に伝えてください。</p></div>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s6">
+  <span class="sec-label">SECTION 06</span>
+  <h2>スクリーンショットを載せる</h2>
+  <div class="prose">
+    <ol class="steps">
+      <li><b class="st">Studio で作品を選び、「メディア」タブを開く</b><span class="mut">対応形式: png / jpg / webp / gif(1枚 10MB まで)</span></li>
+      <li><b class="st">「ファイルを選択」→「アップロード」</b><span class="mut">複数まとめて選択できます</span></li>
+      <li><b class="st">alt テキスト(画像の説明)を各言語で入力</b><span class="mut">目の不自由な閲覧者や検索エンジンのための説明文。「メイン画面。検索結果に引用元ページが表示されている」のように</span></li>
+    </ol>
+    <p>画像は <code class="inline">data/assets/screenshots/作品名/</code> に保存され、その作品のページに自動で並びます。アーキテクチャ図(構成図)も同じ手順で載せられます。</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s7">
+  <span class="sec-label">SECTION 07</span>
+  <h2>デザインを変える — 7つのテーマと訪問者スイッチャー</h2>
+  <div class="prose">
+    <p class="lead">サイトの見た目は「テーマ」として丸ごと差し替えできます。色だけでなく<b>レイアウトも書体もすべて</b>変わります。7種類を同梱済み。</p>
+  </div>
+
+  <div class="themes">
+    <div class="tcard"><div class="swatch" style="background:#0b0d12;color:#e8eaf0">Midnight <span style="color:#7c9aff">●</span></div>
+      <div class="body"><span class="badge2">既定</span><span class="tname">midnight</span><p class="tdesc">ダークで静かな夜のトーン。3D の星座ヒーローが動く。迷ったらこれ。</p></div></div>
+    <div class="tcard"><div class="swatch" style="background:#FAFAF7;color:#111;border-bottom:1px solid #eee">Editorial Swiss <span style="color:#B81D18">●</span></div>
+      <div class="body"><span class="badge2">穏</span><span class="tname">editorial-swiss</span><p class="tdesc">白い紙に黒い活字と赤い罫線。年次報告書のような知的な佇まい。</p></div></div>
+    <div class="tcard"><div class="swatch" style="background:#F6F1E7;color:#3a2e24">Quiet Luxury <span style="color:#9E4A2E">●</span></div>
+      <div class="body"><span class="badge2">穏</span><span class="tname">quiet-luxury</span><p class="tdesc">生成りの紙にセリフ書体とクレイ色。上質な作品集のような温かさ。</p></div></div>
+    <div class="tcard"><div class="swatch" style="background:#F4F1E8;color:#0A0A0A">Neo-Brutalist <span style="color:#FF4D00">●</span></div>
+      <div class="body"><span class="badge2">中</span><span class="tname">neo-brutalist</span><p class="tdesc">太い罫線と絶叫オレンジ。スタンプが押された貨物伝票のような迫力。</p></div></div>
+    <div class="tcard"><div class="swatch" style="background:#0A0D0C;color:#e8efe9">Data Forensic <span style="color:#3DD68C">●</span></div>
+      <div class="body"><span class="badge2">中</span><span class="tname">data-forensic</span><p class="tdesc">チャコールに蛍光グリーンの端末風。全データに「証拠」の空気をまとう。</p></div></div>
+    <div class="tcard"><div class="swatch" style="background:#0E0E0E;color:#F2F0EC">Kinetic Type <span style="color:#FF4D00">●</span></div>
+      <div class="body"><span class="badge2">狂</span><span class="tname">kinetic-type</span><p class="tdesc">画面を突き破る特大タイポグラフィがスクロールで動く。見世物系。</p></div></div>
+    <div class="tcard"><div class="swatch" style="background:#0d0b14;color:#f1edfa">Acid Lab <span style="color:#c8ff00">●</span></div>
+      <div class="body"><span class="badge2">狂</span><span class="tname">acid-lab</span><p class="tdesc">紫黒にクロームとアシッドイエロー。Y2K 実験室。攻めたいときに。</p></div></div>
+  </div>
+
+  <div class="prose">
+    <h3>① 既定デザインを変える(Studio から)</h3>
+    <ol class="steps">
+      <li><b class="st">Studio 左下の「サイトのデザイン」を押す</b></li>
+      <li><b class="st">「既定のデザイン」で既定テーマを選ぶ</b><span class="mut">サイトのメイン URL で最初に表示されるデザイン。検索エンジンが見るのもこれ</span></li>
+      <li><b class="st">「訪問者スイッチャー」で訪問者に見せたいテーマにチェック</b></li>
+      <li><b class="st">「デザインを保存」→ 次の公開(§8)で反映</b></li>
+    </ol>
+  </div>
+
+  <figure>
+    <div class="frame">
+      <div class="titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:4600/#/design</span></div>
+      <div class="studio" style="grid-template-columns:1fr"><div class="main">
+        <h3>サイトのデザイン</h3>
+        <div class="card2"><h5>既定のデザイン</h5><div class="mut2">サイトのメインURLで提供されるテーマ</div><div class="selectmock">midnight ▾</div></div>
+        <div class="card2"><h5>訪問者スイッチャー</h5><div class="mut2">訪問者が切り替えられるテーマ</div>
+          <div class="checks"><i>acid-lab</i><i>data-forensic</i><i>editorial-swiss</i><i>kinetic-type</i><i>midnight</i><i class="off">neo-brutalist</i><i>quiet-luxury</i></div></div>
+        <div class="sbtn acc" style="display:inline-block">デザインを保存</div>
+      </div></div>
+    </div>
+    <figcaption>図4 — 「サイトのデザイン」パネル。選んで保存するだけ</figcaption>
+  </figure>
+
+  <div class="prose">
+    <h3>② 訪問者も切り替えられる(サイトの右下)</h3>
+    <p>公開サイトの右下に「DESIGN」ボタンが常駐していて、<b>訪問者自身がその場でデザインを丸ごと切り替えられます</b>。これ自体が技術力のデモになる、Provenfolio の名物機能です。</p>
+  </div>
+
+  <figure>
+    <div class="frame">
+      <div class="titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">your-portfolio.example.com</span></div>
+      <div class="sitemock">
+        <div class="glow"></div>
+        <div class="nav"><b style="color:#e8eaf0">YOUR NAME</b><span>Projects&emsp;About&emsp;Overview</span></div>
+        <div class="name">YOUR NAME</div>
+        <div class="sub">あなたの肩書き ・ あなたのタグライン</div>
+        <div class="dock">
+          <div class="menu"><i>acid-lab</i><i>editorial-swiss</i><i class="cur">midnight</i><i>quiet-luxury</i></div>
+          <span class="pillbtn">DESIGN <b>midnight</b></span>
+        </div>
+      </div>
+    </div>
+    <figcaption>図5 — 訪問者向けデザインスイッチャー(右下のドック)</figcaption>
+  </figure>
+
+  <div class="prose">
+    <h3>③ 新しいテーマが欲しくなったら</h3>
+    <div class="say">
+      <span class="tag">CLAUDE にこう言う</span>
+      <span class="phrase">「/design propose — 和モダンな方向で3案見せて」</span>
+      <p class="note">実在の有名サイトをリサーチした複数のデザイン案がブラウザに並び、選んだ案が本物のテーマとして実装されます。「/design brief」で好みを登録しておくと、以降の提案があなた好みに寄ります。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s8">
+  <span class="sec-label">SECTION 08</span>
+  <h2>プレビューと公開</h2>
+  <div class="prose">
+    <h3>公開前に必ずプレビュー</h3>
+    <div class="say">
+      <span class="tag">CLAUDE にこう言う</span>
+      <span class="phrase">「/update-site」</span>
+      <p class="note">データ検査 → サイト生成 → ブラウザで表示までやってくれます。自分で見るだけなら <code class="inline">npm run dev</code> → localhost:4321 でも。</p>
+    </div>
+
+    <h3>公開する</h3>
+    <div class="say">
+      <span class="tag">CLAUDE にこう言う</span>
+      <span class="phrase">「/publish」</span>
+      <p class="note">完成度チェック → ビルド → 「本当に公開しますか?」の確認 → 公開、まで進みます。<b>確認なしに勝手に公開されることはありません。</b></p>
+    </div>
+    <p>環境によっては、Claude がセキュリティ制限で最後のデプロイだけ実行できないことがあります。その場合は Provenfolio のフォルダで、この1行を自分のターミナルに:</p>
+    <div class="codebox"><div class="bar">TERMINAL — 公開コマンド</div><pre>npx wrangler pages deploy site/dist --project-name (あなたのプロジェクト名) --branch main</pre></div>
+    <p>数秒であなたの公開 URL に反映されます。公開は何度でもやり直せます(毎回まるごと置き換え)。</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s9">
+  <span class="sec-label">SECTION 09</span>
+  <h2>週次の自動更新(設定すると完全放置できる)</h2>
+  <div class="prose">
+    <p class="lead">一度設定すると、<b>毎週金曜 21:00 UTC(日本時間では土曜の朝6時)</b>に「開発の数字を測り直し → サイト再生成 → 公開」まで全自動で回ります(時刻は <code class="inline">refresh.yml</code> で変更できます)。あなたが普段どおり開発するだけで、ポートフォリオの数字が勝手に最新になります。</p>
+  </div>
+
+  <figure>
+    <div class="flow" role="img" aria-label="週次自動更新の流れ">
+      <div class="fnode"><b>毎週決まった時刻</b><span class="fm">GitHub Actions が起動</span></div>
+      <div class="arrowbox"><span class="arrow">→</span></div>
+      <div class="fnode"><b>各リポジトリの数字を再計測</b></div>
+      <div class="arrowbox"><span class="arrow">→</span></div>
+      <div class="fnode"><b>サイト再生成</b></div>
+      <div class="arrowbox"><span class="arrow">→</span></div>
+      <div class="fnode"><b>自動公開</b></div>
+      <div class="arrowbox"><span class="arrow">→</span></div>
+      <div class="fnode you"><b>公開サイトが最新に</b></div>
+    </div>
+    <figcaption>図6 — 週次自動更新。設定後は完全放置でOK</figcaption>
+  </figure>
+
+  <div class="prose">
+    <h3>初回設定(10分・一度だけ)</h3>
+    <p>「鍵(APIトークン)」を GitHub に預ける作業なので、<b>ここだけはあなた自身の手</b>で行います(Claude は認証情報を扱えない決まりです)。Cloudflare Pages で公開している前提の手順です。</p>
+    <ol class="steps">
+      <li><b class="st">Cloudflare のアカウント ID をコピー</b><span class="mut"><a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> にログイン → URL の <code class="inline">dash.cloudflare.com/〈この部分〉</code> がアカウントID</span></li>
+      <li><b class="st">API トークンを作る</b><span class="mut">右上プロフィール → My Profile → API Tokens → Create Token → Create Custom Token。Permissions に「Account / Cloudflare Pages / Edit」を1行追加 → Create。表示されたトークンをその場でコピー(再表示不可!)</span></li>
+      <li><b class="st">GitHub に Secrets を2つ登録</b><span class="mut">あなたのインスタンスリポジトリ(GitHub)→ Settings → Secrets and variables → Actions → <b>Secrets</b> タブ → New repository secret で <code class="inline">CLOUDFLARE_API_TOKEN</code>(手順2の値)と <code class="inline">CLOUDFLARE_ACCOUNT_ID</code>(手順1の値)</span></li>
+      <li><b class="st">Variable を1つ登録</b><span class="mut">同じ画面の <b>Variables</b> タブ → New repository variable で <code class="inline">CF_PAGES_PROJECT</code> = あなたの Pages プロジェクト名</span></li>
+      <li><b class="st">動作確認</b><span class="mut">リポジトリの Actions タブ → 「refresh」→ Run workflow。緑のチェックが付けば設定完了</span></li>
+    </ol>
+    <div class="callout hint"><span class="pill">ヒント</span><p>非公開リポジトリを分析対象にする場合だけ、追加で Secret <code class="inline">GH_TOKEN</code>(GitHub の Personal Access Token、repo 読み取り権限)が必要です。公開リポだけなら不要。</p></div>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s10">
+  <span class="sec-label">SECTION 10</span>
+  <h2>エンジンのアップデートを受け取る</h2>
+  <div class="prose">
+    <p>Provenfolio 本体(エンジン)は配布リポジトリで開発が続きます。新機能や新テーマが出たら取り込めます — <b>あなたの data/(作品・文章・写真)は構造的に絶対に壊れない</b>設計です。</p>
+
+    <h3>① Studio のボタンで(いちばん簡単)</h3>
+    <ol class="steps">
+      <li><b class="st">Studio 左下の「エンジン更新」を押す</b></li>
+      <li><b class="st">「更新を確認」→ 新着があれば内容の一覧が出る</b></li>
+      <li><b class="st">「今すぐ更新」→ 取得・統合・再ビルドまで自動で流れる</b><span class="mut">ログが画面に流れます。統合(merge)に失敗しても自動で元に戻ります</span></li>
+      <li><b class="st">完了したら Studio を再起動</b><span class="mut">新しいエンジンで動き始めます</span></li>
+    </ol>
+  </div>
+
+  <figure>
+    <div class="frame">
+      <div class="titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">localhost:4600/#/engine</span></div>
+      <div class="studio" style="grid-template-columns:1fr;min-height:0"><div class="main">
+        <h3>エンジン更新</h3>
+        <div class="card2">
+          <h5>現在のエンジンバージョン: 0.1.0</h5>
+          <div class="mut2">3件のエンジン更新があります:<br>feat(themes): add new built-in theme<br>fix(studio): sharper completeness meter<br>docs: clarify screenshot sizes</div>
+          <div style="margin-top:8px"><span class="sbtn" style="display:inline-block;margin-right:6px">更新を確認</span><span class="sbtn acc" style="display:inline-block">今すぐ更新</span></div>
+        </div>
+      </div></div>
+    </div>
+    <figcaption>図7 — 「エンジン更新」パネル。確認 → 更新の2クリック</figcaption>
+  </figure>
+
+  <div class="prose">
+    <h3>② Claude に頼む</h3>
+    <div class="say">
+      <span class="tag">CLAUDE にこう言う</span>
+      <span class="phrase">「エンジンの更新を取り込んで」</span>
+      <p class="note">取得 → 統合 → 依存更新 → データ移行 → 検査 → ビルド確認まで全部やります。更新の衝突など、ボタンで失敗したときの解決もこちらで。</p>
+    </div>
+  </div>
+
+  <figure>
+    <div class="flow" role="img" aria-label="配布リポジトリとあなたのインスタンスの関係">
+      <div class="fnode"><b>エンジン(配布リポジトリ)</b><span class="fm">Provenfolio 本体の開発が続く場所</span></div>
+      <div class="arrowbox"><span class="fm">新機能・新テーマ</span><span class="arrow">→</span></div>
+      <div class="fnode you"><b>あなたのインスタンス(非公開)</b><span class="fm">data/ はエンジン側に存在しない = 衝突しない。受け取る一方通行</span></div>
+    </div>
+    <figcaption>図8 — 2つのリポジトリの関係。エンジンは受け取る一方通行</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================ -->
+<section id="s11">
+  <span class="sec-label">SECTION 11</span>
+  <h2>コマンド早見表</h2>
+  <div class="prose"><p>①「Claude に言う」だけで全部済みますが、直接打ちたい人のために。</p></div>
+
+  <h3>Claude Code のスラッシュコマンド</h3>
+  <div class="tablewrap"><table>
+    <tr><th>コマンド</th><th>何が起きる?</th></tr>
+    <tr><td><code>/analyze &lt;URL&gt;</code></td><td>作品を追加(分析→執筆→翻訳)。<code>--pending</code> で分析待ちを一括処理</td></tr>
+    <tr><td><code>/edit &lt;作品名&gt;</code></td><td>会話しながら文章を推敲。翻訳も追従</td></tr>
+    <tr><td><code>/design</code></td><td>デザイン相談。<code>brief</code>(好み登録)/ <code>propose</code>(新案)/ <code>switch</code>(切替)</td></tr>
+    <tr><td><code>/refresh</code></td><td>全作品の数字を測り直す(AI 不使用・無料)</td></tr>
+    <tr><td><code>/update-site</code></td><td>検査 → 生成 → ブラウザで確認</td></tr>
+    <tr><td><code>/publish</code></td><td>公開(必ず確認を挟む)</td></tr>
+    <tr><td><code>/setup</code></td><td>プロフィールの作り直し(初期化。ふだん使わない)</td></tr>
+  </table></div>
+
+  <h3>ターミナルのコマンド</h3>
+  <div class="tablewrap"><table>
+    <tr><th>コマンド</th><th>何が起きる?</th></tr>
+    <tr><td><code>npm run studio</code></td><td>管理画面 → <span class="mut">localhost:4600</span></td></tr>
+    <tr><td><code>npm run dev</code></td><td>サイトのプレビュー → <span class="mut">localhost:4321</span></td></tr>
+    <tr><td><code>npm run build</code></td><td>公開用にサイトを生成(データ検査込み)</td></tr>
+    <tr><td><code>npm run validate</code></td><td>データの健康診断だけ実行</td></tr>
+    <tr><td><code>npm run refresh</code></td><td>数字の再計測だけ実行</td></tr>
+    <tr><td><code>npx wrangler pages deploy site/dist --project-name (プロジェクト名) --branch main</code></td><td>公開(§8)</td></tr>
+  </table></div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s12">
+  <span class="sec-label">SECTION 12</span>
+  <h2>困ったとき Q&amp;A</h2>
+  <div class="prose">
+    <h3>Q. テーマを変えたのにサイトが変わらない</h3>
+    <p>デザイン変更は<b>次の生成・公開時</b>に反映されます。「/update-site して」でプレビュー確認 → 「/publish」で本番へ。プレビューサーバーを開きっぱなしだった場合は再起動が必要です(「dev サーバーを再起動して」)。</p>
+
+    <h3>Q. 「ポートが使用中」と言われて起動できない</h3>
+    <div class="say"><span class="tag">CLAUDE にこう言う</span><span class="phrase">「ポート 4600 を塞いでるプロセスを止めて、Studio を起動し直して」</span></div>
+
+    <h3>Q. ビルドやコマンドが赤いエラーで止まった</h3>
+    <div class="say"><span class="tag">CLAUDE にこう言う</span><span class="phrase">「npm run validate を実行して、エラーを直して」</span><p class="note">エラー文をそのまま貼り付けるのが最速です。</p></div>
+
+    <h3>Q. エンジン更新が途中で止まった</h3>
+    <p>Studio のログに理由が出ています。統合(merge)に失敗した場合は自動で元の状態に戻ります。それ以降の工程(依存関係の更新やビルド)で止まった場合は、更新は取り込まれたものの検査が済んでいない状態です。どちらでも、「エンジンの更新を取り込んで。さっき Studio で失敗した」と Claude に頼めば、原因ごと解決してくれます。</p>
+
+    <h3>Q. サイト右下の DESIGN ボタンが消えた</h3>
+    <p>訪問者に見せるデザインが実質1つ(既定テーマのみ)になると自動で隠れます(仕様)。Studio の「サイトのデザイン」で、既定テーマ以外にも1つ以上チェックを入れてください。</p>
+
+    <h3>Q. 公開をやめたい/失敗した公開を戻したい</h3>
+    <p>公開は毎回まるごと置き換えなので、<b>直したものを再公開すれば上書き</b>されます。サイト自体を消したい場合は Cloudflare ダッシュボード → Workers &amp; Pages → あなたのプロジェクト → Settings → Delete。</p>
+
+    <h3>Q. なにをどこまで Claude に任せていいの?</h3>
+    <p>全部任せて大丈夫です。ただし次の3つは<b>必ずあなたの確認や操作を挟む</b>設計になっています: ① ネットへの公開(/publish)、② リポジトリへの反映(push)、③ パスワードや API トークンの入力(これは Claude は代行できません)。</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section id="s13">
+  <span class="sec-label">SECTION 13</span>
+  <h2>用語ミニ辞典</h2>
+  <dl class="gloss">
+    <div><dt>リポジトリ</dt><dd>プログラムの保管箱。変更の履歴ごと保存されている。GitHub はその置き場サービス</dd></div>
+    <div><dt>コミット</dt><dd>「ここまでやった」というセーブ記録。Provenfolio はこれを数えて開発実績を測る</dd></div>
+    <div><dt>ビルド</dt><dd>データからサイト(HTML の束)を焼き上げること。手元で何度でも無料でできる</dd></div>
+    <div><dt>デプロイ / 公開</dt><dd>焼き上げたサイトをインターネットに置くこと。ここで初めて世界から見える</dd></div>
+    <div><dt>プレビュー</dt><dd>公開前に自分だけで見ること。localhost(自分のPC内)で動く</dd></div>
+    <div><dt>テーマ</dt><dd>サイトの見た目一式(配色・書体・レイアウト)。着せ替えのように交換できる</dd></div>
+    <div><dt>インテーク</dt><dd>作品について本人しか知らない情報(役割・動機など)の受付フォーム</dd></div>
+    <div><dt>ケーススタディ</dt><dd>作品1つぶんの紹介記事。課題 → 解決 → 成果の構成で自動下書きされる</dd></div>
+    <div><dt>完成度スコア</dt><dd>作品ページの仕上がり度(100点満点)。足りない項目も教えてくれる</dd></div>
+    <div><dt>API トークン</dt><dd>サービスを操作するための合鍵。パスワードと同じ扱いで、人にもAIにも渡さない(GitHub Secrets が正しい保管場所)</dd></div>
+    <div><dt>Cloudflare Pages</dt><dd>サイトの無料ホスティング(置き場)サービス。既定の公開先</dd></div>
+    <div><dt>エンジン / インスタンス</dt><dd>エンジン=Provenfolio という道具そのもの(配布リポジトリ)。インスタンス=あなた専用の実体(非公開、data/ 込み)</dd></div>
+  </dl>
+</section>
+
+<footer class="end">
+  PROVENFOLIO OWNER'S MANUAL · 日本語版 GUIDE.ja.html / English GUIDE.html · Studio の「📘 使い方ガイド」からいつでも開けます
+</footer>
+
+</div>
+</body>
+</html>
