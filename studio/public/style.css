@@ -2,6 +2,11 @@
 
 * { box-sizing: border-box; }
 
+/* The hidden attribute must always win — author display rules (e.g. the
+   analyze drawer's display:flex) otherwise override the UA's [hidden] rule,
+   leaving "closed" panels permanently visible and covering the UI. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;
