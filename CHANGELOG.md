@@ -13,6 +13,13 @@ All notable changes to Provenfolio. Versioning follows the root `package.json` (
 - `data-guard` CI is now a tracked-state check (zero `data/` paths allowed in the distribution repo); the `[seed]` escape hatch is gone.
 
 ### Fixed
+- `textFaint` now meets WCAG AA (≥4.5:1 on all surfaces) in midnight, editorial-swiss, data-forensic, and kinetic-type — it is the color of the evidence links, dates, and fine print.
+- The numeric-provenance lint tokenizer understands digit grouping: thousands separators (`12,151`) parse as one number, percentages lint on their numeric part, version strings no longer shed stray fragments, and the allow-list shares the same tokenizer so both sides always agree.
+- The completeness translation penalty is prorated across `targetLangs` instead of deducting 15 points per missing language, so multilingual profiles can no longer overdraw the scale and pin at 0.
+- `npm run migrate` is all-or-nothing: documents are migrated in memory, Zod-validated, and written only if the whole set passes; broken JSON anywhere in `data/` now reports the offending file path.
+- Evidence `file` links pin to the analysis-time commit (`blob/<sourceCommit>/…`) instead of `HEAD`, so they survive later file moves and deletions.
+- History routes 307-redirect to home while the timeline density gate is closed — the "grows as projects accumulate" placeholder is no longer reachable by direct URL.
+- Horizontal-overflow guards are global: `overflow-x: clip` on `html/body` for every theme and `overflow-wrap: anywhere` on case-study prose.
 - **Human-edit protection in emit is now durable and structure-safe.** `contentHashes` are keyed by stable evidence-derived ids instead of array indexes (legacy index keys upgrade transparently on the next emit), the agent baseline hash is carried forward across re-analyses so protection is no longer one-shot, and human-edited entries missing from a regenerated draft abort the merge for explicit confirmation (`--keep-orphaned-edits` / `--drop-orphaned-edits`; per-field release via `--accept-regenerated`). The numeric lint now sees the owner-corrected tech stack, and evidence `file` refs are contained to the analyzed repo (`../` escapes rejected). Covered by a new `npm test` regression suite (node:test, no new dependencies).
 - GitHub list fetches (PRs / releases / contributors) now paginate past 100 items — counts were understated on busy repos and emit's PR-evidence verification could hard-fail on real PRs outside the first page.
 - Weekly refresh exits nonzero when any project fails, so the scheduled workflow can no longer go green while metrics rot; the stale-prose hint now points at the real interface (`/analyze --refresh <id>`).
@@ -21,6 +28,7 @@ All notable changes to Provenfolio. Versioning follows the root `package.json` (
 - The duration metric chip now carries a "span" label instead of rendering a bare number; empty social-link containers are no longer emitted (midnight, kinetic-type); the midnight header wraps on narrow viewports and marks the current nav item with `aria-current="page"`.
 
 ### Security
+- Studio verifies theme-config rewrites in memory before writing (hand-edited formats are rejected with 422 instead of being corrupted) and validates image-upload magic bytes against the extension (415 on mismatch).
 - Studio rejects any request whose `Host` header is not an allowlisted local value (DNS-rebinding guard, applied to every method including GET).
 - Studio launches the `claude` CLI without a shell (argv array; on Windows an npm `.cmd` shim is unwrapped to its `cli.js` and run with `process.execPath`) — the last `shell: true` spawn in the engine is gone.
 - `refresh.yml` is skipped on the canonical distribution repo, so its auto-commit loop can only run in instance repos.
