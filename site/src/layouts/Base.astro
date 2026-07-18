@@ -6,8 +6,9 @@
  * registry: root URLs render the active theme (theme.config.mjs), and the
  * prerendered /t/<theme>/ trees render every visitor-exposed theme — the
  * `theme` route param, visible here via Astro.params, selects it with no
- * prop threading. Dynamic manifest loading keeps each built page's CSS
- * scoped to its own theme.
+ * prop threading. Theme stylesheets are NOT bundled into pages (manifests
+ * no longer side-effect-import them); this shell links exactly one theme's
+ * styles.css per page via themeStylesheetHref().
  *
  * `surface` marks the page as the expressive "showcase" surface (home) or
  * the calm "read" surface (everything else); themes scope wilder rules
@@ -19,6 +20,7 @@ import {
   getManifest,
   listVisitorThemes,
   activeTheme,
+  themeStylesheetHref,
 } from "../lib/theme-registry.js";
 import { t, ui, localePath } from "../lib/i18n.js";
 import { getProfile } from "../lib/data.js";
@@ -127,6 +129,7 @@ const themeHref = (name: string) =>
       ))
     }
     <style set:html={`:root{${cssVarsFor(tokens)}}`}></style>
+    <link rel="stylesheet" href={themeStylesheetHref(themeName)} />
     {fontFaces && <style set:html={fontFaces}></style>}
     <ClientRouter />
     <script>
