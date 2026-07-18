@@ -32,7 +32,7 @@ export const theme: ThemeTokens = {
 
   text: "#f1edfa",
   textDim: "#b4abcf",
-  textFaint: "#7e7499",
+  textFaint: "#8980a2",
 
   /** Semantic. */
   ok: "#7dd957",

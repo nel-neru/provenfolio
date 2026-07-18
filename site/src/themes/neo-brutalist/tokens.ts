@@ -28,7 +28,7 @@ export const theme: ThemeTokens = {
 
   text: "#0A0A0A",
   textDim: "#4A4740",
-  textFaint: "#6E6A61",
+  textFaint: "#6C6860",
 
   /** Semantic */
   ok: "#1D7A36",
