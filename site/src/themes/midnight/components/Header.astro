@@ -47,7 +47,7 @@ const otherLocales = locales.filter((l) => l !== locale);
           <a
             href={localePath(path, l, defaultLocale)}
             class="lang-switch"
-            aria-label={`Switch language to ${languageLabel(l)}`}
+            aria-label={languageLabel(l)}
           >
             {languageLabel(l)}
           </a>

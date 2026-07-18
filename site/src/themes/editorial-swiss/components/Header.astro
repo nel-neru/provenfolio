@@ -43,7 +43,7 @@ const otherLocales = locales.filter((l) => l !== locale);
           <a
             href={localePath(path, l, defaultLocale)}
             class="micro lang-switch u-sweep"
-            aria-label={`Switch language to ${languageLabel(l)}`}
+            aria-label={languageLabel(l)}
           >
             {languageLabel(l)}
           </a>
