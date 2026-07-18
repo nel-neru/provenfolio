@@ -30,7 +30,7 @@ export const theme: ThemeTokens = {
   viz: ["#1d2432", "#2b3a5c", "#3d5590", "#5b78c7", "#7c9aff"],
 
   fontSans:
-    "'Inter Variable', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', system-ui, -apple-system, 'Segoe UI', sans-serif",
+    "'Inter Variable', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', system-ui, -apple-system, 'Segoe UI', sans-serif",
   fontMono:
     "'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace",
 

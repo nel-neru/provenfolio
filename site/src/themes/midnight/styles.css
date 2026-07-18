@@ -18,6 +18,19 @@ h4 {
   font-weight: 700;
 }
 
+/* CJK pages read at a taller rhythm; "palt" tightens full-width punctuation. */
+body:lang(ja) {
+  line-height: 1.9;
+  font-feature-settings: "palt";
+}
+/* CJK glyphs carry no Latin-style tightening: undo the negative tracking. */
+h1:lang(ja),
+h2:lang(ja),
+h3:lang(ja),
+h4:lang(ja) {
+  letter-spacing: 0;
+}
+
 .card {
   background: var(--bg-raised);
   border: 1px solid var(--line);

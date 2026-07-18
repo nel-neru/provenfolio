@@ -22,7 +22,7 @@ body {
   color: var(--text-faint);
 }
 
-:lang(ja) {
+body:lang(ja) {
   line-height: 1.9;
   font-feature-settings: "palt";
 }
