@@ -69,6 +69,11 @@ try {
   })) {
     requireSourceLang(text, profile.sourceLang, where, PROFILE_FILE);
   }
+  if (profile.targetLangs.includes(profile.sourceLang)) {
+    warnings.push(
+      `${rel(PROFILE_FILE)}: targetLangs contains the source language '${profile.sourceLang}'; it is ignored — remove it from targetLangs`
+    );
+  }
 } catch (e) {
   errors.push(e instanceof ValidationFailure ? e.message : `profile.json: ${e}`);
 }
