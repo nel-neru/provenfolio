@@ -16,6 +16,11 @@ All notable changes to Provenfolio. Versioning follows the root `package.json` (
 - **Target-locale routes are generated from `profile.targetLangs`.** The hardcoded `/en/` page trees are gone; `[lang]` dynamic routes build one tree per configured target locale (none when `targetLangs` is empty), so any locale pair works — with URL sets byte-identical to the previous output for existing ja+en instances. Custom-page wrappers follow the `[lang]/<name>.astro` pattern (see CUSTOMIZING).
 
 ### Fixed
+- Japanese pages get Japanese wayfinding: the ja UI dictionary no longer mixes English nav/section labels, and language-switcher aria-labels are self-contained in the switch-target language across all seven themes.
+- midnight ships its own Japanese typography (Yu Gothic Medium/Meiryo stack, `body:lang(ja)` rhythm with palt, heading tracking reset) — its former JA line-height came from another theme's leaked CSS; data-forensic's over-broad `:lang(ja)` selector is scoped to body.
+- Git author identities are normalized (case/whitespace/Unicode form, both GitHub noreply forms, email-primary grouping) before ownership attribution — drifted author strings on solo repos no longer report `ownerCommitPct` 0%.
+- Studio image uploads stream to a temp file with mid-transfer size/magic-byte enforcement and an atomic rename, instead of buffering 10MB bodies in memory.
+- `npm run validate` warns when `targetLangs` contains the source language (which the site silently ignores).
 - `github`-type sources now require a `github.com` repoUrl host — a mistyped or malicious git remote can no longer become a published portfolio link (non-GitHub repos: use type `manual`).
 - PR evidence that cannot be checked because GitHub metadata is unavailable (offline, `gh` failure) now says so instead of claiming the PR does not exist.
 - The design-proposal preview server (port 4700) gained the same Host-allowlist DNS-rebinding guard as Studio.
