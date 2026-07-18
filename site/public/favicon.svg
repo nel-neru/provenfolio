@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Provenfolio engine-default favicon (owner-agnostic): a checkmark for
+       evidence-linked claims, on the default theme's dark surface. Owners
+       can replace it by dropping their own favicon.svg into site/public/. -->
+  <rect width="64" height="64" rx="14" fill="#0b0d12"/>
+  <path d="M17 34 L27.5 44.5 L47 21" fill="none" stroke="#7c9aff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

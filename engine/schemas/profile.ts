@@ -50,7 +50,13 @@ export const profileSchema = z.object({
   identities: z.array(z.string().min(1)).default([]),
 
   seo: z.object({
-    title: z.string().min(1),
+    /**
+     * Site <title> / og:title per locale. Locales without an entry get a
+     * synthesized default ("<name> — Developer Portfolio" equivalent) at
+     * render time — never the source-language value, so e.g. English pages
+     * never show a Japanese title.
+     */
+    title: localizedText,
     description: localizedText,
   }),
 

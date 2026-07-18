@@ -19,10 +19,22 @@ type Migration = (doc: Record<string, unknown>, kind: DocKind) => Record<string,
 
 /**
  * Migration registry: key N upgrades a document FROM version N TO N+1.
- * Example (when SCHEMA_VERSION becomes 2):
- *   1: (doc, kind) => kind === "project" ? { ...doc, newField: [] } : doc
+ * Example (when SCHEMA_VERSION becomes 3):
+ *   2: (doc, kind) => kind === "project" ? { ...doc, newField: [] } : doc
  */
-const MIGRATIONS: Record<number, Migration> = {};
+const MIGRATIONS: Record<number, Migration> = {
+  // v1 → v2: profile.seo.title becomes localizedText. The plain string is
+  // moved under the profile's source language key.
+  1: (doc, kind) => {
+    if (kind !== "profile") return doc;
+    const seo = doc.seo as { title?: unknown } | undefined;
+    if (seo && typeof seo.title === "string") {
+      const sourceLang = typeof doc.sourceLang === "string" ? doc.sourceLang : "en";
+      seo.title = { [sourceLang]: seo.title };
+    }
+    return doc;
+  },
+};
 
 function migrateFile(file: string, kind: DocKind): boolean {
   const doc = readJson(file) as Record<string, unknown>;

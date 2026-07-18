@@ -51,8 +51,16 @@ const sl = profile.sourceLang;
 const defaultLocale = sl;
 const locales = [sl, ...profile.targetLangs];
 
-const pageTitle = title ? `${title} — ${profile.name}` : profile.seo.title;
+// seo.title resolves strictly per locale: a missing translation gets a
+// synthesized locale-appropriate default instead of falling back to the
+// source language (which would leak e.g. a Japanese title onto English pages).
+const localizedSiteTitle = profile.seo.title[locale]?.trim();
+const siteTitle =
+  localizedSiteTitle || `${profile.name} — ${ui("seo.defaultTitle", locale)}`;
+const pageTitle = title ? `${title} — ${profile.name}` : siteTitle;
 const pageDesc = description ?? t(profile.seo.description, locale, sl);
+/** og:locale territory form, e.g. "pt-BR" → "pt_BR". */
+const ogLocale = (l: string) => l.replace("-", "_");
 const lp = (p: string) => localePath(p, locale, defaultLocale);
 
 const site = Astro.site?.href?.replace(/\/$/, "") ?? "";
@@ -81,6 +89,8 @@ const themeHref = (name: string) =>
     <title>{pageTitle}</title>
     <meta name="description" content={pageDesc} />
     <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content={tokens.bg} />
     {isOverride && <meta name="robots" content="noindex" />}
     <link rel="canonical" href={`${site}${logicalPath}`} />
     {
@@ -96,6 +106,13 @@ const themeHref = (name: string) =>
     <meta property="og:description" content={pageDesc} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={`${site}${logicalPath}`} />
+    <meta property="og:site_name" content={profile.name} />
+    <meta property="og:locale" content={ogLocale(locale)} />
+    {
+      locales
+        .filter((l) => l !== locale)
+        .map((l) => <meta property="og:locale:alternate" content={ogLocale(l)} />)
+    }
     {ogImage && <meta property="og:image" content={`${site}${ogImage}`} />}
     {ogImage && <meta name="twitter:card" content="summary_large_image" />}
     {

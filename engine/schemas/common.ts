@@ -4,7 +4,7 @@ import { z } from "zod";
  * Current data-contract version. Bump when making a breaking schema change
  * and add a migration in engine/scripts/migrate-data.ts.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const schemaVersionField = z.number().int().positive();
 
