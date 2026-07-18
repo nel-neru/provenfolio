@@ -271,6 +271,9 @@ function startAnalyze(): void {
         cwd: ROOT,
         shell: useShell,
         windowsHide: true,
+        // No stdin: an open-but-silent pipe makes the claude CLI wait 3s and
+        // print a "no stdin data received" warning before proceeding.
+        stdio: ["ignore", "pipe", "pipe"],
       }
     );
   } catch {
