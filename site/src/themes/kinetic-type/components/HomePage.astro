@@ -245,16 +245,18 @@ const techCount = aggregates?.techFrequency.length ?? 0;
           </p>
         )}
         {altTagline && <p class="big-alt" lang={altLocale}>{altTagline}</p>}
-        <div class="cta-row">
-          {profile.socials.map((s, i) => (
-            <a class:list={["pill", i === 0 ? "solid" : "ghost"]} href={s.url} rel="me noopener">
-              {s.platform} ↗
-            </a>
-          ))}
-          {profile.email && (
-            <a class="pill ghost" href={`mailto:${profile.email}`}>{profile.email}</a>
-          )}
-        </div>
+        {(profile.socials.length > 0 || profile.email) && (
+          <div class="cta-row">
+            {profile.socials.map((s, i) => (
+              <a class:list={["pill", i === 0 ? "solid" : "ghost"]} href={s.url} rel="me noopener">
+                {s.platform} ↗
+              </a>
+            ))}
+            {profile.email && (
+              <a class="pill ghost" href={`mailto:${profile.email}`}>{profile.email}</a>
+            )}
+          </div>
+        )}
       </section>
     )
   }
