@@ -24,9 +24,17 @@ const fmt = (n: number) => n.toLocaleString("en-US");
     <span class="sq" aria-hidden="true">■</span>{profile.name}
     {t(profile.role, locale, sl) && <> — {t(profile.role, locale, sl)}</>}
   </span>
-  <span class="socials">
-    {profile.socials.map((s) => <a href={s.url} rel="me noopener">{s.platform}</a>)}
-  </span>
+  {
+    profile.socials.length > 0 && (
+      <span class="socials">
+        {profile.socials.map((s) => (
+          <a href={s.url} rel="me noopener">
+            {s.platform}
+          </a>
+        ))}
+      </span>
+    )
+  }
   <span class="stats-note">
     {
       totals && (

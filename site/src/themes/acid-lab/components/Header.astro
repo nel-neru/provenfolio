@@ -43,7 +43,7 @@ const otherLocales = locales.filter((l) => l !== locale);
         <a
           href={localePath(path, l, defaultLocale)}
           class="lang-toggle"
-          aria-label={`Switch language to ${languageLabel(l)}`}
+          aria-label={languageLabel(l)}
         >
           <b>{locale.toUpperCase()}</b>
           <span class="tog" aria-hidden="true">{"⇄"}</span>

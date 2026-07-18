@@ -6,8 +6,9 @@
  * registry: root URLs render the active theme (theme.config.mjs), and the
  * prerendered /t/<theme>/ trees render every visitor-exposed theme — the
  * `theme` route param, visible here via Astro.params, selects it with no
- * prop threading. Dynamic manifest loading keeps each built page's CSS
- * scoped to its own theme.
+ * prop threading. Theme stylesheets are NOT bundled into pages (manifests
+ * no longer side-effect-import them); this shell links exactly one theme's
+ * styles.css per page via themeStylesheetHref().
  *
  * `surface` marks the page as the expressive "showcase" surface (home) or
  * the calm "read" surface (everything else); themes scope wilder rules
@@ -19,6 +20,7 @@ import {
   getManifest,
   listVisitorThemes,
   activeTheme,
+  themeStylesheetHref,
 } from "../lib/theme-registry.js";
 import { t, ui, localePath } from "../lib/i18n.js";
 import { getProfile } from "../lib/data.js";
@@ -51,9 +53,44 @@ const sl = profile.sourceLang;
 const defaultLocale = sl;
 const locales = [sl, ...profile.targetLangs];
 
-const pageTitle = title ? `${title} — ${profile.name}` : profile.seo.title;
+// seo.title resolves strictly per locale: a missing translation gets a
+// synthesized locale-appropriate default instead of falling back to the
+// source language (which would leak e.g. a Japanese title onto English pages).
+const localizedSiteTitle = profile.seo.title[locale]?.trim();
+const siteTitle =
+  localizedSiteTitle || `${profile.name} — ${ui("seo.defaultTitle", locale)}`;
+const pageTitle = title ? `${title} — ${profile.name}` : siteTitle;
 const pageDesc = description ?? t(profile.seo.description, locale, sl);
+/**
+ * og:locale wants language_TERRITORY (e.g. "ja_JP"). Codes that already
+ * carry a region ("pt-BR") just swap the dash for an underscore; bare
+ * language codes go through a table of common defaults. Unknown bare codes
+ * pass through unchanged: consumers accept a plain language code, and
+ * guessing a territory would be wrong more often than right.
+ */
+const OG_TERRITORY: Record<string, string> = {
+  en: "en_US",
+  ja: "ja_JP",
+  ko: "ko_KR",
+  zh: "zh_CN",
+  de: "de_DE",
+  fr: "fr_FR",
+  es: "es_ES",
+  it: "it_IT",
+  pt: "pt_BR",
+  ru: "ru_RU",
+};
+const ogLocale = (l: string) =>
+  l.includes("-") ? l.replace("-", "_") : (OG_TERRITORY[l] ?? l);
 const lp = (p: string) => localePath(p, locale, defaultLocale);
+/**
+ * Cloudflare Pages 308-redirects extensionless page URLs to their
+ * trailing-slash form ("/about" → "/about/"), so canonical/hreflang/og:url
+ * must point at the post-redirect URL. Applied here rather than inside
+ * localePath so in-site navigation links keep their current shape. Root
+ * ("/") already ends with a slash — no doubling.
+ */
+const withSlash = (p: string) => (p.endsWith("/") ? p : `${p}/`);
 
 const site = Astro.site?.href?.replace(/\/$/, "") ?? "";
 const fontFaces = fontFacesFor(tokens);
@@ -81,21 +118,30 @@ const themeHref = (name: string) =>
     <title>{pageTitle}</title>
     <meta name="description" content={pageDesc} />
     <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content={tokens.bg} />
     {isOverride && <meta name="robots" content="noindex" />}
-    <link rel="canonical" href={`${site}${logicalPath}`} />
+    <link rel="canonical" href={`${site}${withSlash(logicalPath)}`} />
     {
       locales.map((l) => (
         <link
           rel="alternate"
           hreflang={l}
-          href={`${site}${localePath(path, l, defaultLocale)}`}
+          href={`${site}${withSlash(localePath(path, l, defaultLocale))}`}
         />
       ))
     }
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDesc} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={`${site}${logicalPath}`} />
+    <meta property="og:url" content={`${site}${withSlash(logicalPath)}`} />
+    <meta property="og:site_name" content={profile.name} />
+    <meta property="og:locale" content={ogLocale(locale)} />
+    {
+      locales
+        .filter((l) => l !== locale)
+        .map((l) => <meta property="og:locale:alternate" content={ogLocale(l)} />)
+    }
     {ogImage && <meta property="og:image" content={`${site}${ogImage}`} />}
     {ogImage && <meta name="twitter:card" content="summary_large_image" />}
     {
@@ -110,6 +156,7 @@ const themeHref = (name: string) =>
       ))
     }
     <style set:html={`:root{${cssVarsFor(tokens)}}`}></style>
+    <link rel="stylesheet" href={themeStylesheetHref(themeName)} />
     {fontFaces && <style set:html={fontFaces}></style>}
     <ClientRouter />
     <script>
@@ -131,7 +178,7 @@ const themeHref = (name: string) =>
     }
   </head>
   <body data-surface={surface} data-theme={themeName}>
-    <a href="#main" class="skip-link">Skip to content</a>
+    <a href="#main" class="skip-link">{ui("a11y.skipToContent", locale)}</a>
     <Header locale={locale} path={path} />
     <main id="main">
       <slot />

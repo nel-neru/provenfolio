@@ -39,7 +39,7 @@ const demoLink = (p: (typeof projects)[number]) =>
         <span class="sep" aria-hidden="true">•</span>
         {t(profile.tagline, locale, sl)}
       </p>
-      <p class="socials">
+      {profile.socials.length > 0 && <p class="socials">
         {
           profile.socials.map((s) => (
             <a href={s.url} rel="me noopener">
@@ -48,7 +48,7 @@ const demoLink = (p: (typeof projects)[number]) =>
           ))
         }
         {profile.email && <a href={`mailto:${profile.email}`}>{profile.email}</a>}
-      </p>
+      </p>}
     </header>
 
     <div class="stack">

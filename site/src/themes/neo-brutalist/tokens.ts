@@ -6,7 +6,7 @@
  * (filled controls at body size use the yellow --show-accent2 instead).
  * CJK degradation: "Dela Gothic One" / "Noto Sans JP" are referenced by name
  * only (multi-MB CJK faces are not self-hosted); machines without them fall
- * back to the system JP stack (Hiragino Sans / Yu Gothic UI / Meiryo).
+ * back to the system JP stack (Hiragino Sans / Yu Gothic Medium / Meiryo).
  */
 import type { ThemeTokens } from "../../lib/theme-types.js";
 
@@ -28,7 +28,7 @@ export const theme: ThemeTokens = {
 
   text: "#0A0A0A",
   textDim: "#4A4740",
-  textFaint: "#6E6A61",
+  textFaint: "#6C6860",
 
   /** Semantic */
   ok: "#1D7A36",
@@ -39,11 +39,11 @@ export const theme: ThemeTokens = {
   viz: ["#FFDCCC", "#FFAE8F", "#FF7E4D", "#FF4D00", "#C23A00"],
 
   fontSans:
-    "'Public Sans', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', system-ui, -apple-system, 'Segoe UI', sans-serif",
+    "'Public Sans', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', system-ui, -apple-system, 'Segoe UI', sans-serif",
   fontMono:
-    "'Space Mono', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', ui-monospace, Consolas, monospace",
+    "'Space Mono', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', ui-monospace, Consolas, monospace",
   fontDisplay:
-    "'Archivo Black', 'Dela Gothic One', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif",
+    "'Archivo Black', 'Dela Gothic One', 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic Medium', 'Meiryo', sans-serif",
 
   /** Zero radius — the whole theme is drawn with a ruler. */
   radius: "0px",

@@ -61,20 +61,22 @@ const ROT = ["r2", "r3", "r1", "r4"];
         <span class="sep" aria-hidden="true">•</span>
         {t(profile.tagline, locale, sl)}
       </p>
-      <div class="hero-socials">
-        {
-          profile.socials.map((s, i) => (
-            <a
-              class:list={["sticker", { mag: i % 2 === 1 }, ROT[(i + 1) % ROT.length]]}
-              href={s.url}
-              rel="me noopener"
-            >
-              {s.platform}
-              <span aria-hidden="true">↗</span>
-            </a>
-          ))
-        }
-      </div>
+      {
+        profile.socials.length > 0 && (
+          <div class="hero-socials">
+            {profile.socials.map((s, i) => (
+              <a
+                class:list={["sticker", { mag: i % 2 === 1 }, ROT[(i + 1) % ROT.length]]}
+                href={s.url}
+                rel="me noopener"
+              >
+                {s.platform}
+                <span aria-hidden="true">↗</span>
+              </a>
+            ))}
+          </div>
+        )
+      }
     </div>
   </section>
 

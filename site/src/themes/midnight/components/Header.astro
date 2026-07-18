@@ -22,10 +22,10 @@ const lp = (p: string) => localePath(p, locale, defaultLocale);
 const historyVisible = showHistoryPage(aggregates);
 
 const nav = [
-  { href: lp("/projects"), label: ui("nav.projects", locale) },
-  ...(historyVisible ? [{ href: lp("/history"), label: ui("nav.history", locale) }] : []),
-  { href: lp("/about"), label: ui("nav.about", locale) },
-  { href: lp("/overview"), label: ui("nav.overview", locale) },
+  { path: "/projects", label: ui("nav.projects", locale) },
+  ...(historyVisible ? [{ path: "/history", label: ui("nav.history", locale) }] : []),
+  { path: "/about", label: ui("nav.about", locale) },
+  { path: "/overview", label: ui("nav.overview", locale) },
 ];
 
 const otherLocales = locales.filter((l) => l !== locale);
@@ -35,13 +35,19 @@ const otherLocales = locales.filter((l) => l !== locale);
   <div class="container header-inner">
     <a href={lp("/")} class="brand">{profile.name}</a>
     <nav aria-label="primary">
-      {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+      {
+        nav.map((item) => (
+          <a href={lp(item.path)} aria-current={path === item.path ? "page" : undefined}>
+            {item.label}
+          </a>
+        ))
+      }
       {
         otherLocales.map((l) => (
           <a
             href={localePath(path, l, defaultLocale)}
             class="lang-switch"
-            aria-label={`Switch language to ${languageLabel(l)}`}
+            aria-label={languageLabel(l)}
           >
             {languageLabel(l)}
           </a>
@@ -64,7 +70,10 @@ const otherLocales = locales.filter((l) => l !== locale);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 3.5rem;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    min-height: 3.5rem;
+    padding-block: 0.4rem;
   }
   .brand {
     font-weight: 700;
@@ -77,8 +86,9 @@ const otherLocales = locales.filter((l) => l !== locale);
   }
   nav {
     display: flex;
-    gap: 1.25rem;
+    gap: 0.5rem 1.25rem;
     align-items: center;
+    flex-wrap: wrap;
   }
   nav a {
     color: var(--text-dim);
@@ -88,10 +98,25 @@ const otherLocales = locales.filter((l) => l !== locale);
     color: var(--text);
     text-decoration: none;
   }
+  nav a[aria-current="page"] {
+    color: var(--text);
+  }
   .lang-switch {
     border: 1px solid var(--line);
     border-radius: 999px;
     padding: 0.1rem 0.7rem;
     font-size: 0.8rem;
+  }
+
+  @media (max-width: 480px) {
+    nav {
+      gap: 0.35rem 0.85rem;
+    }
+    nav a {
+      font-size: 0.85rem;
+    }
+    .lang-switch {
+      padding: 0.1rem 0.55rem;
+    }
   }
 </style>

@@ -52,6 +52,15 @@ h4 {
   line-height: 1.15;
   letter-spacing: -0.01em;
 }
+/* CJK display falls back to Mincho faces that carry no Latin-style
+   tightening: undo the negative tracking. The theme's class-scoped JA
+   re-tracks (.section-title:lang(ja) etc.) still win by specificity. */
+h1:lang(ja),
+h2:lang(ja),
+h3:lang(ja),
+h4:lang(ja) {
+  letter-spacing: 0;
+}
 
 /* ---------- links: never hue-alone ---------- */
 

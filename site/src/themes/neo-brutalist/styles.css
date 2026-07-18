@@ -25,7 +25,7 @@
   --nb-fs-tag: clamp(19px, 2.9vw, 37px);
   /* Alt display face for non-Latin display lines (not self-hosted; see tokens). */
   --nb-font-display-alt: "Dela Gothic One", "Noto Sans JP", "Hiragino Sans",
-    "Yu Gothic UI", "Meiryo", sans-serif;
+    "Yu Gothic Medium", "Meiryo", sans-serif;
   --nb-section-pad: var(--space-9, 96px);
 }
 
@@ -46,6 +46,14 @@ h4 {
   text-transform: uppercase;
   letter-spacing: -0.01em;
   line-height: 1.1;
+}
+/* CJK display fallbacks carry no Latin-style tightening: undo the negative
+   tracking (also covers .section-title via specificity). */
+h1:lang(ja),
+h2:lang(ja),
+h3:lang(ja),
+h4:lang(ja) {
+  letter-spacing: 0;
 }
 
 /* Ink links: the accent is never text — it appears as underlines only. */
@@ -81,6 +89,14 @@ body :focus-visible {
   letter-spacing: 0.01em;
   overflow-wrap: anywhere;
   line-break: strict;
+}
+/* CJK pages read at a taller rhythm. The [lang] block above only matches
+   the element carrying the attribute (<html> for whole-page JA), and its
+   inherited line-height loses to the body rule — so scope to body here.
+   "palt" tightens full-width punctuation. */
+body:lang(ja) {
+  line-height: 1.9;
+  font-feature-settings: "palt";
 }
 
 .nb-mono {

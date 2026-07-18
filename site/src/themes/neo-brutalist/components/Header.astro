@@ -41,7 +41,7 @@ const nav = [
               <a
                 href={localePath(path, l, defaultLocale)}
                 aria-current={l === locale ? "true" : undefined}
-                aria-label={`Switch language to ${languageLabel(l)}`}
+                aria-label={languageLabel(l)}
               >
                 {l}
               </a>

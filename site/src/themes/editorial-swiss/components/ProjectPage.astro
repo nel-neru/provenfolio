@@ -51,6 +51,12 @@ const linkRank = (k: string) => {
 };
 const links = [...project.links].sort((a, b) => linkRank(a.kind) - linkRank(b.kind));
 
+// Repo CTA fallback: public github source with no curated repo link (avoids duplicates).
+const repoCta =
+  repoUrl && !project.links.some((l) => l.kind === "repo" || l.url === repoUrl)
+    ? repoUrl
+    : undefined;
+
 const heat = showHeatmap(project);
 const vel = showVelocity(project);
 const langs = showLanguages(project);
@@ -114,7 +120,7 @@ const summary = t(project.summary, locale, sl);
       }
 
       {
-        links.length > 0 && (
+        (links.length > 0 || repoCta) && (
           <div class="cta-row">
             {links.map((l) => (
               <a
@@ -127,6 +133,12 @@ const summary = t(project.summary, locale, sl);
                 <span aria-hidden="true">&#8202;&#8599;</span>
               </a>
             ))}
+            {repoCta && (
+              <a class="btn" href={repoCta} target="_blank" rel="noopener">
+                GitHub
+                <span aria-hidden="true">&#8202;&#8599;</span>
+              </a>
+            )}
           </div>
         )
       }
@@ -153,6 +165,7 @@ const summary = t(project.summary, locale, sl);
                         <EvidenceLink
                           evidence={e}
                           repoUrl={repoUrl}
+                          sourceCommit={gh?.sourceCommit}
                           isPrivate={isPrivate}
                           locale={locale}
                         />
@@ -176,6 +189,7 @@ const summary = t(project.summary, locale, sl);
             locale={locale}
             sourceLang={sl}
             repoUrl={repoUrl}
+            sourceCommit={gh?.sourceCommit}
             isPrivate={isPrivate}
           />
         </section>

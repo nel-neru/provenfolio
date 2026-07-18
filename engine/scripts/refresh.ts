@@ -3,7 +3,8 @@
  * Deterministically re-runs fetch/extract/emit for every github-sourced
  * project: metrics, heatmaps, language mixes update with ZERO AI cost.
  * Prose is never touched; when source drift exceeds thresholds the project
- * is flagged stale so Studio/`/refresh` can offer a re-enrich.
+ * is flagged stale (generated.staleSince) so `/refresh` can report it and
+ * offer re-enrichment via `/analyze --refresh <id>`.
  *
  * Usage: npm run refresh   (also run by .github/workflows/refresh.yml)
  */
@@ -47,6 +48,7 @@ const projects: Project[] = listJsonFiles(PROJECTS_DIR).map((f) =>
 
 let refreshed = 0;
 let staled = 0;
+let failed = 0;
 
 for (const project of projects) {
   const gh = project.sources.find((s) => s.type === "github" && s.repoUrl);
@@ -75,9 +77,10 @@ for (const project of projects) {
     refreshed += 1;
     if (isStale) staled += 1;
     console.log(
-      `✓ ${project.id}: refreshed (+${Math.max(0, commitDrift)} commits since analysis${isStale ? " — PROSE STALE, run /refresh " + project.id : ""})`
+      `✓ ${project.id}: refreshed (+${Math.max(0, commitDrift)} commits since analysis${isStale ? " — PROSE STALE, run /analyze --refresh " + project.id : ""})`
     );
   } catch (e) {
+    failed += 1;
     console.error(`✗ ${project.id}: refresh failed — ${e instanceof Error ? e.message.split("\n")[0] : e}`);
   }
 }
@@ -85,6 +88,13 @@ for (const project of projects) {
 if (fs.existsSync(PROJECTS_DIR)) {
   console.log(
     `\nrefresh: ${refreshed}/${projects.length} project(s) refreshed` +
+      (failed > 0 ? `, ${failed} failed` : "") +
       (staled > 0 ? `, ${staled} flagged stale (re-enrich recommended)` : "")
   );
+}
+
+// Per-project failures are logged and skipped above so one broken repo never
+// blocks the rest, but the run as a whole must still fail (e.g. weekly CI).
+if (failed > 0) {
+  process.exitCode = 1;
 }

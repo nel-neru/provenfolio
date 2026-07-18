@@ -9,6 +9,9 @@
  *  - --no-merges: merge commits would double-count squash-merge cultures.
  *  - byOwner filtering against profile.identities: team repos and forks must
  *    never produce inflated personal metrics.
+ *  - normalized author identity (author-identity.ts): case/whitespace/NFKC
+ *    drift and GitHub noreply email variants must not split one person into
+ *    several authors, which would zero the single-author ownership fallback.
  *  - degenerate repos (0 or 1 commits) produce valid zeroed metrics.
  *
  * Usage: tsx engine/sources/github/extract-git-stats.ts <projectId>
@@ -21,6 +24,7 @@ import {
 } from "../../schemas/index.js";
 import { PROFILE_FILE } from "../../scripts/lib/paths.js";
 import { readJson, writeJson, parseWith } from "../../scripts/lib/io.js";
+import { authorKey, matchesIdentity } from "../../scripts/lib/author-identity.js";
 import { repoDir, statsFile, run } from "./lib.js";
 
 const FIELD = "\x1f";
@@ -123,7 +127,7 @@ if (!fs.existsSync(dir)) {
 const identities = (() => {
   try {
     const profile = readJson(PROFILE_FILE) as { identities?: string[] };
-    return (profile.identities ?? []).map((s) => s.toLowerCase());
+    return profile.identities ?? [];
   } catch {
     return [];
   }
@@ -142,19 +146,19 @@ const logRaw = run(
 );
 const commits = parseLog(logRaw);
 
+// Normalization-aware (case, whitespace, NFKC, both GitHub noreply email
+// forms) — see author-identity.ts for the exact rules.
 const isOwner = (c: Commit) =>
-  identities.length > 0 &&
-  (identities.includes(c.authorEmail.toLowerCase()) ||
-    identities.includes(c.authorName.toLowerCase()) ||
-    // GitHub noreply convention: 12345+username@users.noreply.github.com
-    identities.some((id) =>
-      c.authorEmail.toLowerCase().endsWith(`+${id}@users.noreply.github.com`) ||
-      c.authorEmail.toLowerCase() === `${id}@users.noreply.github.com`
-    ));
+  matchesIdentity(c.authorName, c.authorEmail, identities);
 
+// Group by normalized identity so author-string drift (case, whitespace,
+// noreply format, display-name changes on the same email) cannot split one
+// person into several authors — which would zero the single-author ownership
+// fallback below. Display name/email keep the first-seen (= most recent,
+// git log is newest-first) spelling.
 const authors = new Map<string, { name: string; email: string; commits: number }>();
 for (const c of commits) {
-  const key = `${c.authorName}<${c.authorEmail}>`;
+  const key = authorKey(c.authorName, c.authorEmail);
   const cur = authors.get(key) ?? { name: c.authorName, email: c.authorEmail, commits: 0 };
   cur.commits += 1;
   authors.set(key, cur);

@@ -108,7 +108,7 @@ export const screenshot = z.object({
 });
 
 export const completeness = z.object({
-  /** 0-100, computed by engine/scripts/completeness.ts — never hand-edited */
+  /** 0-100, computed by engine/scripts/lib/completeness.ts — never hand-edited */
   score: z.number().int().min(0).max(100),
   /** Machine-readable gaps, e.g. "demo-link", "screenshots", "translation:en" */
   missing: z.array(z.string()),

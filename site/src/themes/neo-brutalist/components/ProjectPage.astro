@@ -54,6 +54,12 @@ const links = [...project.links].sort(
   (a, b) => linkRank(a.kind) - linkRank(b.kind)
 );
 
+// Repo CTA fallback: public github source with no curated repo link (avoids duplicates).
+const repoCta =
+  repoUrl && !project.links.some((l) => l.kind === "repo" || l.url === repoUrl)
+    ? repoUrl
+    : undefined;
+
 const heat = showHeatmap(project);
 const vel = showVelocity(project);
 const langs = showLanguages(project);
@@ -93,7 +99,7 @@ const summary = t(project.summary, locale, sl);
         <MetricChips project={project} locale={locale} />
       </div>
       {
-        links.length > 0 && (
+        (links.length > 0 || repoCta) && (
           <div class="links-row">
             {links.map((l) => (
               <a
@@ -105,6 +111,11 @@ const summary = t(project.summary, locale, sl);
                 {t(l.label, locale, sl) || l.kind}
               </a>
             ))}
+            {repoCta && (
+              <a class="btn" href={repoCta} target="_blank" rel="noopener">
+                GitHub
+              </a>
+            )}
           </div>
         )
       }
@@ -128,6 +139,7 @@ const summary = t(project.summary, locale, sl);
                       <EvidenceLink
                         evidence={e}
                         repoUrl={repoUrl}
+                        sourceCommit={gh?.sourceCommit}
                         isPrivate={isPrivate}
                         locale={locale}
                       />
@@ -149,6 +161,7 @@ const summary = t(project.summary, locale, sl);
               locale={locale}
               sourceLang={sl}
               repoUrl={repoUrl}
+              sourceCommit={gh?.sourceCommit}
               isPrivate={isPrivate}
             />
           </section>

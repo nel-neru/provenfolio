@@ -20,16 +20,18 @@ const year = new Date().getFullYear();
 <footer class="site-footer">
   <div class="container footer-inner">
     <span class="eol"><span class="mark" aria-hidden="true">// </span>© {year} {profile.name}</span>
-    <span class="footer-socials">
-      {
-        profile.socials.map((s) => (
-          <a href={s.url} rel="me noopener">
-            {s.platform}
-            <span class="ext" aria-hidden="true"> ↗</span>
-          </a>
-        ))
-      }
-    </span>
+    {
+      profile.socials.length > 0 && (
+        <span class="footer-socials">
+          {profile.socials.map((s) => (
+            <a href={s.url} rel="me noopener">
+              {s.platform}
+              <span class="ext" aria-hidden="true"> ↗</span>
+            </a>
+          ))}
+        </span>
+      )
+    }
     <span class="footer-note">{ui("footer.builtWith", locale)}</span>
   </div>
 </footer>

@@ -59,15 +59,17 @@ const heroSeed: HeroSeed = {
         <span class="sep" aria-hidden="true">•</span>
         {t(profile.tagline, locale, sl)}
       </p>
-      <div class="hero-socials">
-        {
-          profile.socials.map((s) => (
-            <a href={s.url} rel="me noopener">
-              {s.platform}
-            </a>
-          ))
-        }
-      </div>
+      {
+        profile.socials.length > 0 && (
+          <div class="hero-socials">
+            {profile.socials.map((s) => (
+              <a href={s.url} rel="me noopener">
+                {s.platform}
+              </a>
+            ))}
+          </div>
+        )
+      }
     </div>
   </section>
 

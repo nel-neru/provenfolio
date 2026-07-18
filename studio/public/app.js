@@ -753,7 +753,11 @@ function profilePanel() {
   doc.role = doc.role || {};
   doc.tagline = doc.tagline || {};
   doc.bio = doc.bio || {};
-  doc.seo = doc.seo || { title: "", description: {} };
+  doc.seo = doc.seo || { title: {}, description: {} };
+  // seo.title became localized in schemaVersion 2; tolerate a legacy string.
+  if (typeof doc.seo.title === "string")
+    doc.seo.title = doc.seo.title ? { [doc.sourceLang]: doc.seo.title } : {};
+  doc.seo.title = doc.seo.title || {};
   doc.seo.description = doc.seo.description || {};
   doc.socials = doc.socials || [];
   doc.skillOverrides = doc.skillOverrides || [];
@@ -860,13 +864,9 @@ function profilePanel() {
     locField(t("profileFieldBio"), doc.bio, { multiline: true }),
   ]);
 
-  const seoTitle = el("input", {
-    value: doc.seo.title || "",
-    oninput: (e) => (doc.seo.title = e.target.value),
-  });
   const seoCard = el("div", { class: "card" }, [
     el("h3", {}, t("seoHeading")),
-    el("div", { class: "field" }, [el("label", {}, t("profileFieldSeoTitle")), seoTitle]),
+    locField(t("profileFieldSeoTitle"), doc.seo.title),
     locField(t("profileFieldSeoDescription"), doc.seo.description, { multiline: true }),
   ]);
 
@@ -952,7 +952,7 @@ function profilePanel() {
     // Friendly pre-checks for the common mistakes, so the owner normally
     // never sees a raw schema error. A row someone STARTED filling must not
     // be dropped silently; a fully-empty "+ Add" row is stripped quietly.
-    if (!doc.name || !doc.githubUser || !doc.seo.title.trim()) {
+    if (!doc.name || !doc.githubUser || !(doc.seo.title[doc.sourceLang] || "").trim()) {
       toast(t("profileRequiredMissing"), true);
       return;
     }
@@ -966,7 +966,11 @@ function profilePanel() {
     }
     try {
       const payload = JSON.parse(JSON.stringify(doc));
-      payload.seo.title = payload.seo.title.trim();
+      for (const [lang, value] of Object.entries(payload.seo.title)) {
+        const trimmed = (value || "").trim();
+        if (trimmed) payload.seo.title[lang] = trimmed;
+        else delete payload.seo.title[lang];
+      }
       payload.socials = payload.socials.filter((s) => s.platform && s.url);
       payload.skillOverrides = payload.skillOverrides.filter((o) => o.name);
       await api("/api/profile", { method: "PUT", json: payload });

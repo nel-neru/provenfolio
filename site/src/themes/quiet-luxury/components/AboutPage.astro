@@ -87,27 +87,30 @@ const bio = t(profile.bio, locale, sl);
       )
     }
 
-    <section class="block">
-      <ul class="contact" role="list">
-        {
-          profile.socials.map((s) => (
-            <li class="contact-row">
-              <a class="caplink ext" href={s.url} rel="me noopener">
-                {s.platform}
-              </a>
-              {s.handle && <span class="handle">@{s.handle}</span>}
-            </li>
-          ))
-        }
-        {
-          profile.email && (
-            <li class="contact-row">
-              <a class="caplink" href={`mailto:${profile.email}`}>{profile.email}</a>
-            </li>
-          )
-        }
-      </ul>
-    </section>
+    {
+      /* Guard: .contact draws its own rule, so an empty list would leave a stray line. */
+      (profile.socials.length > 0 || profile.email) && (
+        <section class="block">
+          <ul class="contact" role="list">
+            {profile.socials.map((s) => (
+              <li class="contact-row">
+                <a class="caplink ext" href={s.url} rel="me noopener">
+                  {s.platform}
+                </a>
+                {s.handle && <span class="handle">@{s.handle}</span>}
+              </li>
+            ))}
+            {profile.email && (
+              <li class="contact-row">
+                <a class="caplink" href={`mailto:${profile.email}`}>
+                  {profile.email}
+                </a>
+              </li>
+            )}
+          </ul>
+        </section>
+      )
+    }
   </div>
 </Base>
 

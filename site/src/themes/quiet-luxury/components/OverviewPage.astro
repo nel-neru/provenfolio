@@ -44,7 +44,7 @@ const tagline = t(profile.tagline, locale, sl);
         {role && tagline && <span class="sep" aria-hidden="true">&middot;</span>}
         {tagline}
       </p>
-      <p class="socials">
+      {profile.socials.length > 0 && <p class="socials">
         {
           profile.socials.map((s) => (
             <a class="caplink ext" href={s.url} rel="me noopener">
@@ -53,7 +53,7 @@ const tagline = t(profile.tagline, locale, sl);
           ))
         }
         {profile.email && <a class="caplink" href={`mailto:${profile.email}`}>{profile.email}</a>}
-      </p>
+      </p>}
     </header>
 
     <div class="stack">

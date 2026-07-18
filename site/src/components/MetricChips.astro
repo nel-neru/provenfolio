@@ -15,6 +15,31 @@ interface Props {
 const { project, locale } = Astro.props;
 const chips = metricChips(project);
 const durationDays = project.metrics?.total.durationDays;
+
+/**
+ * Sub-week spans read as a contradiction next to the active-days chip
+ * ("5 active days" vs "3.6d span"), so under 7 days the span renders as
+ * hours. The value derives from the script-produced metric only
+ * (durationDays x 24, rounded — no new numbers); the unit label comes
+ * from Intl.NumberFormat so it resolves per locale without a dictionary
+ * entry. Parts keep the number bold and the unit plain, matching the
+ * other chips.
+ */
+const NUMERIC_PART_TYPES = new Set(["integer", "group", "decimal", "fraction"]);
+let spanHourParts: Array<{ bold: boolean; text: string }> | undefined;
+if (durationDays !== undefined && durationDays < 7) {
+  try {
+    spanHourParts = new Intl.NumberFormat(locale, {
+      style: "unit",
+      unit: "hour",
+      unitDisplay: "short",
+    })
+      .formatToParts(Math.round(durationDays * 24))
+      .map((p) => ({ bold: NUMERIC_PART_TYPES.has(p.type), text: p.value }));
+  } catch {
+    // Unknown locale tag — fall back to the day rendering below.
+  }
+}
 ---
 
 {
@@ -27,7 +52,14 @@ const durationDays = project.metrics?.total.durationDays;
       ))}
       {durationDays !== undefined && (
         <span class="chip">
-          <b>{durationDays}</b>{ui("metrics.days", locale)}
+          {spanHourParts ? (
+            spanHourParts.map((p) => (p.bold ? <b>{p.text}</b> : p.text))
+          ) : (
+            <>
+              <b>{durationDays}</b>{ui("metrics.days", locale)}
+            </>
+          )}{" "}
+          {ui("metrics.span", locale)}
         </span>
       )}
     </div>

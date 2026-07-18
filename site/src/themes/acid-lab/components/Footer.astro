@@ -21,16 +21,18 @@ const sl = profile.sourceLang;
       {profile.name} — {t(profile.role, locale, sl)}
     </span>
     <span class="foot-tag">{t(profile.tagline, locale, sl)}</span>
-    <span class="foot-links">
-      {
-        profile.socials.map((s) => (
-          <a href={s.url} rel="me noopener">
-            {s.platform}
-            <span aria-hidden="true"> ↗</span>
-          </a>
-        ))
-      }
-    </span>
+    {
+      profile.socials.length > 0 && (
+        <span class="foot-links">
+          {profile.socials.map((s) => (
+            <a href={s.url} rel="me noopener">
+              {s.platform}
+              <span aria-hidden="true"> ↗</span>
+            </a>
+          ))}
+        </span>
+      )
+    }
     <span class="foot-note">
       © {new Date().getFullYear()} · {ui("footer.builtWith", locale)}
     </span>

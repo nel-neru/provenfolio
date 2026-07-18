@@ -1,9 +1,10 @@
 /**
- * Midnight theme manifest — the registry entry point. Importing it pulls
- * in the theme stylesheet and every component, so a page that loads this
- * manifest (statically or dynamically) carries the full theme.
+ * Midnight theme manifest — the registry entry point, exposing tokens and
+ * components only. styles.css is deliberately NOT imported here: Astro
+ * bundles any CSS reachable through the registry's dynamic-import glob
+ * into every page (all themes stacked, cascade collisions). The page
+ * shell links this theme's styles.css per page via themeStylesheetHref().
  */
-import "./styles.css";
 import { theme } from "./tokens.js";
 import type { ThemeManifest } from "../../lib/theme-registry.js";
 

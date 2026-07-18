@@ -32,7 +32,7 @@ Optional (offer defaults, don't block):
 
 ## 3. Write
 
-- `data/profile.json` per `engine/schemas/profile.ts` (role/tagline/bio/seo.description as `{<sourceLang>: text}`; translator fills target locales during first /analyze — or translate now if trivial). `seo.title`: "<name> — Developer Portfolio" equivalent in sourceLang.
+- `data/profile.json` per `engine/schemas/profile.ts` (role/tagline/bio/seo.title/seo.description as `{<sourceLang>: text}`; translator fills target locales during first /analyze — or translate now if trivial). `seo.title`: "<name> — Developer Portfolio" equivalent, keyed under sourceLang; pages whose locale has no entry synthesize a localized default.
 - `npm run validate` must pass.
 - Commit: `chore: initialize portfolio for <name>` — only if the step-0 origin guard passed.
 

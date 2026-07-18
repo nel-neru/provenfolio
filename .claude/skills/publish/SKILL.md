@@ -18,6 +18,7 @@ description: Gate-check, build, and deploy the portfolio to Cloudflare Pages (wi
 
 ## 2. Build
 
+- Delete `site/dist` first (`node -e "require('fs').rmSync('site/dist',{recursive:true,force:true})"` — cross-platform) — Astro does not remove stale output for pages that no longer exist, so a deleted project page would otherwise ship in the deploy.
 - `npm run build` — green required.
 
 ## 3. Confirm

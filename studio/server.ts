@@ -8,6 +8,7 @@
  */
 import http from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -42,6 +43,14 @@ import { themeCssVars, themeFontFaces } from "../site/src/theme.js";
 
 const HOST = "127.0.0.1";
 const PORT = 4600;
+// Host header values a local browser can legitimately send when talking to
+// the Studio. A DNS-rebinding page is served from an attacker-owned domain
+// whose DNS record is then re-pointed at 127.0.0.1 — the browser happily
+// reaches this server and same-origin policy no longer helps, but the Host
+// header still names the attacker's domain. Allowlisting Host on EVERY
+// request (GETs included — /api/state alone exposes the whole contract)
+// shuts that down.
+const ALLOWED_HOSTS = new Set([`${HOST}:${PORT}`, `localhost:${PORT}`, `[::1]:${PORT}`]);
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const ASSETS_DIR = path.join(DATA_DIR, "assets");
 const SCREENSHOTS_DIR = path.join(DATA_DIR, "assets", "screenshots");
@@ -250,6 +259,43 @@ function pushChunkLines(runner: StreamRunner, chunk: Buffer, carry: { buf: strin
   for (const line of lines) runner.push(line);
 }
 
+/** Resolve a command on PATH the way `where` does (Windows only). */
+function resolveOnPath(name: string): string | undefined {
+  for (const rawDir of (process.env.PATH ?? "").split(path.delimiter)) {
+    const dir = rawDir.replace(/^"(.*)"$/, "$1").trim();
+    if (!dir) continue;
+    for (const ext of [".exe", ".cmd", ".bat"]) {
+      const candidate = path.join(dir, name + ext);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Work out how to launch the claude CLI without a shell. On Windows the CLI
+ * is either a native claude.exe or an npm .cmd shim — and Node refuses to
+ * spawn .cmd/.bat files shell-less (CVE-2024-27980), so instead of executing
+ * the shim we unwrap it to the cli.js it points at and run that with the
+ * current Node binary. Returns undefined when no launchable CLI is found.
+ */
+function resolveClaudeLaunch(args: string[]): { file: string; args: string[] } | undefined {
+  if (process.platform !== "win32") return { file: "claude", args };
+  const found = resolveOnPath("claude");
+  if (!found) return undefined;
+  if (found.toLowerCase().endsWith(".exe")) return { file: found, args };
+  // npm shim layout: <dir>/claude.cmd wraps <dir>/node_modules/<pkg>/cli.js
+  const cliJs = path.join(
+    path.dirname(found),
+    "node_modules",
+    "@anthropic-ai",
+    "claude-code",
+    "cli.js"
+  );
+  if (fs.existsSync(cliJs)) return { file: process.execPath, args: [cliJs, ...args] };
+  return undefined;
+}
+
 function startAnalyze(): void {
   if (engineRunner.running) {
     throw new HttpError(409, "Engine update running — wait for it to finish first");
@@ -257,26 +303,30 @@ function startAnalyze(): void {
   analyzeRunner.begin("Analysis already running");
   analyzeRunner.push(`[studio] ${nowIso()} launching claude -p "/analyze --pending" ...`);
 
-  // The claude CLI is an npm .cmd shim on Windows, so it needs a shell there —
-  // but a shell concatenates args without escaping, which would split the
-  // prompt at its space ("--pending" became an unknown claude option). Quote
-  // the prompt manually on the shell path only.
-  const useShell = process.platform === "win32";
-  const prompt = "/analyze --pending";
+  // Never spawn through a shell: a shell re-parses the argument string, which
+  // both mangles the space in the prompt and is an injection hazard. The CLI
+  // is resolved explicitly instead (see resolveClaudeLaunch).
+  const launch = resolveClaudeLaunch([
+    "-p",
+    "/analyze --pending",
+    "--permission-mode",
+    "acceptEdits",
+  ]);
+  if (!launch) {
+    analyzeRunner.push('Claude Code CLI not found. Run "/analyze --pending" in Claude Code instead.');
+    analyzeRunner.done(-1);
+    return;
+  }
   let child: ChildProcess;
   try {
-    child = spawn(
-      "claude",
-      ["-p", useShell ? `"${prompt}"` : prompt, "--permission-mode", "acceptEdits"],
-      {
-        cwd: ROOT,
-        shell: useShell,
-        windowsHide: true,
-        // No stdin: an open-but-silent pipe makes the claude CLI wait 3s and
-        // print a "no stdin data received" warning before proceeding.
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
+    child = spawn(launch.file, launch.args, {
+      cwd: ROOT,
+      shell: false,
+      windowsHide: true,
+      // No stdin: an open-but-silent pipe makes the claude CLI wait 3s and
+      // print a "no stdin data received" warning before proceeding.
+      stdio: ["ignore", "pipe", "pipe"],
+    });
   } catch {
     analyzeRunner.push('Claude Code CLI not found. Run "/analyze --pending" in Claude Code instead.');
     analyzeRunner.done(-1);
@@ -590,19 +640,7 @@ function apiPutProfile(body: unknown): unknown {
 async function apiPostAvatar(url: URL, req: IncomingMessage): Promise<unknown> {
   const rawName = url.searchParams.get("filename");
   if (!rawName) throw new HttpError(400, "filename query parameter required");
-  let name = sanitizeImageName(rawName);
-
-  const bytes = await readBody(req, IMAGE_BODY_LIMIT);
-  if (bytes.length === 0) throw new HttpError(400, "Empty image body");
-
-  fs.mkdirSync(ASSETS_DIR, { recursive: true });
-  // Never clobber an existing file: suffix -1, -2, ...
-  const ext = path.extname(name);
-  const stem = name.slice(0, -ext.length);
-  for (let i = 1; fs.existsSync(path.join(ASSETS_DIR, name)); i++) {
-    name = `${stem}-${i}${ext}`;
-  }
-  fs.writeFileSync(path.join(ASSETS_DIR, name), bytes);
+  const name = await receiveImageUpload(req, ASSETS_DIR, sanitizeImageName(rawName));
 
   const profile = loadProfile();
   profile.avatar = `assets/${name}`;
@@ -631,27 +669,71 @@ function listInstalledThemes(): string[] {
     .sort();
 }
 
-/** Re-import theme.config.mjs fresh (cache-busted) so edits are reflected live. */
+/**
+ * Read theme.config.mjs, re-importing only when the file changed on disk.
+ *
+ * ESM modules are never evicted from the module map, so a per-call
+ * `?v=Date.now()` cache-buster leaks one module instance per request.
+ * Keying the import URL on mtimeMs bounds that growth to the number of
+ * actual file edits while still reflecting hand edits live.
+ */
+let themeConfigCache: { mtimeMs: number; value: { activeTheme: string; visitorThemes: "all" | string[] } } | null =
+  null;
+
 async function readThemeConfig(): Promise<{ activeTheme: string; visitorThemes: "all" | string[] }> {
-  const url = `${pathToFileURL(THEME_CONFIG_FILE).href}?v=${Date.now()}`;
+  const mtimeMs = fs.statSync(THEME_CONFIG_FILE).mtimeMs;
+  if (themeConfigCache && themeConfigCache.mtimeMs === mtimeMs) return themeConfigCache.value;
+  const url = `${pathToFileURL(THEME_CONFIG_FILE).href}?v=${mtimeMs}`;
   const mod = (await import(url)) as { activeTheme: string; visitorThemes: "all" | string[] };
-  return { activeTheme: mod.activeTheme, visitorThemes: mod.visitorThemes };
+  themeConfigCache = { mtimeMs, value: { activeTheme: mod.activeTheme, visitorThemes: mod.visitorThemes } };
+  return themeConfigCache.value;
 }
 
-/** Rewrite only the two export lines, preserving the file's comment header. */
-function writeThemeConfig(activeTheme: string, visitorThemes: "all" | string[]): void {
+/**
+ * Rewrite only the two export lines, preserving the file's comment header.
+ *
+ * theme.config.mjs is buyer-owned, so it may have been hand-edited into a
+ * shape this line-level rewrite cannot handle (multi-line arrays, extra
+ * indirection, commented-out duplicates that shadow the real export...).
+ * Safety valve: before touching the disk, re-import the rewritten source and
+ * confirm it evaluates to exactly the requested values — anything else is
+ * rejected with 422 and the file is left untouched.
+ */
+async function writeThemeConfig(activeTheme: string, visitorThemes: "all" | string[]): Promise<void> {
   const src = fs.readFileSync(THEME_CONFIG_FILE, "utf8");
   const vt = visitorThemes === "all" ? '"all"' : JSON.stringify(visitorThemes);
+  const handEdited = (detail: string): HttpError =>
+    new HttpError(
+      422,
+      `theme.config.mjs ${detail} — the file looks hand-edited into a format Studio cannot rewrite safely. Edit site/theme.config.mjs directly instead.`
+    );
   let out = src;
   if (/export const activeTheme = "[^"]*";/.test(out)) {
     out = out.replace(/export const activeTheme = "[^"]*";/, `export const activeTheme = "${activeTheme}";`);
   } else {
-    throw new HttpError(500, "theme.config.mjs: could not find the activeTheme export to update");
+    throw handEdited("has no recognizable activeTheme export");
   }
   if (/export const visitorThemes = [^;]*;/.test(out)) {
     out = out.replace(/export const visitorThemes = [^;]*;/, `export const visitorThemes = ${vt};`);
   } else {
-    throw new HttpError(500, "theme.config.mjs: could not find the visitorThemes export to update");
+    throw handEdited("has no recognizable visitorThemes export");
+  }
+  // Re-parse the rewritten module (in-memory, via a data: URL — nothing is
+  // written yet) and verify both exports carry exactly the requested values.
+  let parsed: { activeTheme?: unknown; visitorThemes?: unknown };
+  try {
+    const dataUrl = `data:text/javascript;base64,${Buffer.from(out, "utf8").toString("base64")}`;
+    parsed = (await import(dataUrl)) as { activeTheme?: unknown; visitorThemes?: unknown };
+  } catch {
+    throw handEdited("would no longer be valid JavaScript after the rewrite");
+  }
+  const visitorThemesOk = Array.isArray(visitorThemes)
+    ? Array.isArray(parsed.visitorThemes) &&
+      parsed.visitorThemes.length === visitorThemes.length &&
+      visitorThemes.every((t, i) => (parsed.visitorThemes as unknown[])[i] === t)
+    : parsed.visitorThemes === "all";
+  if (parsed.activeTheme !== activeTheme || !visitorThemesOk) {
+    throw handEdited("would not carry the requested values after the rewrite");
   }
   fs.writeFileSync(THEME_CONFIG_FILE, out);
 }
@@ -686,7 +768,7 @@ async function apiPutTheme(body: unknown): Promise<unknown> {
     if (installed.every((t) => visitorThemes.includes(t))) visitorThemes = "all";
   }
 
-  writeThemeConfig(activeTheme, visitorThemes);
+  await writeThemeConfig(activeTheme, visitorThemes);
   return { activeTheme, visitorThemes, installed };
 }
 
@@ -861,6 +943,189 @@ function sanitizeImageName(raw: string): string {
   return base;
 }
 
+// Magic-byte validation for uploads: the extension names the claimed format
+// (IMAGE_EXTS — SVG is deliberately not accepted, it can script), the leading
+// bytes must agree, otherwise the body is rejected with 415 as soon as the
+// leading bytes arrive — before any of it reaches a final path.
+
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+function sniffImageFormat(bytes: Buffer): "png" | "jpeg" | "webp" | "gif" | undefined {
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(PNG_MAGIC)) return "png";
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
+  if (
+    bytes.length >= 12 &&
+    bytes.toString("latin1", 0, 4) === "RIFF" &&
+    bytes.toString("latin1", 8, 12) === "WEBP"
+  ) {
+    return "webp";
+  }
+  if (bytes.length >= 6) {
+    const sig = bytes.toString("latin1", 0, 6);
+    if (sig === "GIF87a" || sig === "GIF89a") return "gif";
+  }
+  return undefined;
+}
+
+/** Sniffed format each accepted extension must resolve to. */
+const EXT_TO_FORMAT: Record<string, "png" | "jpeg" | "webp" | "gif"> = {
+  png: "png",
+  jpg: "jpeg",
+  jpeg: "jpeg",
+  webp: "webp",
+  gif: "gif",
+};
+
+/** 415 unless the body's magic bytes match the (already sanitized) extension. */
+function assertImageBody(name: string, bytes: Buffer): void {
+  const ext = path.extname(name).slice(1);
+  const expected = EXT_TO_FORMAT[ext];
+  const actual = sniffImageFormat(bytes);
+  if (!expected || actual !== expected) {
+    throw new HttpError(
+      415,
+      `Body does not look like a ${expected ?? ext} image (magic bytes do not match ".${ext}")`
+    );
+  }
+}
+
+// Longest prefix sniffImageFormat needs to identify a format (WEBP: 12 bytes).
+const SNIFF_BYTES = 12;
+
+/**
+ * Stream an upload body into `tmpPath` instead of buffering it in memory.
+ * The size limit and the magic-byte check both run on the bytes as they
+ * arrive, so an oversized or mismatched body is rejected mid-transfer (the
+ * request is paused, not destroyed, so the error response still reaches the
+ * client). The temp file is always removed on failure — including client
+ * disconnects — never leaving residue behind. Resolves once the file is
+ * fully written and closed.
+ */
+function streamImageToFile(
+  req: IncomingMessage,
+  name: string,
+  tmpPath: string,
+  limit: number
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const out = fs.createWriteStream(tmpPath, { flags: "wx" });
+    let size = 0;
+    let head: Buffer = Buffer.alloc(0);
+    let headChecked = false;
+    let settled = false;
+
+    const discard = (err: unknown): void => {
+      if (settled) return;
+      settled = true;
+      req.pause();
+      req.removeListener("data", onData);
+      req.removeListener("end", onEnd);
+      // Wait for the fd to close before unlinking (Windows refuses otherwise).
+      const rm = () => fs.rm(tmpPath, { force: true }, () => reject(err));
+      if (out.closed) {
+        rm();
+      } else {
+        out.once("close", rm);
+        out.destroy();
+      }
+    };
+
+    const checkHead = (): void => {
+      headChecked = true;
+      assertImageBody(name, head); // throws HttpError(415) on mismatch
+    };
+
+    const onData = (chunk: Buffer): void => {
+      size += chunk.length;
+      if (size > limit) {
+        discard(new HttpError(413, `Body exceeds ${limit} bytes`));
+        return;
+      }
+      if (!headChecked) {
+        head = head.length === 0 ? chunk : Buffer.concat([head, chunk]);
+        if (head.length >= SNIFF_BYTES) {
+          try {
+            checkHead();
+          } catch (err) {
+            discard(err);
+            return;
+          }
+        }
+      }
+      if (!out.write(chunk)) {
+        req.pause();
+        out.once("drain", () => {
+          if (!settled) req.resume();
+        });
+      }
+    };
+
+    const onEnd = (): void => {
+      if (settled) return;
+      if (size === 0) {
+        discard(new HttpError(400, "Empty image body"));
+        return;
+      }
+      if (!headChecked) {
+        // Body ended before SNIFF_BYTES arrived — sniff what there is.
+        try {
+          checkHead();
+        } catch (err) {
+          discard(err);
+          return;
+        }
+      }
+      out.end(() => {
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+      });
+    };
+
+    out.on("error", (err) => discard(err));
+    req.on("data", onData);
+    req.on("end", onEnd);
+    req.on("error", (err) => discard(err));
+    // Mid-body client disconnects can surface as "close" without an "error".
+    req.on("close", () => {
+      if (!settled && !req.complete) {
+        discard(new Error("Client disconnected before the upload completed"));
+      }
+    });
+  });
+}
+
+/**
+ * Receive an image upload destined for `dir`/`name`: stream the body to a
+ * temp file inside the destination directory (same volume as data/assets, so
+ * the final rename is atomic), then rename it to the first non-clobbering
+ * variant of `name`. Returns the final file name.
+ */
+async function receiveImageUpload(
+  req: IncomingMessage,
+  dir: string,
+  name: string
+): Promise<string> {
+  fs.mkdirSync(dir, { recursive: true });
+  const tmpPath = path.join(dir, `.upload-${crypto.randomBytes(8).toString("hex")}.tmp`);
+  await streamImageToFile(req, name, tmpPath, IMAGE_BODY_LIMIT);
+
+  // Never clobber an existing file: suffix -1, -2, ...
+  const ext = path.extname(name);
+  const stem = name.slice(0, -ext.length);
+  for (let i = 1; fs.existsSync(path.join(dir, name)); i++) {
+    name = `${stem}-${i}${ext}`;
+  }
+  try {
+    fs.renameSync(tmpPath, path.join(dir, name));
+  } catch (err) {
+    fs.rmSync(tmpPath, { force: true });
+    throw err;
+  }
+  return name;
+}
+
 async function apiPostScreenshot(
   id: string,
   url: URL,
@@ -869,21 +1134,11 @@ async function apiPostScreenshot(
   const project = loadProject(id);
   const rawName = url.searchParams.get("filename");
   if (!rawName) throw new HttpError(400, "filename query parameter required");
-  let name = sanitizeImageName(rawName);
-
-  const bytes = await readBody(req, IMAGE_BODY_LIMIT);
-  if (bytes.length === 0) throw new HttpError(400, "Empty image body");
-
-  const dir = path.join(SCREENSHOTS_DIR, id);
-  fs.mkdirSync(dir, { recursive: true });
-
-  // Never clobber an existing file: suffix -1, -2, ...
-  const ext = path.extname(name);
-  const stem = name.slice(0, -ext.length);
-  for (let i = 1; fs.existsSync(path.join(dir, name)); i++) {
-    name = `${stem}-${i}${ext}`;
-  }
-  fs.writeFileSync(path.join(dir, name), bytes);
+  const name = await receiveImageUpload(
+    req,
+    path.join(SCREENSHOTS_DIR, id),
+    sanitizeImageName(rawName)
+  );
 
   const profile = loadProfile();
   const src = `assets/screenshots/${id}/${name}`;
@@ -954,6 +1209,13 @@ function serveFileWithin(rootDir: string, relPath: string, res: ServerResponse):
 // ---------------------------------------------------------------------------
 
 async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  // DNS-rebinding guard: refuse any request whose Host header is not a known
+  // local name for this server (see ALLOWED_HOSTS). Checked on all methods.
+  const host = req.headers.host;
+  if (typeof host !== "string" || !ALLOWED_HOSTS.has(host.toLowerCase())) {
+    throw new HttpError(403, "Unrecognized Host header");
+  }
+
   const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
   const p = url.pathname;
   const method = req.method ?? "GET";
@@ -968,7 +1230,8 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (
       typeof origin === "string" &&
       origin !== `http://${HOST}:${PORT}` &&
-      origin !== `http://localhost:${PORT}`
+      origin !== `http://localhost:${PORT}` &&
+      origin !== `http://[::1]:${PORT}`
     ) {
       throw new HttpError(403, "Cross-origin request rejected");
     }

@@ -1,0 +1,13 @@
+---
+/** Target-locale home ("/<lang>/") — one tree per profile.targetLangs entry. */
+import HomePage from "@theme/components/HomePage.astro";
+import { targetLocales } from "../../lib/i18n.js";
+import { getProfile } from "../../lib/data.js";
+
+export async function getStaticPaths() {
+  const profile = await getProfile();
+  return targetLocales(profile).map((lang) => ({ params: { lang } }));
+}
+---
+
+<HomePage locale={Astro.params.lang!} />

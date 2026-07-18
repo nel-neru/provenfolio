@@ -28,15 +28,17 @@ const tagline = t(profile.tagline, locale, sl);
       {tagline && <p class="foot-tag">{tagline}</p>}
     </div>
     <div class="foot-right">
-      <span class="foot-links">
-        {
-          profile.socials.map((s) => (
-            <a class="caplink ext" href={s.url} rel="me noopener">
-              {s.platform}
-            </a>
-          ))
-        }
-      </span>
+      {
+        profile.socials.length > 0 && (
+          <span class="foot-links">
+            {profile.socials.map((s) => (
+              <a class="caplink ext" href={s.url} rel="me noopener">
+                {s.platform}
+              </a>
+            ))}
+          </span>
+        )
+      }
       <p class="foot-colophon">
         &copy; {new Date().getFullYear()} {profile.name} &middot;{" "}
         {ui("footer.builtWith", locale)}

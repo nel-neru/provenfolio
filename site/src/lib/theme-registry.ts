@@ -1,9 +1,15 @@
 /**
  * Multi-theme registry — Vite-only (import.meta.glob). Powers the visitor
  * theme switcher and the /t/<theme>/ prerendered trees: every installed
- * theme's manifest is discoverable, loaded lazily so each built page
- * carries only its own theme's CSS (dynamic-import CSS collection is
- * verified to work in this Astro version).
+ * theme's manifest is discoverable and loaded lazily.
+ *
+ * CSS scoping: theme manifests must NOT side-effect-import styles.css.
+ * Astro bundles every stylesheet reachable through the dynamic-import
+ * graph into each page that imports this registry — i.e. ALL themes' CSS
+ * on ALL pages, with alphabetically-later themes winning the cascade.
+ * Instead, each theme's styles.css is emitted as a standalone asset via
+ * the `?url` glob below, and the page shell links exactly one of them per
+ * page (see themeStylesheetHref).
  *
  * Non-Vite consumers (OG exporter, Studio) must keep using the
  * site/src/theme.ts shim instead.
@@ -32,6 +38,15 @@ export interface ThemeManifest {
 const manifestLoaders = import.meta.glob<{ manifest: ThemeManifest }>(
   "../themes/*/manifest.ts"
 );
+
+// `?url` makes Vite emit each stylesheet as an independent asset and hand
+// back its final URL — the CSS is never injected into a page's bundled
+// styles, even with `eager: true` (eager only resolves URLs at build time).
+const stylesheetUrls = import.meta.glob<string>("../themes/*/styles.css", {
+  query: "?url",
+  import: "default",
+  eager: true,
+});
 
 function nameFromKey(key: string): string {
   return key.split("/")[2] ?? key;
@@ -66,6 +81,24 @@ export function listVisitorThemes(): string[] {
  */
 export function listPrerenderThemes(): string[] {
   return listVisitorThemes().filter((t) => t !== activeTheme);
+}
+
+/**
+ * Build-time asset URL of a theme's styles.css. The page shell must link
+ * exactly one of these per page — the page's own theme — which is what
+ * keeps theme CSS scoped per page (theme CSS must come after global.css
+ * in the head so it wins the cascade).
+ */
+export function themeStylesheetHref(name: string): string {
+  const href = stylesheetUrls[`../themes/${name}/styles.css`];
+  if (!href) {
+    throw new Error(
+      `Theme "${name}" has no styles.css — installed: ${listInstalledThemes().join(
+        ", "
+      )}`
+    );
+  }
+  return href;
 }
 
 export async function getManifest(name: string): Promise<ThemeManifest> {

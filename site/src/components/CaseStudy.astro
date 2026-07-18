@@ -20,6 +20,31 @@ const businesslike = ["product", "service", "client"].includes(project.category)
 
 const hasResults = !!project.caseStudy.results?.[sourceLang]?.trim();
 const m = project.metrics;
+
+/**
+ * Sub-week spans read as a contradiction next to the active-days chip
+ * ("5 active days" vs "3.6d"), so under 7 days the duration renders as
+ * hours. Same rule as MetricChips.astro: the value derives from the
+ * script-produced metric only (durationDays x 24, rounded), and the unit
+ * label comes from Intl.NumberFormat so it resolves per locale without a
+ * dictionary entry.
+ */
+const NUMERIC_PART_TYPES = new Set(["integer", "group", "decimal", "fraction"]);
+const durationDays = m?.total.durationDays;
+let spanHourParts: Array<{ bold: boolean; text: string }> | undefined;
+if (durationDays !== undefined && durationDays < 7) {
+  try {
+    spanHourParts = new Intl.NumberFormat(locale, {
+      style: "unit",
+      unit: "hour",
+      unitDisplay: "short",
+    })
+      .formatToParts(Math.round(durationDays * 24))
+      .map((p) => ({ bold: NUMERIC_PART_TYPES.has(p.type), text: p.value }));
+  } catch {
+    // Unknown locale tag — fall back to the day rendering below.
+  }
+}
 ---
 
 <div class="case-study">
@@ -53,7 +78,13 @@ const m = project.metrics;
               <b>{m.total.activeDays}</b> {ui("metrics.activeDays", locale)}
             </span>
             <span class="chip">
-              <b>{m.total.durationDays}</b>{ui("metrics.days", locale)}
+              {spanHourParts ? (
+                spanHourParts.map((p) => (p.bold ? <b>{p.text}</b> : p.text))
+              ) : (
+                <>
+                  <b>{m.total.durationDays}</b>{ui("metrics.days", locale)}
+                </>
+              )}
             </span>
             {m.conventionalCommitPct !== undefined && m.conventionalCommitPct > 0 && (
               <span class="chip">
@@ -80,6 +111,9 @@ const m = project.metrics;
   .prose {
     margin: 0;
     white-space: pre-line;
+    /* Long URLs/identifiers in agent prose must wrap instead of forcing
+     * horizontal overflow on narrow viewports. */
+    overflow-wrap: anywhere;
     color: var(--text);
     max-width: 65ch;
   }

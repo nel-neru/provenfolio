@@ -4,7 +4,7 @@
  * event. Zero JS. Evidence chips are compact monospace tokens:
  *   commit → 7-char SHA   → {repoUrl}/commit/{sha}
  *   pr     → #N           → {repoUrl}/pull/{N}
- *   file   → path         → {repoUrl}/blob/HEAD/{path}
+ *   file   → path         → {repoUrl}/blob/{sourceCommit ?? HEAD}/{path}
  *   release→ tag          → {repoUrl}/releases/tag/{tag}
  *   url    → domain       → the URL itself
  *   ownerInput → "owner" chip with the intake pointer in its title attr
@@ -20,9 +20,12 @@ interface Props {
   sourceLang: string;
   repoUrl?: string;
   isPrivate?: boolean;
+  /** Commit the repo was analyzed at (source.sourceCommit); pins file links. */
+  sourceCommit?: string;
 }
 
-const { timeline, locale, sourceLang, repoUrl, isPrivate = false } = Astro.props;
+const { timeline, locale, sourceLang, repoUrl, isPrivate = false, sourceCommit } =
+  Astro.props;
 
 const base = repoUrl?.replace(/\.git$/, "").replace(/\/+$/, "");
 const linkable = !!base && !isPrivate;
@@ -50,9 +53,11 @@ function receipt(e: EvidenceRef): Receipt {
       };
     }
     case "file":
+      // Pin to the analyzed commit so the link survives later moves/deletes;
+      // fall back to HEAD only when no commit was recorded.
       return {
         text: e.ref,
-        href: linkable ? `${base}/blob/HEAD/${e.ref}` : undefined,
+        href: linkable ? `${base}/blob/${sourceCommit ?? "HEAD"}/${e.ref}` : undefined,
         title: e.label,
       };
     case "release":
