@@ -4,6 +4,8 @@
 
 From clone to a live portfolio in under 45 minutes.
 
+> 📘 Not an engineer? Start with the visual owner's manual instead: `GUIDE.html` (Japanese: `GUIDE.ja.html`) at the repo root, also served by Studio's "Guide" button.
+
 ## Prerequisites (honest list)
 
 | Requirement | Why | Cost |

@@ -12,6 +12,10 @@ Skip this if you followed GETTING-STARTED's recommended flow — it already rena
 git remote get-url engine || git remote add engine <the-distribution-repo-url-you-were-given>
 ```
 
+## From Studio (no terminal needed)
+
+`npm run studio` → the **Engine update** button runs the exact procedure below from the GUI: "Check for updates" fetches and lists what's new; "Update now" merges and rebuilds, streaming the log live. A merge that cannot apply cleanly is aborted automatically — nothing is ever left half-merged; resolve those cases from Claude Code instead. Restart Studio afterwards so it runs the updated engine.
+
 ## Update procedure
 
 ```bash

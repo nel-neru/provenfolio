@@ -151,6 +151,35 @@ const STUDIO_I18N = {
     designRebuildNote:
       "Changes take effect after the next build/publish. Restart Studio to update its own colors.",
     designSaveFailed: "Save failed: {message}",
+
+    // engine update (git-tracked distribution repo)
+    btnEngine: "Engine update",
+    btnGuide: "📘 Guide",
+    engineTitle: "Engine update",
+    engineIntro:
+      "Pull the latest engine (features, themes, fixes) from the distribution repository. Your data/ — projects, prose, screenshots — is never touched (engine/docs/UPDATING.md).",
+    engineVersion: "Current engine version: {version}",
+    engineIdleHint: 'Press "Check for updates" to contact the engine repository.',
+    engineCheck: "Check for updates",
+    engineChecking: "Checking ...",
+    engineUpToDate: "✓ You are up to date.",
+    engineBehind: "{count} engine update(s) available:",
+    engineNoRemote:
+      'No "engine" git remote is configured. One-time setup in a terminal: git remote add engine <distribution-repo-url> (see engine/docs/UPDATING.md).',
+    engineUpdateNow: "Update now",
+    engineConfirm:
+      "Merge the engine updates and rebuild now? Your data/ is not touched. Restart Studio afterwards.",
+    engineRunning: "An engine update is running ...",
+    engineDoneNote:
+      "✓ Engine update finished. Restart Studio (stop it, then npm run studio) to run the updated version.",
+    engineFailedNote:
+      "The update stopped — see the log above. Nothing was left half-merged. You can also ask Claude Code to pull the engine update.",
+    engineCheckFailed: "Check failed: {message}",
+    engineStartFailed: "Failed to start the update: {message}",
+    engineNoRef:
+      "Fetched, but engine/main was not found — the distribution repository may use a different branch name. Ask Claude Code to pull the update instead.",
+    engineStreamLost:
+      'Lost the connection to the update log. The update itself may still be running — press "Check for updates" to re-attach.',
   },
 
   ja: {
@@ -298,6 +327,35 @@ const STUDIO_I18N = {
     designRebuildNote:
       "変更は次回のビルド/公開で反映されます。Studio 自身の配色は再起動で更新されます。",
     designSaveFailed: "保存に失敗: {message}",
+
+    // engine update (git-tracked distribution repo)
+    btnEngine: "エンジン更新",
+    btnGuide: "📘 使い方ガイド",
+    engineTitle: "エンジン更新",
+    engineIntro:
+      "配布リポジトリから最新のエンジン(新機能・新テーマ・修正)を取り込みます。あなたの data/(作品・文章・スクリーンショット)には一切触れません(engine/docs/UPDATING.md)。",
+    engineVersion: "現在のエンジンバージョン: {version}",
+    engineIdleHint: "「更新を確認」を押すとエンジンのリポジトリに問い合わせます。",
+    engineCheck: "更新を確認",
+    engineChecking: "確認中 ...",
+    engineUpToDate: "✓ 最新の状態です。",
+    engineBehind: "{count}件のエンジン更新があります:",
+    engineNoRemote:
+      "「engine」リモートが未設定です。初回のみターミナルで git remote add engine <配布リポジトリのURL> を実行してください(engine/docs/UPDATING.md 参照)。",
+    engineUpdateNow: "今すぐ更新",
+    engineConfirm:
+      "エンジン更新を取り込んで再ビルドしますか? data/ には触れません。完了後は Studio の再起動が必要です。",
+    engineRunning: "エンジン更新を実行中 ...",
+    engineDoneNote:
+      "✓ エンジン更新が完了しました。Studio を再起動(停止して npm run studio)すると新しいバージョンで動きます。",
+    engineFailedNote:
+      "更新が途中で停止しました — 上のログを確認してください。中途半端な状態は残っていません。Claude Code に「エンジンの更新を取り込んで」と頼むこともできます。",
+    engineCheckFailed: "確認に失敗: {message}",
+    engineStartFailed: "更新の開始に失敗: {message}",
+    engineNoRef:
+      "取得はできましたが engine/main が見つかりません — 配布リポジトリのブランチ名が異なる可能性があります。Claude Code に「エンジンの更新を取り込んで」と頼んでください。",
+    engineStreamLost:
+      "更新ログへの接続が切れました。更新自体は続いている可能性があります —「更新を確認」を押すと再接続します。",
   },
 };
 

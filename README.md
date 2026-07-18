@@ -7,6 +7,8 @@
 
 Provenfolio is an engine that puts AI agents (Claude Code) to work analyzing your repositories in depth, then automatically generates — and automatically updates — a bilingual Japanese-English portfolio site featuring **evidence-linked case studies** and a **visualized development history**.
 
+> 📘 **Complete usage guide for non-engineers**: [GUIDE.html](GUIDE.html) (Japanese: [GUIDE.ja.html](GUIDE.ja.html)). Open it in a browser after cloning, or via Studio's "📘 Guide" button.
+
 ## Why use this instead of building your own
 
 | | DIY portfolio | Provenfolio |
@@ -54,4 +56,4 @@ See `engine/docs/GETTING-STARTED.md` for details.
 
 Free to use (reselling or redistributing the product itself is prohibited). See [LICENSE.md](LICENSE.md) — source-available, not open source.
 
-<!-- i18n:source=README.ja.md sha256=d155aa4de4eca159ea3e5621b982c311ab4d3f37827141d657a5447d402ca83e -->
+<!-- i18n:source=README.ja.md sha256=7f2c4eac34d5d1cb5030be5125f9eb90e66db6412a74ad0644c8c5b3e1f150bd -->
