@@ -205,7 +205,17 @@ for (const l of prose.links) {
 if (stats?.github?.homepage && !links.some((l) => l.url === stats.github!.homepage)) {
   const url = stats.github.homepage;
   if (/^https?:\/\//.test(url)) {
-    links.push({ label: { [sl]: "Website" }, url, kind: "demo" });
+    // Locale → label map for the auto-added homepage link. check:i18n keeps
+    // engine source English-only, so only English labels can live here;
+    // locales without an entry fall back to the "en" value. Owners who want
+    // a localized label add the link in intake, which wins the dedupe above.
+    const websiteLabelEn = "Website";
+    const knownLabels: Record<string, string> = { en: websiteLabelEn };
+    const label: Record<string, string> = {};
+    for (const locale of [sl, ...profile.targetLangs]) {
+      label[locale] = knownLabels[locale] ?? websiteLabelEn;
+    }
+    links.push({ label, url, kind: "demo" });
   }
 }
 

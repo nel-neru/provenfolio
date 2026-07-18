@@ -3,7 +3,8 @@
  * Deterministically re-runs fetch/extract/emit for every github-sourced
  * project: metrics, heatmaps, language mixes update with ZERO AI cost.
  * Prose is never touched; when source drift exceeds thresholds the project
- * is flagged stale so Studio/`/refresh` can offer a re-enrich.
+ * is flagged stale (generated.staleSince) so `/refresh` can report it and
+ * offer re-enrichment via `/analyze --refresh <id>`.
  *
  * Usage: npm run refresh   (also run by .github/workflows/refresh.yml)
  */
