@@ -12,7 +12,14 @@ All notable changes to Provenfolio. Versioning follows the root `package.json` (
 - The distribution repo no longer tracks `data/`: a blank seed is bootstrapped on demand by `engine/scripts/ensure-data.ts` (wired into `npm run validate`, site dev/build, and Studio). `reset-data.ts` shares the same seed code.
 - `data-guard` CI is now a tracked-state check (zero `data/` paths allowed in the distribution repo); the `[seed]` escape hatch is gone.
 
+### Changed
+- **Target-locale routes are generated from `profile.targetLangs`.** The hardcoded `/en/` page trees are gone; `[lang]` dynamic routes build one tree per configured target locale (none when `targetLangs` is empty), so any locale pair works — with URL sets byte-identical to the previous output for existing ja+en instances. Custom-page wrappers follow the `[lang]/<name>.astro` pattern (see CUSTOMIZING).
+
 ### Fixed
+- `github`-type sources now require a `github.com` repoUrl host — a mistyped or malicious git remote can no longer become a published portfolio link (non-GitHub repos: use type `manual`).
+- PR evidence that cannot be checked because GitHub metadata is unavailable (offline, `gh` failure) now says so instead of claiming the PR does not exist.
+- The design-proposal preview server (port 4700) gained the same Host-allowlist DNS-rebinding guard as Studio.
+- A theme contrast regression test now guards every theme's `text`/`textDim`/`textFaint` tokens at AA; it caught and fixed two more themes (acid-lab, neo-brutalist).
 - `textFaint` now meets WCAG AA (≥4.5:1 on all surfaces) in midnight, editorial-swiss, data-forensic, and kinetic-type — it is the color of the evidence links, dates, and fine print.
 - The numeric-provenance lint tokenizer understands digit grouping: thousands separators (`12,151`) parse as one number, percentages lint on their numeric part, version strings no longer shed stray fragments, and the allow-list shares the same tokenizer so both sides always agree.
 - The completeness translation penalty is prorated across `targetLangs` instead of deducting 15 points per missing language, so multilingual profiles can no longer overdraw the scale and pin at 0.
