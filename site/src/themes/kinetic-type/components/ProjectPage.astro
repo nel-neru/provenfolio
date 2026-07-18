@@ -270,6 +270,7 @@ const tocKeys: Record<string, string> = {
                     <EvidenceLink
                       evidence={e}
                       repoUrl={repoUrl}
+                      sourceCommit={gh?.sourceCommit}
                       isPrivate={isPrivate}
                       locale={locale}
                     />
@@ -293,6 +294,7 @@ const tocKeys: Record<string, string> = {
               locale={locale}
               sourceLang={sl}
               repoUrl={repoUrl}
+              sourceCommit={gh?.sourceCommit}
               isPrivate={isPrivate}
             />
           </section>

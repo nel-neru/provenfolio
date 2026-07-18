@@ -8,10 +8,12 @@ interface Props {
   evidence: { kind: string; ref: string; label?: string };
   repoUrl?: string;
   isPrivate?: boolean;
+  /** Commit the repo was analyzed at (source.sourceCommit); pins file links. */
+  sourceCommit?: string;
   locale: string;
 }
 
-const { evidence, repoUrl, isPrivate = false } = Astro.props;
+const { evidence, repoUrl, isPrivate = false, sourceCommit } = Astro.props;
 const { kind, ref, label } = evidence;
 
 /** Tolerate trailing slash / .git on the repo URL. */
@@ -28,7 +30,9 @@ if (kind === "commit") {
 } else if (kind === "file") {
   text = ref.split("/").pop() ?? ref;
   title = ref;
-  if (linkable) href = `${base}/blob/HEAD/${ref}`;
+  // Pin to the analyzed commit so the link survives later moves/deletes;
+  // fall back to HEAD only when no commit was recorded.
+  if (linkable) href = `${base}/blob/${sourceCommit ?? "HEAD"}/${ref}`;
 } else if (kind === "pr") {
   const n = ref.replace(/^#/, "");
   text = `#${n}`;

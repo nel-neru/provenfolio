@@ -128,6 +128,7 @@ const summary = t(project.summary, locale, sl);
                       <EvidenceLink
                         evidence={e}
                         repoUrl={repoUrl}
+                        sourceCommit={gh?.sourceCommit}
                         isPrivate={isPrivate}
                         locale={locale}
                       />
@@ -149,6 +150,7 @@ const summary = t(project.summary, locale, sl);
               locale={locale}
               sourceLang={sl}
               repoUrl={repoUrl}
+              sourceCommit={gh?.sourceCommit}
               isPrivate={isPrivate}
             />
           </section>
