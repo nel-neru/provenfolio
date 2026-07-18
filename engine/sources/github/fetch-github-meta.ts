@@ -38,6 +38,49 @@ function ghJson<T>(endpoint: string): T | undefined {
   }
 }
 
+/**
+ * Fetch an array endpoint across ALL pages via `gh api --paginate`.
+ *
+ * `--paginate` follows Link headers but emits one JSON document per page, so
+ * array endpoints come back as concatenated arrays ("...][...") that plain
+ * JSON.parse rejects. `--slurp` would wrap the pages in an outer array, but it
+ * only exists on newer gh releases, so we flatten with `--jq ".[]"` instead
+ * (available wherever `--paginate` is): gh then prints one compact JSON value
+ * per line, and JSON string escaping guarantees no raw newlines inside a
+ * value, so line-by-line parsing is safe. A whole-output parse is tried first
+ * so a single well-formed array also works.
+ *
+ * Deliberately no page cap: the results feed prCount/releaseCount/
+ * contributorCount and emit.ts's PR-evidence validation, all of which need
+ * the complete list to be correct (a truncated page-1 view is exactly the bug
+ * this fixes). Worst-case output is bounded by run()'s explicit 256 MB
+ * maxBuffer (~100k PRs at ~2 KB each), which no plausible repo approaches.
+ */
+function ghJsonPaginated<T>(endpoint: string): T[] | undefined {
+  const raw = run("gh", ["api", "--paginate", endpoint, "--jq", ".[]"], {
+    allowFail: true,
+  });
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  try {
+    const whole = JSON.parse(trimmed) as T | T[];
+    return Array.isArray(whole) ? whole : [whole];
+  } catch {
+    // JSON Lines (one value per line, possibly CRLF on Windows)
+    const items: T[] = [];
+    for (const line of trimmed.split(/\r?\n/)) {
+      const value = line.trim();
+      if (!value) continue;
+      try {
+        items.push(JSON.parse(value) as T);
+      } catch {
+        return undefined; // fail soft, same contract as ghJson
+      }
+    }
+    return items;
+  }
+}
+
 interface RepoMeta {
   description: string | null;
   created_at: string;
@@ -75,13 +118,14 @@ interface PR {
   merged_at: string | null;
 }
 const prs =
-  ghJson<PR[]>(`${repoPath}/pulls?state=closed&per_page=100`)?.filter(
+  ghJsonPaginated<PR>(`${repoPath}/pulls?state=closed&per_page=100`)?.filter(
     (p) => p.merged_at
   ) ?? [];
 
-const releases = ghJson<unknown[]>(`${repoPath}/releases?per_page=100`) ?? [];
+const releases =
+  ghJsonPaginated<unknown>(`${repoPath}/releases?per_page=100`) ?? [];
 const contributors =
-  ghJson<unknown[]>(`${repoPath}/contributors?per_page=100`) ?? [];
+  ghJsonPaginated<unknown>(`${repoPath}/contributors?per_page=100`) ?? [];
 
 const stats = readJson(out) as RawStats;
 stats.github = {
