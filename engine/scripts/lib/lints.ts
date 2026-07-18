@@ -6,7 +6,35 @@ import type { ProjectMetrics, Intake, Prose } from "../../schemas/index.js";
  * outcomes, or analyzer-verified facts; puffery phrases are banned outright.
  */
 
-const NUMBER_TOKEN = /\d+(?:[.,]\d+)?/g;
+/**
+ * A maximal run of digits joined by "." or "," (e.g. "12,151", "3.5",
+ * "2.0.1"). Runs are classified by `tokenToNumbers` — matching the whole
+ * run first prevents "12,151" from leaking a bogus trailing "151" token.
+ */
+const NUMBER_RUN = /\d+(?:[.,]\d+)*/g;
+
+/** Digit-grouped integer, optionally with a decimal part: 1,234 / 12,151.5 */
+const GROUPED_THOUSANDS = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
+
+/** Plain decimal: 3.5, 2.0 (also covers version fragments like "v2.0") */
+const PLAIN_DECIMAL = /^\d+\.\d+$/;
+
+/**
+ * Turn one digit run into the numeric value(s) it asserts:
+ *  - "12,151"  → [12151]   (thousands grouping, separators stripped)
+ *  - "1,234.5" → [1234.5]
+ *  - "3.5"     → [3.5]     (decimals kept as-is; "100" in "100%" → [100])
+ *  - "2.0.1"   → [2, 0, 1] (irregular runs — multi-dot versions, comma
+ *    lists like "5,6" — split into standalone integer segments; both the
+ *    allow-list and the lint use this same rule, so identical source
+ *    strings always stay in agreement)
+ */
+function tokenToNumbers(run: string): number[] {
+  if (GROUPED_THOUSANDS.test(run)) return [Number(run.replace(/,/g, ""))];
+  if (PLAIN_DECIMAL.test(run)) return [Number(run)];
+  if (/^\d+$/.test(run)) return [Number(run)];
+  return run.split(/[.,]/).map(Number);
+}
 
 /** Unverifiable-claim phrases (always rejected — state the checkable fact instead). */
 const BANNED_PHRASES = [
@@ -38,9 +66,7 @@ const BANNED_PHRASES = [
 ];
 
 function extractNumbers(text: string): number[] {
-  return [...text.matchAll(NUMBER_TOKEN)].map((m) =>
-    parseFloat(m[0].replace(",", "."))
-  );
+  return [...text.matchAll(NUMBER_RUN)].flatMap((m) => tokenToNumbers(m[0]));
 }
 
 function dateComponents(iso: string | undefined): number[] {
