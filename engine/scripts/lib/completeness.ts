@@ -73,9 +73,20 @@ export function computeCompleteness({
   const hasGithubSource = project.sources.some((s) => s.type === "github");
   if (hasGithubSource && project.timeline.length === 0) missing.push("timeline");
 
-  const lost = missing.reduce(
-    (sum, key) => sum + (WEIGHTS[key.split(":")[0] ?? key] ?? 0),
-    0
-  );
+  // The translation weight is a single budget shared by all target languages:
+  // each missing language costs weight * (1 / targetLangs.length), rounded.
+  // Charging the full weight per language would let multilingual profiles
+  // overdraw the 100-point scale and pin the score at 0.
+  const translationLost =
+    untranslated.length > 0
+      ? Math.round(
+          ((WEIGHTS["translation"] ?? 0) * untranslated.length) /
+            profile.targetLangs.length
+        )
+      : 0;
+  const lost = missing.reduce((sum, key) => {
+    const base = key.split(":")[0] ?? key;
+    return base === "translation" ? sum : sum + (WEIGHTS[base] ?? 0);
+  }, translationLost);
   return { score: Math.max(0, 100 - lost), missing };
 }
