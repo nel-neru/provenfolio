@@ -22,7 +22,7 @@ Everything flows through validated JSON in `data/` — the single source of trut
 - **`metrics` is script territory.** Produced solely by extraction → `toProjectMetrics`. `total` vs `byOwner` split keeps team-repo numbers honest.
 - **`highlights[].evidence` is mandatory** (commit/file/pr/release/ownerInput/url) and mechanically verified at emit.
 - **`caseStudy.results` is optional by design.** No owner-provided outcomes → no results section (the site renders an engineering-outcomes strip instead). This is the no-fabrication guarantee.
-- **`generated.contentHashes`**: per-field SHA-256 at emit time. Hash mismatch = you edited it = the pipeline never overwrites it silently. Editing prose in Studio// /edit intentionally leaves hashes stale — that's the protection mechanism, not a bug.
+- **`generated.contentHashes`**: per-field SHA-256 of the agent-written baseline, keyed by stable evidence-derived ids. Hash mismatch = you edited it = the pipeline never overwrites it silently — the baseline hash is carried forward across re-analyses, so protection is permanent until you release it (`--accept-regenerated`). If a regenerated draft no longer contains a human-edited entry, emit aborts and asks instead of guessing. Editing prose in Studio// /edit intentionally leaves hashes stale — that's the protection mechanism, not a bug.
 - **`sources[]` is an array**: one project can bundle several repos (`/analyze --attach`). Source `type` union (`github | manual | local`) is where future adapters plug in without schema changes.
 
 ## Editing rules (what you may touch by hand)

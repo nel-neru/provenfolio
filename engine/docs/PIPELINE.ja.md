@@ -32,7 +32,7 @@
    - **数値リント**: 文章中のすべての数値は metrics/intake の成果/検証済み事実のいずれかに存在しなければなりません、
    - **禁止フレーズリント**: 検証不能な誇大表現は却下されます、
    - **エビデンス検証**: commit SHA は `git cat-file` で、ファイルパスはディスク上で、PR 番号はマージ済み PR と照合して確認 — 捏造された裏付けはパイプラインを失敗させます、
-   - **人間による編集の保護**: SHA-256 の contentHashes により、あなたが編集したフィールドは diff の確認なしに上書きされることはありません、
+   - **人間による編集の保護**: エビデンス由来の安定キーで管理される SHA-256 の contentHashes。編集済みフィールドはエージェント基準ハッシュを再解析をまたいで引き継ぐため、黙って上書きされることは決してありません。再生成された草稿から編集済みエントリが消えた場合、マージは中断して明示的な確認を求めます(`--keep-orphaned-edits` / `--drop-orphaned-edits`。フィールド単位の保護解除は `--accept-regenerated`)、
    - マニフェストの upsert、アグリゲートの再計算、完全性スコアリング。
 10. `validate-data.ts` — 同じ Zod スキーマがサイトのビルド時にも再度ゲートとして機能します(二重の強制)。
 
@@ -42,6 +42,6 @@
 
 ## リフレッシュループ
 
-`npm run refresh` = ステップ 1–3 + 全プロジェクトへの `emit --metrics-only`: 数値は更新され、文章は変更されず、AI コストはゼロです。しきい値(30 commit / 60 日)を超えるドリフトは `generated.staleSince` にフラグを立て → Studio に表示され → `/refresh <id>` があなたの編集を保持したまま enrich を再実行します。
+`npm run refresh` = ステップ 1–3 + 全プロジェクトへの `emit --metrics-only`: 数値は更新され、文章は変更されず、AI コストはゼロです。しきい値(30 commit / 60 日)を超えるドリフトは `generated.staleSince` にフラグを立て → Studio に表示され → `/analyze --refresh <id>` があなたの編集を保持したまま enrich を再実行します。
 
-<!-- i18n:source=engine/docs/PIPELINE.md sha256=ab47f4dc69602d91469fb0d3b8c13ff67484932c7118caed0cf39125ccad0f0b -->
+<!-- i18n:source=engine/docs/PIPELINE.md sha256=63f62f815347e6193f29e49a548f4fbf228b18f06e028a09fcc6fe1935e9b8a3 -->

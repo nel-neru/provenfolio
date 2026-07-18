@@ -32,7 +32,7 @@ The division of labor is the product's trust model:
    - **numeric lint**: every number in prose must exist in metrics/intake-outcomes/verified-facts,
    - **banned-phrase lint**: unverifiable puffery rejected,
    - **evidence verification**: commit SHAs checked with `git cat-file`, file paths checked on disk, PR numbers checked against merged PRs — fabricated receipts fail the pipeline,
-   - **human-edit protection**: SHA-256 contentHashes; a field you edited is never overwritten without a diff confirmation,
+   - **human-edit protection**: SHA-256 contentHashes keyed by stable evidence-derived ids; edited fields carry their agent baseline hash forward across re-analyses so they are never silently overwritten, and if a regenerated draft no longer contains a human-edited entry the merge aborts for explicit confirmation (`--keep-orphaned-edits` / `--drop-orphaned-edits`; release protection per field with `--accept-regenerated`),
    - manifest upsert, aggregates recompute, completeness scoring.
 10. `validate-data.ts` — the same Zod schemas gate again at site build time (dual enforcement).
 
@@ -42,4 +42,4 @@ Each enrich stage persists its output file; re-running `/analyze` skips stages w
 
 ## Refresh loop
 
-`npm run refresh` = steps 1–3 + `emit --metrics-only` for every project: numbers update, prose untouched, zero AI cost. Drift past thresholds (30 commits / 60 days) flags `generated.staleSince` → Studio shows it → `/refresh <id>` re-runs enrich with your edits preserved.
+`npm run refresh` = steps 1–3 + `emit --metrics-only` for every project: numbers update, prose untouched, zero AI cost. Drift past thresholds (30 commits / 60 days) flags `generated.staleSince` → Studio shows it → `/analyze --refresh <id>` re-runs enrich with your edits preserved.

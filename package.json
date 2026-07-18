@@ -13,6 +13,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "test": "node --import tsx --test \"engine/scripts/lib/*.test.ts\"",
     "validate": "tsx engine/scripts/ensure-data.ts && tsx engine/scripts/validate-data.ts",
     "check:i18n": "tsx engine/scripts/check-i18n.ts",
     "aggregate": "tsx engine/scripts/aggregate.ts",
