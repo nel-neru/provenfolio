@@ -669,11 +669,24 @@ function listInstalledThemes(): string[] {
     .sort();
 }
 
-/** Re-import theme.config.mjs fresh (cache-busted) so edits are reflected live. */
+/**
+ * Read theme.config.mjs, re-importing only when the file changed on disk.
+ *
+ * ESM modules are never evicted from the module map, so a per-call
+ * `?v=Date.now()` cache-buster leaks one module instance per request.
+ * Keying the import URL on mtimeMs bounds that growth to the number of
+ * actual file edits while still reflecting hand edits live.
+ */
+let themeConfigCache: { mtimeMs: number; value: { activeTheme: string; visitorThemes: "all" | string[] } } | null =
+  null;
+
 async function readThemeConfig(): Promise<{ activeTheme: string; visitorThemes: "all" | string[] }> {
-  const url = `${pathToFileURL(THEME_CONFIG_FILE).href}?v=${Date.now()}`;
+  const mtimeMs = fs.statSync(THEME_CONFIG_FILE).mtimeMs;
+  if (themeConfigCache && themeConfigCache.mtimeMs === mtimeMs) return themeConfigCache.value;
+  const url = `${pathToFileURL(THEME_CONFIG_FILE).href}?v=${mtimeMs}`;
   const mod = (await import(url)) as { activeTheme: string; visitorThemes: "all" | string[] };
-  return { activeTheme: mod.activeTheme, visitorThemes: mod.visitorThemes };
+  themeConfigCache = { mtimeMs, value: { activeTheme: mod.activeTheme, visitorThemes: mod.visitorThemes } };
+  return themeConfigCache.value;
 }
 
 /**
@@ -1217,7 +1230,8 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (
       typeof origin === "string" &&
       origin !== `http://${HOST}:${PORT}` &&
-      origin !== `http://localhost:${PORT}`
+      origin !== `http://localhost:${PORT}` &&
+      origin !== `http://[::1]:${PORT}`
     ) {
       throw new HttpError(403, "Cross-origin request rejected");
     }
