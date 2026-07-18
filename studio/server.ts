@@ -42,6 +42,14 @@ import { themeCssVars, themeFontFaces } from "../site/src/theme.js";
 
 const HOST = "127.0.0.1";
 const PORT = 4600;
+// Host header values a local browser can legitimately send when talking to
+// the Studio. A DNS-rebinding page is served from an attacker-owned domain
+// whose DNS record is then re-pointed at 127.0.0.1 — the browser happily
+// reaches this server and same-origin policy no longer helps, but the Host
+// header still names the attacker's domain. Allowlisting Host on EVERY
+// request (GETs included — /api/state alone exposes the whole contract)
+// shuts that down.
+const ALLOWED_HOSTS = new Set([`${HOST}:${PORT}`, `localhost:${PORT}`, `[::1]:${PORT}`]);
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const ASSETS_DIR = path.join(DATA_DIR, "assets");
 const SCREENSHOTS_DIR = path.join(DATA_DIR, "assets", "screenshots");
@@ -250,6 +258,43 @@ function pushChunkLines(runner: StreamRunner, chunk: Buffer, carry: { buf: strin
   for (const line of lines) runner.push(line);
 }
 
+/** Resolve a command on PATH the way `where` does (Windows only). */
+function resolveOnPath(name: string): string | undefined {
+  for (const rawDir of (process.env.PATH ?? "").split(path.delimiter)) {
+    const dir = rawDir.replace(/^"(.*)"$/, "$1").trim();
+    if (!dir) continue;
+    for (const ext of [".exe", ".cmd", ".bat"]) {
+      const candidate = path.join(dir, name + ext);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Work out how to launch the claude CLI without a shell. On Windows the CLI
+ * is either a native claude.exe or an npm .cmd shim — and Node refuses to
+ * spawn .cmd/.bat files shell-less (CVE-2024-27980), so instead of executing
+ * the shim we unwrap it to the cli.js it points at and run that with the
+ * current Node binary. Returns undefined when no launchable CLI is found.
+ */
+function resolveClaudeLaunch(args: string[]): { file: string; args: string[] } | undefined {
+  if (process.platform !== "win32") return { file: "claude", args };
+  const found = resolveOnPath("claude");
+  if (!found) return undefined;
+  if (found.toLowerCase().endsWith(".exe")) return { file: found, args };
+  // npm shim layout: <dir>/claude.cmd wraps <dir>/node_modules/<pkg>/cli.js
+  const cliJs = path.join(
+    path.dirname(found),
+    "node_modules",
+    "@anthropic-ai",
+    "claude-code",
+    "cli.js"
+  );
+  if (fs.existsSync(cliJs)) return { file: process.execPath, args: [cliJs, ...args] };
+  return undefined;
+}
+
 function startAnalyze(): void {
   if (engineRunner.running) {
     throw new HttpError(409, "Engine update running — wait for it to finish first");
@@ -257,26 +302,30 @@ function startAnalyze(): void {
   analyzeRunner.begin("Analysis already running");
   analyzeRunner.push(`[studio] ${nowIso()} launching claude -p "/analyze --pending" ...`);
 
-  // The claude CLI is an npm .cmd shim on Windows, so it needs a shell there —
-  // but a shell concatenates args without escaping, which would split the
-  // prompt at its space ("--pending" became an unknown claude option). Quote
-  // the prompt manually on the shell path only.
-  const useShell = process.platform === "win32";
-  const prompt = "/analyze --pending";
+  // Never spawn through a shell: a shell re-parses the argument string, which
+  // both mangles the space in the prompt and is an injection hazard. The CLI
+  // is resolved explicitly instead (see resolveClaudeLaunch).
+  const launch = resolveClaudeLaunch([
+    "-p",
+    "/analyze --pending",
+    "--permission-mode",
+    "acceptEdits",
+  ]);
+  if (!launch) {
+    analyzeRunner.push('Claude Code CLI not found. Run "/analyze --pending" in Claude Code instead.');
+    analyzeRunner.done(-1);
+    return;
+  }
   let child: ChildProcess;
   try {
-    child = spawn(
-      "claude",
-      ["-p", useShell ? `"${prompt}"` : prompt, "--permission-mode", "acceptEdits"],
-      {
-        cwd: ROOT,
-        shell: useShell,
-        windowsHide: true,
-        // No stdin: an open-but-silent pipe makes the claude CLI wait 3s and
-        // print a "no stdin data received" warning before proceeding.
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
+    child = spawn(launch.file, launch.args, {
+      cwd: ROOT,
+      shell: false,
+      windowsHide: true,
+      // No stdin: an open-but-silent pipe makes the claude CLI wait 3s and
+      // print a "no stdin data received" warning before proceeding.
+      stdio: ["ignore", "pipe", "pipe"],
+    });
   } catch {
     analyzeRunner.push('Claude Code CLI not found. Run "/analyze --pending" in Claude Code instead.');
     analyzeRunner.done(-1);
@@ -954,6 +1003,13 @@ function serveFileWithin(rootDir: string, relPath: string, res: ServerResponse):
 // ---------------------------------------------------------------------------
 
 async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  // DNS-rebinding guard: refuse any request whose Host header is not a known
+  // local name for this server (see ALLOWED_HOSTS). Checked on all methods.
+  const host = req.headers.host;
+  if (typeof host !== "string" || !ALLOWED_HOSTS.has(host.toLowerCase())) {
+    throw new HttpError(403, "Unrecognized Host header");
+  }
+
   const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
   const p = url.pathname;
   const method = req.method ?? "GET";
