@@ -53,6 +53,8 @@ You orchestrate the full pipeline for one project (or several with `--pending`).
 
 Safe by design: emit preserves human-edited prose via contentHashes and preserves featured/placement/order. If `sourceCommit` equals current HEAD and prose exists, skip enrich entirely (nothing changed) — just report.
 
+If emit exits 1 because a human-edited entry no longer matches anything in the regenerated draft (orphaned edit), do NOT pick a resolution yourself: show the user the fields emit lists and let them choose — re-run emit with `--keep-orphaned-edits` (append the edits unchanged), `--drop-orphaned-edits` (discard them), or `--accept-regenerated <fieldPath|all>` (release protection and take the regenerated text). Never default to `--drop-orphaned-edits`.
+
 ## Never
 
 - Never write `data/projects/*.json` by hand — always through emit.

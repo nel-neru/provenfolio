@@ -18,5 +18,5 @@ Editing bilingual JSON by hand is miserable; this skill is the humane path. You 
    - No banned puffery (the phrases the emit lint rejects) — offer the checkable-fact phrasing instead.
 4. Retranslate every edited field into each targetLang (register: concise, results-first, active voice, technical terms verbatim).
 5. Run `npm run validate` — must pass.
-6. Do NOT touch `generated.contentHashes` — the mismatch is the point: it marks these fields human-owned so re-analysis never overwrites them.
+6. Do NOT touch `generated.contentHashes` — the mismatch is the point: it marks these fields human-owned so re-analysis never overwrites them. If a later re-analysis produces a draft that no longer contains an edited entry, emit exits 1 instead of dropping it; the user (never the agent) then chooses `--keep-orphaned-edits`, `--drop-orphaned-edits`, or `--accept-regenerated <fieldPath|all>`.
 7. Summarize what changed and suggest `/update-site` to preview.
